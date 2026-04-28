@@ -2,80 +2,79 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Библейский квартет</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --bg: #0d0d1a; --card: #1a1a35; --accent: #e2a03f; --accent2: #7c3aed;
-            --text: #f1f5f9; --text2: #94a3b8; --green: #10b981; --red: #ef4444; --border: #2d2d4a;
+            --bg: #0d0d1a; --card: #1a1a35; --accent: #e2a03f;
+            --accent2: #7c3aed; --text: #f1f5f9; --text2: #94a3b8;
+            --green: #10b981; --red: #ef4444; --border: #2d2d4a;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Georgia', serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 16px; }
         .container { max-width: 700px; margin: 0 auto; }
         .header { text-align: center; padding: 16px 0; }
-        .header h1 { font-size: 22px; color: var(--accent); }
-        .btn { width: 100%; padding: 14px; font-size: 16px; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; margin: 6px 0; transition: all 0.2s; }
+        .btn { width: 100%; padding: 14px; font-size: 15px; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; margin: 6px 0; }
         .btn-primary { background: var(--accent); color: #000; }
         .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
         .btn-danger { background: var(--red); color: #fff; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Заголовок категории (сворачиваемый) */
+        .cat-header {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 12px 16px; margin: 8px 0 0;
+            display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer; user-select: none; transition: all 0.2s;
+        }
+        .cat-header:hover { border-color: var(--accent); }
+        .cat-header .title { font-weight: bold; color: var(--accent); font-size: 14px; text-transform: uppercase; }
+        .cat-header .info { display: flex; gap: 10px; align-items: center; }
+        .cat-header .count { font-size: 13px; padding: 4px 10px; border-radius: 8px; }
+        .count-full { background: var(--green); color: #fff; }
+        .count-partial { background: rgba(226,160,63,0.2); color: var(--accent); }
+        .cat-header .arrow { font-size: 18px; transition: transform 0.3s; }
+        .cat-header .arrow.open { transform: rotate(180deg); }
 
         /* Сетка карт */
-        .hand-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
-        .mini-card {
-            background: var(--card); border: 2px solid var(--border);
+        .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 6px 0 0; }
+        .cards-grid.collapsed { display: none; }
+
+        /* Карточка */
+        .card-cell {
+            background: var(--card); border: 3px solid var(--border);
             border-radius: 10px; overflow: hidden; cursor: pointer;
-            transition: all 0.2s; aspect-ratio: 3/4;
+            transition: all 0.2s; aspect-ratio: 3/4; position: relative;
         }
-        .mini-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-        .mini-card img { width: 100%; height: 100%; object-fit: cover; }
-        .mini-card .badge-count {
-            position: absolute; top: 4px; right: 4px;
-            background: rgba(0,0,0,0.7); color: var(--accent);
-            font-size: 10px; padding: 2px 6px; border-radius: 8px;
+        .card-cell.owned { border-color: var(--green); cursor: default; }
+        .card-cell.missing { opacity: 0.5; filter: grayscale(0.6); }
+        .card-cell.missing:hover { opacity: 0.8; filter: grayscale(0.2); border-color: var(--accent2); }
+        
+        /* ВЫБРАНА */
+        .card-cell.selected {
+            border-color: var(--accent2) !important;
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.6);
+            opacity: 1 !important; filter: none !important;
+            transform: scale(1.03);
+        }
+        .card-cell.selected::after {
+            content: '✅';
+            position: absolute; top: 6px; right: 6px;
+            font-size: 18px; z-index: 5;
+            background: var(--accent2); border-radius: 50%;
+            width: 28px; height: 28px; display: flex;
+            align-items: center; justify-content: center;
         }
 
-        /* Модальное окно категории */
-        .category-modal {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.9); display: flex;
-            align-items: center; justify-content: center; z-index: 100;
-        }
-        .category-modal-content {
-            background: var(--card); border-radius: 20px; padding: 20px;
-            max-width: 450px; width: 95%; text-align: center;
-        }
-        .category-modal-content h3 { color: var(--accent); margin-bottom: 12px; font-size: 18px; }
-        .category-modal-content .slots {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-        }
-        .slot {
-            background: var(--bg); border: 2px solid var(--border);
-            border-radius: 12px; overflow: hidden; aspect-ratio: 3/4;
-            position: relative; transition: all 0.2s;
-        }
-        .slot.owned { border-color: var(--green); }
-        .slot.missing { border-color: var(--red); cursor: pointer; opacity: 0.6; }
-        .slot.missing:hover { opacity: 1; border-color: var(--accent); transform: scale(1.03); }
-        .slot img { width: 100%; height: 100%; object-fit: cover; }
-        .slot .slot-status {
-            position: absolute; top: 6px; left: 6px;
-            font-size: 14px; background: rgba(0,0,0,0.7);
-            padding: 2px 8px; border-radius: 8px;
-        }
-        .slot.owned .slot-status { color: var(--green); }
-        .slot.missing .slot-status { color: var(--red); }
-        .slot .slot-name {
+        .card-cell img { width: 100%; height: 100%; object-fit: cover; }
+        .card-cell .label {
             position: absolute; bottom: 0; left: 0; right: 0;
-            background: rgba(0,0,0,0.7); padding: 4px 6px;
-            font-size: 10px; color: #fff; text-align: center;
+            background: rgba(0,0,0,0.7); padding: 3px 6px;
+            font-size: 10px; text-align: center; color: #fff;
         }
 
         .game-log { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin: 12px 0; max-height: 80px; overflow-y: auto; font-size: 11px; color: var(--text2); }
-        .game-log p { margin: 2px 0; }
         .hidden { display: none !important; }
-        .scoreboard { text-align: center; margin: 16px 0; }
         .score-item { background: var(--card); border-radius: 12px; padding: 12px; margin: 8px 0; display: flex; justify-content: space-between; }
     </style>
 </head>
@@ -95,15 +94,9 @@
         <div id="game-screen" class="hidden">
             <div class="header"><h2 id="game-status" style="color:var(--accent)"></h2><p style="color:var(--text2)" id="turn-info"></p></div>
             <div class="game-log" id="game-log"></div>
-            <div class="hand-grid" id="hand-grid"></div>
+            <div id="play-area"></div>
+            <button class="btn btn-primary hidden" id="request-btn" onclick="requestSelected()">❓ Запросить выбранную карту</button>
             <button class="btn btn-danger hidden" id="end-btn" onclick="endTurn()">✅ Закончить ход</button>
-        </div>
-        <div id="category-modal" class="category-modal hidden">
-            <div class="category-modal-content">
-                <h3 id="cat-modal-title"></h3>
-                <div class="slots" id="cat-slots"></div>
-                <button class="btn btn-secondary" style="margin-top:12px;" onclick="closeCategoryModal()">Закрыть</button>
-            </div>
         </div>
         <div id="win-screen" class="hidden">
             <div class="header"><h1>🏆 Игра окончена!</h1><div class="scoreboard" id="scoreboard"></div><button class="btn btn-primary" onclick="showMainMenu()">В меню</button></div>
@@ -115,6 +108,7 @@
         if (tg) { tg.expand(); tg.ready(); }
         let gameState = null;
         let playerName = 'Игрок';
+        let selectedCard = null; // {category, cardName}
         if (tg?.initDataUnsafe?.user) playerName = tg.initDataUnsafe.user.first_name || 'Игрок';
 
         async function loadData() { const r = await fetch('data.json'); return await r.json(); }
@@ -130,7 +124,7 @@
             gameState = { players: [{ id: 0, name: playerName, hand: deck.splice(0, n), quartets: [] }, { id: 1, name: 'Бот', hand: deck.splice(0, n), quartets: [] }], bank: deck, currentPlayer: 0, log: [], data: data };
             document.getElementById('card-count-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
-            addLog(`🎮 Игра началась! У вас ${n} карт. Нажмите на карту чтобы открыть категорию.`);
+            addLog('🎮 Игра началась! Выберите тусклую карту (❓) и нажмите "Запросить".');
             updateUI();
         }
 
@@ -138,77 +132,89 @@
             const me = gameState.players[0], cur = gameState.players[gameState.currentPlayer];
             document.getElementById('game-status').textContent = gameState.currentPlayer === 0 ? '🎯 Ваш ход' : '⏳ Бот думает...';
             document.getElementById('turn-info').textContent = `Ходит: ${cur.name} | 🏆 Вы: ${me.quartets.length} | Бот: ${gameState.players[1].quartets.length}`;
-            if (gameState.currentPlayer === 0) document.getElementById('end-btn').classList.remove('hidden');
-            else { document.getElementById('end-btn').classList.add('hidden'); setTimeout(botTurn, 1200); }
-            renderHand(); checkWin();
+            if (gameState.currentPlayer === 0) {
+                document.getElementById('request-btn').classList.remove('hidden');
+                document.getElementById('end-btn').classList.remove('hidden');
+            } else {
+                document.getElementById('request-btn').classList.add('hidden');
+                document.getElementById('end-btn').classList.add('hidden');
+                setTimeout(botTurn, 1200);
+            }
+            renderPlayArea();
+            checkWin();
         }
 
-        function renderHand() {
-            const grid = document.getElementById('hand-grid');
-            const me = gameState.players[0];
+        function renderPlayArea() {
+            const me = gameState.players[0], container = document.getElementById('play-area');
             const grouped = {};
             me.hand.forEach(c => { if (!grouped[c.category]) grouped[c.category] = []; grouped[c.category].push(c); });
+            const allGrouped = {};
+            gameState.data.forEach(q => { allGrouped[q.name] = q.cards.map(c => ({ ...c, category: q.name, owned: me.hand.some(h => h.category === q.name && h.cardName === c.name) })); });
+            const active = Object.keys(grouped).sort();
+            if (!active.length) { container.innerHTML = '<p style="text-align:center;padding:40px;color:var(--text2)">У вас нет карт</p>'; return; }
 
-            // Показываем по одной карте из каждой категории
-            grid.innerHTML = Object.entries(grouped).sort().map(([cat, cards]) => {
-                const card = cards[0];
+            container.innerHTML = active.map(cat => {
+                const cards = allGrouped[cat] || [], cnt = grouped[cat].length, done = cnt === 4;
+                const catId = cat.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_');
                 return `
-                    <div class="mini-card" onclick="openCategory('${cat.replace(/'/g, "\\'")}')" style="position:relative;">
-                        <img src="${card.image}" alt="${cat}" onerror="this.style.display='none'">
-                        <div class="badge-count">${cards.length}/4</div>
+                    <div class="cat-header" onclick="toggleCategory('${catId}')">
+                        <span class="title">${cat}</span>
+                        <div class="info">
+                            <span class="count ${done ? 'count-full' : 'count-partial'}">${cnt}/4${done ? ' ✅' : ''}</span>
+                            <span class="arrow" id="arrow-${catId}">▼</span>
+                        </div>
+                    </div>
+                    <div class="cards-grid" id="grid-${catId}">
+                        ${cards.map(c => {
+                            const isOwned = c.owned;
+                            const isSel = selectedCard && selectedCard.category === cat && selectedCard.cardName === c.name;
+                            if (isOwned) {
+                                return `<div class="card-cell owned"><img src="${c.image}" alt=""><div class="label">✅ ${c.name}</div></div>`;
+                            } else {
+                                return `<div class="card-cell missing ${isSel ? 'selected' : ''}" onclick="selectCard('${cat.replace(/'/g, "\\'")}', '${c.name.replace(/'/g, "\\'")}')"><img src="${c.image}" alt=""><div class="label">❓ ${c.name}</div></div>`;
+                            }
+                        }).join('')}
                     </div>
                 `;
             }).join('');
         }
 
-        function openCategory(cat) {
+        // СВОРАЧИВАНИЕ
+        function toggleCategory(catId) {
+            const grid = document.getElementById('grid-' + catId);
+            const arrow = document.getElementById('arrow-' + catId);
+            if (grid) grid.classList.toggle('collapsed');
+            if (arrow) arrow.classList.toggle('open');
+        }
+
+        function selectCard(cat, name) {
             if (gameState.currentPlayer !== 0) return;
-            const me = gameState.players[0];
-            const q = gameState.data.find(q => q.name === cat);
-            if (!q) return;
-
-            const ownedNames = me.hand.filter(c => c.category === cat).map(c => c.cardName);
-            document.getElementById('cat-modal-title').textContent = cat;
-            document.getElementById('cat-slots').innerHTML = q.cards.map(c => {
-                const isOwned = ownedNames.includes(c.name);
-                return `
-                    <div class="slot ${isOwned ? 'owned' : 'missing'}" 
-                         ${!isOwned ? `onclick="requestMissingCard('${cat.replace(/'/g, "\\'")}', '${c.name.replace(/'/g, "\\'")}')"` : ''}>
-                        <img src="${c.image}" alt="${c.name}" onerror="this.style.display='none'">
-                        <div class="slot-status">${isOwned ? '✅' : '❓'}</div>
-                        <div class="slot-name">${c.name}</div>
-                    </div>
-                `;
-            }).join('');
-            document.getElementById('category-modal').classList.remove('hidden');
+            if (selectedCard && selectedCard.category === cat && selectedCard.cardName === name) {
+                selectedCard = null; // снять выбор
+            } else {
+                selectedCard = { category: cat, cardName: name };
+            }
+            renderPlayArea();
         }
 
-        function closeCategoryModal() { document.getElementById('category-modal').classList.add('hidden'); }
-
-        function requestMissingCard(cat, name) {
-            closeCategoryModal();
-            const me = gameState.players[0];
-            const bot = gameState.players[1];
-            const idx = bot.hand.findIndex(c => c.category === cat && c.cardName === name);
-
+        function requestSelected() {
+            if (!selectedCard) return alert('Сначала выберите тусклую карту (❓)!');
+            const me = gameState.players[0], bot = gameState.players[1];
+            const idx = bot.hand.findIndex(c => c.category === selectedCard.category && c.cardName === selectedCard.cardName);
             if (idx !== -1) {
                 me.hand.push(bot.hand.splice(idx, 1)[0]);
-                addLog(`✅ Вы забрали "${name}" у бота!`);
+                addLog(`✅ Вы забрали "${selectedCard.cardName}" у бота!`);
                 checkQuartets();
-                updateUI();
             } else {
-                if (gameState.bank.length) {
-                    me.hand.push(gameState.bank.pop());
-                    addLog(`❌ У бота нет "${name}". Берёте случайную карту из банка.`);
-                } else {
-                    addLog(`❌ У бота нет "${name}". Банк пуст.`);
-                }
+                if (gameState.bank.length) { me.hand.push(gameState.bank.pop()); addLog(`❌ У бота нет "${selectedCard.cardName}". Берёте из банка.`); }
+                else addLog(`❌ У бота нет "${selectedCard.cardName}". Банк пуст.`);
                 gameState.currentPlayer = 1;
-                updateUI();
             }
+            selectedCard = null;
+            updateUI();
         }
 
-        function endTurn() { gameState.currentPlayer = 1; updateUI(); }
+        function endTurn() { selectedCard = null; gameState.currentPlayer = 1; updateUI(); }
 
         function botTurn() {
             if (gameState.currentPlayer !== 1) return;
