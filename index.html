@@ -233,51 +233,68 @@
             checkWin();
         }
 
-        function renderCategories() {
-            const me = gameState.players[0];
-            const container = document.getElementById('categories-container');
-            const playerGrouped = {};
-            me.hand.forEach(card => {
-                if (!playerGrouped[card.category]) playerGrouped[card.category] = [];
-                playerGrouped[card.category].push(card);
-            });
+function renderCategories() {
+    const me = gameState.players[0];
+    const container = document.getElementById('categories-container');
 
-            const activeCategories = Object.keys(playerGrouped);
-            if (activeCategories.length === 0) {
-                container.innerHTML = '<p style="text-align:center;padding:40px;color:var(--text2)">У вас нет карт</p>';
-                return;
-            }
-
-            container.innerHTML = activeCategories.map(catName => {
-                const owned = playerGrouped[catName] || [];
-                const ownedCount = owned.length;
-                const isComplete = ownedCount === 4;
-                const isSelected = selectedCategory === catName;
-                const ownedNames = owned.map(c => c.cardName);
-                const q = gameState.data.find(q => q.name === catName);
-                if (!q) return '';
-                const bgImage = owned[0].image;
-
-                const listHTML = q.cards.map(c => {
-                    const isOwned = ownedNames.includes(c.name);
-                    return `<li class="${isOwned ? 'owned' : 'missing'}">${isOwned ? '✅' : '◻'} ${c.name}</li>`;
-                }).join('');
-
-                return `
-                    <div class="category-card ${isComplete ? 'completed' : ''} ${isSelected ? 'selected' : ''}" 
-                         onclick="selectCategory('${catName.replace(/'/g, "\\'")}')">
-                        ${isComplete ? '<div class="completed-badge">СОБРАН!</div>' : ''}
-                        <img class="card-bg" src="${bgImage}" alt="${catName}" onerror="this.style.display='none'">
-                        <div class="card-overlay">
-                            <div class="cat-title">${catName}</div>
-                            <div class="cat-count">${ownedCount}/4</div>
-                            <ul class="cat-list">${listHTML}</ul>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+    // Группируем ТОЛЬКО карты, которые ЕСТЬ у игрока
+    const playerGrouped = {};
+    me.hand.forEach(card => {
+        if (!playerGrouped[card.category]) {
+            playerGrouped[card.category] = [];
         }
+        playerGrouped[card.category].push(card);
+    });
 
+    // Берём ТОЛЬКО те категории, где есть карты
+    const activeCategories = Object.keys(playerGrouped);
+
+    if (activeCategories.length === 0) {
+        container.innerHTML = '<p style="text-align:center;padding:40px;color:var(--text2)">У вас нет карт</p>';
+        return;
+    }
+
+    // Сортируем по названию
+    activeCategories.sort();
+
+    container.innerHTML = activeCategories.map(catName => {
+        const owned = playerGrouped[catName];
+        const ownedCount = owned.length;
+        const isComplete = ownedCount === 4;
+        const isSelected = selectedCategory === catName;
+        const ownedNames = owned.map(c => c.cardName);
+
+        // Находим полные данные категории
+        const q = gameState.data.find(q => q.name === catName);
+        if (!q) return '';
+
+        // Фон — первая карта, которая есть
+        const bgImage = owned[0].image;
+
+        // Список из 4 карт: крупно что есть, мелко чего нет
+        const listHTML = q.cards.map(c => {
+            if (ownedNames.includes(c.name)) {
+                return '<li class="owned">✅ ' + c.name + '</li>';
+            } else {
+                return '<li class="missing">◻ ' + c.name + '</li>';
+            }
+        }).join('');
+
+        return `
+            <div class="category-card ${isComplete ? 'completed' : ''} ${isSelected ? 'selected' : ''}" 
+                 onclick="selectCategory('${catName.replace(/'/g, "\\'")}')">
+                ${isComplete ? '<div class="completed-badge">СОБРАН!</div>' : ''}
+                <img class="card-bg" src="${bgImage}" alt="${catName}" onerror="this.style.display='none'">
+                <div class="card-overlay">
+                    <div class="cat-title">${catName}</div>
+                    <div class="cat-count">${ownedCount}/4</div>
+                    <ul class="cat-list">${listHTML}</ul>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+        
         function selectCategory(category) {
             if (gameState.currentPlayer !== 0) return;
             selectedCategory = selectedCategory === category ? null : category;
