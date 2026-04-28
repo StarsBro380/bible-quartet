@@ -26,10 +26,8 @@
         .btn-primary { background: var(--accent); color: #000; }
         .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
         .btn-danger { background: var(--red); color: #fff; }
-        .btn-small { padding: 10px 20px; font-size: 14px; width: auto; display: inline-block; margin: 4px; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* КАРТОЧКА КАТЕГОРИИ */
         .category-card {
             background: var(--card); border: 2px solid var(--border);
             border-radius: 20px; overflow: hidden; margin-bottom: 14px;
@@ -39,13 +37,11 @@
         .category-card.selected { border-color: var(--accent2); box-shadow: 0 0 20px rgba(124, 58, 237, 0.4); }
         .category-card.completed { border-color: var(--green); }
         .category-card .card-bg {
-            width: 100%; height: 200px; object-fit: cover;
-            filter: brightness(0.5);
+            width: 100%; height: 200px; object-fit: cover; filter: brightness(0.5);
         }
         .category-card .card-overlay {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            padding: 16px; display: flex; flex-direction: column;
-            justify-content: space-between;
+            padding: 16px; display: flex; flex-direction: column; justify-content: space-between;
         }
         .category-card .cat-title {
             font-size: 16px; font-weight: bold; color: var(--accent);
@@ -73,8 +69,7 @@
         .completed-badge {
             position: absolute; top: 8px; left: 8px;
             background: var(--green); color: #fff; font-size: 11px;
-            padding: 4px 10px; border-radius: 12px; font-weight: bold;
-            z-index: 5;
+            padding: 4px 10px; border-radius: 12px; font-weight: bold; z-index: 5;
         }
 
         .game-log {
@@ -121,11 +116,11 @@
             <button class="btn btn-primary" onclick="showCardCountChoice()">🎮 Играть с ботом</button>
         </div>
 
-        <!-- ВЫБОР КОЛИЧЕСТВА КАРТ -->
+        <!-- ВЫБОР КАРТ -->
         <div id="card-count-screen" class="hidden">
             <div class="header"><h2>🃏 Сколько карт раздать?</h2></div>
-            <button class="btn btn-primary" onclick="startGame(8)">8 карт</button>
-            <button class="btn btn-primary" onclick="startGame(10)">10 карт (рекомендуем)</button>
+            <button class="btn btn-primary" onclick="startGame(7)">7 карт</button>
+            <button class="btn btn-primary" onclick="startGame(10)">10 карт</button>
             <button class="btn btn-primary" onclick="startGame(15)">15 карт</button>
             <button class="btn btn-secondary" onclick="showMainMenu()">← Назад</button>
         </div>
@@ -142,7 +137,7 @@
             <button class="btn btn-danger hidden" id="end-btn" onclick="endTurn()">✅ Закончить ход</button>
         </div>
 
-        <!-- МОДАЛКА ЗАПРОСА -->
+        <!-- МОДАЛКА -->
         <div id="request-modal" class="modal hidden">
             <div class="modal-content">
                 <h2>❓ У кого запросить?</h2>
@@ -192,7 +187,6 @@
             const data = await loadGameData();
             if (!data.length) return alert('Ошибка загрузки');
 
-            // Создаём колоду
             let deck = [];
             data.forEach(q => {
                 q.cards.forEach(c => {
@@ -200,7 +194,6 @@
                 });
             });
 
-            // АБСОЛЮТНЫЙ РАНДОМ
             deck = shuffle(deck);
 
             const playerHand = deck.splice(0, cardsPerPlayer);
@@ -243,23 +236,27 @@
         function renderCategories() {
             const me = gameState.players[0];
             const container = document.getElementById('categories-container');
-
-            // Группируем карты игрока
             const playerGrouped = {};
             me.hand.forEach(card => {
                 if (!playerGrouped[card.category]) playerGrouped[card.category] = [];
                 playerGrouped[card.category].push(card);
             });
 
-            container.innerHTML = gameState.data.map(q => {
-                const owned = playerGrouped[q.name] || [];
+            const activeCategories = Object.keys(playerGrouped);
+            if (activeCategories.length === 0) {
+                container.innerHTML = '<p style="text-align:center;padding:40px;color:var(--text2)">У вас нет карт</p>';
+                return;
+            }
+
+            container.innerHTML = activeCategories.map(catName => {
+                const owned = playerGrouped[catName] || [];
                 const ownedCount = owned.length;
                 const isComplete = ownedCount === 4;
-                const isSelected = selectedCategory === q.name;
+                const isSelected = selectedCategory === catName;
                 const ownedNames = owned.map(c => c.cardName);
-                
-                // Берём первую карту как фон
-                const bgImage = owned.length > 0 ? owned[0].image : q.cards[0].image;
+                const q = gameState.data.find(q => q.name === catName);
+                if (!q) return '';
+                const bgImage = owned[0].image;
 
                 const listHTML = q.cards.map(c => {
                     const isOwned = ownedNames.includes(c.name);
@@ -268,11 +265,11 @@
 
                 return `
                     <div class="category-card ${isComplete ? 'completed' : ''} ${isSelected ? 'selected' : ''}" 
-                         onclick="selectCategory('${q.name.replace(/'/g, "\\'")}')">
+                         onclick="selectCategory('${catName.replace(/'/g, "\\'")}')">
                         ${isComplete ? '<div class="completed-badge">СОБРАН!</div>' : ''}
-                        <img class="card-bg" src="${bgImage}" alt="${q.name}" onerror="this.style.display='none'">
+                        <img class="card-bg" src="${bgImage}" alt="${catName}" onerror="this.style.display='none'">
                         <div class="card-overlay">
-                            <div class="cat-title">${q.name}</div>
+                            <div class="cat-title">${catName}</div>
                             <div class="cat-count">${ownedCount}/4</div>
                             <ul class="cat-list">${listHTML}</ul>
                         </div>
@@ -283,53 +280,33 @@
 
         function selectCategory(category) {
             if (gameState.currentPlayer !== 0) return;
-            if (selectedCategory === category) {
-                selectedCategory = null;
-            } else {
-                selectedCategory = category;
-            }
+            selectedCategory = selectedCategory === category ? null : category;
             renderCategories();
         }
 
         function showRequestModal() {
-            if (!selectedCategory) {
-                alert('Сначала выберите категорию!');
-                return;
-            }
-
+            if (!selectedCategory) { alert('Сначала выберите категорию!'); return; }
             const me = gameState.players[0];
             const owned = me.hand.filter(c => c.category === selectedCategory);
-            if (owned.length === 0) {
-                alert('У вас нет карт этой категории!');
-                return;
-            }
+            if (owned.length === 0) { alert('У вас нет карт этой категории!'); return; }
 
             const list = document.getElementById('player-choose-list');
             list.innerHTML = gameState.players.filter(p => p.id !== 0).map(p => `
-                <div class="choice-btn" onclick="requestFromPlayer(${p.id}, '${selectedCategory.replace(/'/g, "\\'")}')">
-                    ${p.name} (${p.hand.length} карт)
-                </div>
+                <div class="choice-btn" onclick="requestFromPlayer(${p.id}, '${selectedCategory.replace(/'/g, "\\'")}')">${p.name} (${p.hand.length} карт)</div>
             `).join('');
             document.getElementById('request-modal').classList.remove('hidden');
         }
 
-        function closeRequestModal() {
-            document.getElementById('request-modal').classList.add('hidden');
-        }
+        function closeRequestModal() { document.getElementById('request-modal').classList.add('hidden'); }
 
         function requestFromPlayer(targetId, category) {
             closeRequestModal();
-
             const me = gameState.players[0];
             const target = gameState.players.find(p => p.id === targetId);
             const allCards = gameState.data.find(q => q.name === category).cards;
             const ownedNames = me.hand.filter(c => c.category === category).map(c => c.cardName);
             const missingCard = allCards.find(c => !ownedNames.includes(c.name));
-
-            if (!missingCard) {
-                alert('У вас все карты этой категории!');
-                return;
-            }
+            if (!missingCard) { alert('У вас все карты этой категории!'); return; }
 
             const cardName = missingCard.name;
             const cardIndex = target.hand.findIndex(c => c.category === category && c.cardName === cardName);
@@ -355,11 +332,7 @@
             }
         }
 
-        function endTurn() {
-            selectedCategory = null;
-            gameState.currentPlayer = 1;
-            updateGameUI();
-        }
+        function endTurn() { selectedCategory = null; gameState.currentPlayer = 1; updateGameUI(); }
 
         function botTurn() {
             if (gameState.currentPlayer !== 1) return;
@@ -377,8 +350,7 @@
                 checkQuartets();
             } else {
                 if (gameState.bank.length > 0) {
-                    const newCard = gameState.bank.pop();
-                    bot.hand.push(newCard);
+                    bot.hand.push(gameState.bank.pop());
                     addLog(`🤖 Бот искал "${randomCard.cardName}". Взял из банка.`);
                 } else {
                     addLog(`🤖 Бот искал "${randomCard.cardName}". Банк пуст.`);
@@ -418,8 +390,7 @@
         function endGame() {
             document.getElementById('game-screen').classList.add('hidden');
             document.getElementById('win-screen').classList.remove('hidden');
-            const sb = document.getElementById('scoreboard');
-            sb.innerHTML = gameState.players.sort((a, b) => b.quartets.length - a.quartets.length).map(p => `
+            document.getElementById('scoreboard').innerHTML = gameState.players.sort((a, b) => b.quartets.length - a.quartets.length).map(p => `
                 <div class="score-item"><span>${p.quartets.length >= Math.max(...gameState.players.map(x => x.quartets.length)) ? '👑 ' : ''}${p.name}</span><span style="color:var(--accent)">${p.quartets.length} квартетов</span></div>
             `).join('');
         }
@@ -433,10 +404,7 @@
 
         function shuffle(arr) {
             const a = [...arr];
-            for (let i = a.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [a[i], a[j]] = [a[j], a[i]];
-            }
+            for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
             return a;
         }
 
