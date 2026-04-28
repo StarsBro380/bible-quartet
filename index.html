@@ -16,94 +16,77 @@
             color: var(--text); min-height: 100vh; padding: 16px;
         }
         .container { max-width: 700px; margin: 0 auto; }
-        .header { text-align: center; padding: 20px 0; }
-        .header h1 { font-size: 24px; color: var(--accent); }
+        .header { text-align: center; padding: 16px 0; }
+        .header h1 { font-size: 22px; color: var(--accent); }
         .btn {
             width: 100%; padding: 14px; font-size: 16px; font-weight: 600;
-            border: none; border-radius: 12px; cursor: pointer; margin: 8px 0;
+            border: none; border-radius: 12px; cursor: pointer; margin: 6px 0;
+            transition: all 0.2s;
         }
         .btn-primary { background: var(--accent); color: #000; }
         .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
         .btn-danger { background: var(--red); color: #fff; }
+        .btn-small { padding: 10px 20px; font-size: 14px; width: auto; display: inline-block; margin: 4px; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* ГРУППЫ КАРТ (КВАРТЕТЫ) */
-        .quartet-group {
+        /* КАРТОЧКА КАТЕГОРИИ */
+        .category-card {
             background: var(--card); border: 2px solid var(--border);
-            border-radius: 20px; padding: 16px; margin-bottom: 16px;
+            border-radius: 20px; overflow: hidden; margin-bottom: 14px;
             cursor: pointer; transition: all 0.3s; position: relative;
         }
-        .quartet-group:hover { border-color: var(--accent); }
-        .quartet-group.selected { border-color: var(--accent2); box-shadow: 0 0 20px rgba(124, 58, 237, 0.4); }
-        .quartet-group.completed { border-color: var(--green); background: rgba(16, 185, 129, 0.05); }
-
-        .quartet-group .group-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 12px;
+        .category-card:hover { border-color: var(--accent); }
+        .category-card.selected { border-color: var(--accent2); box-shadow: 0 0 20px rgba(124, 58, 237, 0.4); }
+        .category-card.completed { border-color: var(--green); }
+        .category-card .card-bg {
+            width: 100%; height: 200px; object-fit: cover;
+            filter: brightness(0.5);
         }
-        .quartet-group .group-title {
-            font-weight: bold; font-size: 16px; color: var(--accent);
-            text-transform: uppercase; letter-spacing: 1px;
+        .category-card .card-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            padding: 16px; display: flex; flex-direction: column;
+            justify-content: space-between;
         }
-        .quartet-group .group-count {
-            font-size: 14px; color: var(--text2);
+        .category-card .cat-title {
+            font-size: 16px; font-weight: bold; color: var(--accent);
+            text-transform: uppercase; letter-spacing: 2px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
         }
-        .quartet-group .group-badge {
+        .category-card .cat-count {
+            position: absolute; top: 12px; right: 12px;
+            font-size: 14px; color: #fff;
+            background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 10px;
+        }
+        .category-card .cat-list {
+            list-style: none; padding: 0; margin-top: auto;
+        }
+        .category-card .cat-list li {
+            padding: 3px 0; font-size: 14px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
+        }
+        .category-card .cat-list li.owned {
+            font-weight: bold; font-size: 16px; color: #fff;
+        }
+        .category-card .cat-list li.missing {
+            color: rgba(255,255,255,0.5); font-size: 12px;
+        }
+        .completed-badge {
+            position: absolute; top: 8px; left: 8px;
             background: var(--green); color: #fff; font-size: 11px;
             padding: 4px 10px; border-radius: 12px; font-weight: bold;
-        }
-
-        /* ВЕЕР КАРТ */
-        .card-fan {
-            display: flex; justify-content: center; align-items: center;
-            position: relative; height: 200px;
-        }
-        .card-fan .fan-card {
-            position: absolute;
-            width: 140px; height: 190px;
-            border-radius: 12px; overflow: hidden;
-            border: 2px solid var(--border);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-            transition: all 0.3s ease;
-            background: var(--card);
-        }
-        .card-fan .fan-card img {
-            width: 100%; height: 100%; object-fit: cover;
-        }
-        .card-fan .fan-card.missing {
-            opacity: 0.3; filter: grayscale(0.8);
-        }
-        .card-fan .fan-card.missing::after {
-            content: '?';
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 48px; color: var(--text2); font-weight: bold;
-        }
-
-        /* Подсказка по картам */
-        .card-list-hint {
-            display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
-        }
-        .card-list-hint span {
-            font-size: 11px; padding: 3px 8px; border-radius: 8px;
-        }
-        .card-list-hint .owned-hint {
-            background: rgba(16, 185, 129, 0.2); color: var(--green); font-weight: bold;
-        }
-        .card-list-hint .missing-hint {
-            background: rgba(148, 163, 184, 0.1); color: var(--text2);
+            z-index: 5;
         }
 
         .game-log {
             background: var(--card); border: 1px solid var(--border);
-            border-radius: 12px; padding: 12px; margin: 16px 0;
-            max-height: 120px; overflow-y: auto; font-size: 12px; color: var(--text2);
+            border-radius: 12px; padding: 12px; margin: 12px 0;
+            max-height: 100px; overflow-y: auto; font-size: 12px; color: var(--text2);
         }
-        .game-log p { margin: 4px 0; }
+        .game-log p { margin: 2px 0; }
 
         .modal {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.8); display: flex;
+            background: rgba(0,0,0,0.85); display: flex;
             align-items: center; justify-content: center; z-index: 100;
         }
         .modal-content {
@@ -111,12 +94,14 @@
             max-width: 400px; width: 90%; text-align: center;
         }
         .modal-content h2 { margin-bottom: 16px; color: var(--accent); }
-        .player-choose {
+        .modal-content .choice-btn {
+            display: block; width: 100%; padding: 14px; margin: 8px 0;
             background: var(--bg); border: 1px solid var(--border);
-            border-radius: 8px; padding: 12px; margin: 8px 0;
+            border-radius: 10px; color: var(--text); font-size: 16px;
             cursor: pointer; transition: all 0.2s;
         }
-        .player-choose:hover { border-color: var(--accent); }
+        .modal-content .choice-btn:hover { border-color: var(--accent); }
+
         .hidden { display: none !important; }
         .scoreboard { text-align: center; margin: 16px 0; }
         .score-item {
@@ -133,7 +118,16 @@
                 <h1>📖 Библейский квартет</h1>
                 <p style="color:var(--text2)">37 квартетов · 148 карт</p>
             </div>
-            <button class="btn btn-primary" onclick="createGame()">🎮 Играть с ботом</button>
+            <button class="btn btn-primary" onclick="showCardCountChoice()">🎮 Играть с ботом</button>
+        </div>
+
+        <!-- ВЫБОР КОЛИЧЕСТВА КАРТ -->
+        <div id="card-count-screen" class="hidden">
+            <div class="header"><h2>🃏 Сколько карт раздать?</h2></div>
+            <button class="btn btn-primary" onclick="startGame(8)">8 карт</button>
+            <button class="btn btn-primary" onclick="startGame(10)">10 карт (рекомендуем)</button>
+            <button class="btn btn-primary" onclick="startGame(15)">15 карт</button>
+            <button class="btn btn-secondary" onclick="showMainMenu()">← Назад</button>
         </div>
 
         <!-- ИГРА -->
@@ -143,12 +137,12 @@
                 <p style="color:var(--text2)" id="turn-info"></p>
             </div>
             <div class="game-log" id="game-log"></div>
-            <div id="quartet-groups"></div>
+            <div id="categories-container"></div>
             <button class="btn btn-primary hidden" id="request-btn" onclick="showRequestModal()">❓ Запросить карту</button>
             <button class="btn btn-danger hidden" id="end-btn" onclick="endTurn()">✅ Закончить ход</button>
         </div>
 
-        <!-- МОДАЛКА -->
+        <!-- МОДАЛКА ЗАПРОСА -->
         <div id="request-modal" class="modal hidden">
             <div class="modal-content">
                 <h2>❓ У кого запросить?</h2>
@@ -162,7 +156,7 @@
             <div class="header">
                 <h1>🏆 Игра окончена!</h1>
                 <div class="scoreboard" id="scoreboard"></div>
-                <button class="btn btn-primary" onclick="backToMenu()">В меню</button>
+                <button class="btn btn-primary" onclick="showMainMenu()">В меню</button>
             </div>
         </div>
     </div>
@@ -173,7 +167,7 @@
 
         let gameState = null;
         let playerName = 'Игрок';
-        let selectedGroup = null;
+        let selectedCategory = null;
 
         if (tg?.initDataUnsafe?.user) {
             playerName = tg.initDataUnsafe.user.first_name || 'Игрок';
@@ -185,16 +179,20 @@
         }
 
         function showMainMenu() {
-            document.querySelectorAll('#main-menu, #game-screen, #win-screen').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('#main-menu, #card-count-screen, #game-screen, #win-screen').forEach(el => el.classList.add('hidden'));
             document.getElementById('main-menu').classList.remove('hidden');
         }
 
-        function backToMenu() { gameState = null; showMainMenu(); }
+        function showCardCountChoice() {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('card-count-screen').classList.remove('hidden');
+        }
 
-        async function createGame() {
+        async function startGame(cardsPerPlayer) {
             const data = await loadGameData();
             if (!data.length) return alert('Ошибка загрузки');
 
+            // Создаём колоду
             let deck = [];
             data.forEach(q => {
                 q.cards.forEach(c => {
@@ -202,25 +200,24 @@
                 });
             });
 
+            // АБСОЛЮТНЫЙ РАНДОМ
             deck = shuffle(deck);
 
-            const handSize = Math.min(8, Math.floor(deck.length / 2));
-            const playerHand = deck.splice(0, handSize);
-            const botHand = deck.splice(0, handSize);
+            const playerHand = deck.splice(0, cardsPerPlayer);
+            const botHand = deck.splice(0, cardsPerPlayer);
+            const bank = deck;
 
             gameState = {
                 players: [
                     { id: 0, name: playerName, hand: playerHand, quartets: [] },
                     { id: 1, name: 'Бот', hand: botHand, quartets: [] }
                 ],
-                bank: deck, currentPlayer: 0, log: [], data: data
+                bank: bank, currentPlayer: 0, log: [], data: data
             };
-            showGame();
-        }
 
-        function showGame() {
-            document.querySelectorAll('#main-menu, #game-screen, #win-screen').forEach(el => el.classList.add('hidden'));
+            document.getElementById('card-count-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
+            addLog(`🎮 Игра началась! У вас ${cardsPerPlayer} карт.`);
             updateGameUI();
         }
 
@@ -228,7 +225,7 @@
             const me = gameState.players[0];
             const current = gameState.players[gameState.currentPlayer];
             document.getElementById('game-status').textContent = gameState.currentPlayer === 0 ? '🎯 Ваш ход' : '⏳ Бот думает...';
-            document.getElementById('turn-info').textContent = `Ходит: ${current.name} | Банк: ${gameState.bank.length} карт | 🏆 Вы: ${me.quartets.length} | Бот: ${gameState.players[1].quartets.length}`;
+            document.getElementById('turn-info').textContent = `Ходит: ${current.name} | 🏆 Вы: ${me.quartets.length} | Бот: ${gameState.players[1].quartets.length}`;
 
             if (gameState.currentPlayer === 0) {
                 document.getElementById('request-btn').classList.remove('hidden');
@@ -239,100 +236,77 @@
                 setTimeout(botTurn, 1200);
             }
 
-            renderQuartetGroups();
+            renderCategories();
             checkWin();
         }
 
-        function renderQuartetGroups() {
+        function renderCategories() {
             const me = gameState.players[0];
-            const container = document.getElementById('quartet-groups');
+            const container = document.getElementById('categories-container');
 
-            // Группируем карты игрока по категориям
+            // Группируем карты игрока
             const playerGrouped = {};
             me.hand.forEach(card => {
                 if (!playerGrouped[card.category]) playerGrouped[card.category] = [];
                 playerGrouped[card.category].push(card);
             });
 
-            // Получаем все категории из data
-            const allCategories = gameState.data;
-
-            container.innerHTML = allCategories.map(q => {
+            container.innerHTML = gameState.data.map(q => {
                 const owned = playerGrouped[q.name] || [];
                 const ownedCount = owned.length;
                 const isComplete = ownedCount === 4;
-                const isSelected = selectedGroup === q.name;
+                const isSelected = selectedCategory === q.name;
+                const ownedNames = owned.map(c => c.cardName);
+                
+                // Берём первую карту как фон
+                const bgImage = owned.length > 0 ? owned[0].image : q.cards[0].image;
 
-                // Генерируем веер карт
-                let fanHTML = '';
-                const allCards = q.cards;
-
-                allCards.forEach((c, index) => {
-                    const isOwned = owned.some(o => o.cardName === c.name);
-                    const angle = (index - 1.5) * 6; // разброс веером
-                    const offsetX = (index - 1.5) * 20;
-                    
-                    if (isOwned) {
-                        fanHTML += `<div class="fan-card" style="transform: rotate(${angle}deg) translateX(${offsetX}px); z-index:${index+1};">
-                            <img src="${c.image}" alt="${c.name}" onerror="this.style.display='none'">
-                        </div>`;
-                    } else {
-                        fanHTML += `<div class="fan-card missing" style="transform: rotate(${angle}deg) translateX(${offsetX}px); z-index:${index+1}; opacity:0.3;">
-                            <img src="${c.image}" alt="${c.name}" onerror="this.parentElement.innerHTML='<div style=width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:40px;color:var(--text2)>?</div>'">
-                        </div>`;
-                    }
-                });
-
-                // Подсказки
-                let hintsHTML = allCards.map(c => {
-                    const isOwned = owned.some(o => o.cardName === c.name);
-                    return `<span class="${isOwned ? 'owned-hint' : 'missing-hint'}">${isOwned ? '✅' : '○'} ${c.name}</span>`;
+                const listHTML = q.cards.map(c => {
+                    const isOwned = ownedNames.includes(c.name);
+                    return `<li class="${isOwned ? 'owned' : 'missing'}">${isOwned ? '✅' : '◻'} ${c.name}</li>`;
                 }).join('');
 
                 return `
-                    <div class="quartet-group ${isComplete ? 'completed' : ''} ${isSelected ? 'selected' : ''}" 
-                         onclick="selectQuartetGroup('${q.name.replace(/'/g, "\\'")}')">
-                        <div class="group-header">
-                            <span class="group-title">${q.name}</span>
-                            <span class="group-count">${ownedCount}/4 ${isComplete ? '<span class="group-badge">СОБРАН!</span>' : ''}</span>
+                    <div class="category-card ${isComplete ? 'completed' : ''} ${isSelected ? 'selected' : ''}" 
+                         onclick="selectCategory('${q.name.replace(/'/g, "\\'")}')">
+                        ${isComplete ? '<div class="completed-badge">СОБРАН!</div>' : ''}
+                        <img class="card-bg" src="${bgImage}" alt="${q.name}" onerror="this.style.display='none'">
+                        <div class="card-overlay">
+                            <div class="cat-title">${q.name}</div>
+                            <div class="cat-count">${ownedCount}/4</div>
+                            <ul class="cat-list">${listHTML}</ul>
                         </div>
-                        <div class="card-fan">${fanHTML}</div>
-                        <div class="card-list-hint">${hintsHTML}</div>
                     </div>
                 `;
             }).join('');
         }
 
-        function selectQuartetGroup(category) {
+        function selectCategory(category) {
             if (gameState.currentPlayer !== 0) return;
-            
-            // Переключаем выделение
-            if (selectedGroup === category) {
-                selectedGroup = null;
+            if (selectedCategory === category) {
+                selectedCategory = null;
             } else {
-                selectedGroup = category;
+                selectedCategory = category;
             }
-            renderQuartetGroups();
+            renderCategories();
         }
 
         function showRequestModal() {
-            if (!selectedGroup) {
-                alert('Сначала выберите категорию (нажмите на группу карт)!');
+            if (!selectedCategory) {
+                alert('Сначала выберите категорию!');
                 return;
             }
 
             const me = gameState.players[0];
-            const owned = me.hand.filter(c => c.category === selectedGroup);
-            
+            const owned = me.hand.filter(c => c.category === selectedCategory);
             if (owned.length === 0) {
                 alert('У вас нет карт этой категории!');
                 return;
             }
 
-            // Показываем, у кого запросить
             const list = document.getElementById('player-choose-list');
             list.innerHTML = gameState.players.filter(p => p.id !== 0).map(p => `
-                <div class="player-choose" onclick="requestFromPlayer(${p.id}, '${selectedGroup.replace(/'/g, "\\'")}')">
+                <div class="choice-btn" onclick="requestFromPlayer(${p.id}, '${selectedCategory.replace(/'/g, "\\'")}')">
                     ${p.name} (${p.hand.length} карт)
                 </div>
             `).join('');
@@ -348,14 +322,12 @@
 
             const me = gameState.players[0];
             const target = gameState.players.find(p => p.id === targetId);
-            
-            // Выбираем карту, которой у нас нет в этой категории
             const allCards = gameState.data.find(q => q.name === category).cards;
             const ownedNames = me.hand.filter(c => c.category === category).map(c => c.cardName);
             const missingCard = allCards.find(c => !ownedNames.includes(c.name));
-            
+
             if (!missingCard) {
-                alert('У вас уже есть все карты этой категории!');
+                alert('У вас все карты этой категории!');
                 return;
             }
 
@@ -367,7 +339,7 @@
                 me.hand.push(card);
                 addLog(`✅ Вы забрали "${cardName}" у ${target.name}!`);
                 checkQuartets();
-                selectedGroup = null;
+                selectedCategory = null;
                 updateGameUI();
             } else {
                 if (gameState.bank.length > 0) {
@@ -377,14 +349,14 @@
                 } else {
                     addLog(`❌ У ${target.name} нет "${cardName}". Банк пуст.`);
                 }
-                selectedGroup = null;
+                selectedCategory = null;
                 gameState.currentPlayer = 1;
                 updateGameUI();
             }
         }
 
         function endTurn() {
-            selectedGroup = null;
+            selectedCategory = null;
             gameState.currentPlayer = 1;
             updateGameUI();
         }
@@ -401,7 +373,7 @@
             if (cardIndex !== -1) {
                 const card = target.hand.splice(cardIndex, 1)[0];
                 bot.hand.push(card);
-                addLog(`😈 Бот забрал "${randomCard.cardName}" (${randomCard.category})!`);
+                addLog(`😈 Бот забрал "${randomCard.cardName}"!`);
                 checkQuartets();
             } else {
                 if (gameState.bank.length > 0) {
