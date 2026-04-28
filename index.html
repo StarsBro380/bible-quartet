@@ -11,18 +11,11 @@
             --text: #f1f5f9; --text2: #94a3b8; --green: #10b981; --red: #ef4444; --border: #2d2d4a;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Georgia', serif; background: var(--bg);
-            color: var(--text); min-height: 100vh; padding: 16px;
-        }
+        body { font-family: 'Georgia', serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 16px; }
         .container { max-width: 700px; margin: 0 auto; }
         .header { text-align: center; padding: 16px 0; }
         .header h1 { font-size: 22px; color: var(--accent); }
-        .btn {
-            width: 100%; padding: 14px; font-size: 16px; font-weight: 600;
-            border: none; border-radius: 12px; cursor: pointer; margin: 6px 0;
-            transition: all 0.2s;
-        }
+        .btn { width: 100%; padding: 14px; font-size: 16px; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; margin: 6px 0; transition: all 0.2s; }
         .btn-primary { background: var(--accent); color: #000; }
         .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
         .btn-danger { background: var(--red); color: #fff; }
@@ -36,83 +29,38 @@
         .category-card:hover { border-color: var(--accent); }
         .category-card.selected { border-color: var(--accent2); box-shadow: 0 0 20px rgba(124, 58, 237, 0.4); }
         .category-card.completed { border-color: var(--green); }
-        .category-card .card-bg {
-            width: 100%; height: 200px; object-fit: cover; filter: brightness(0.5);
-        }
+        .category-card .card-bg { width: 100%; height: 200px; object-fit: cover; filter: brightness(0.5); }
         .category-card .card-overlay {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             padding: 16px; display: flex; flex-direction: column; justify-content: space-between;
         }
-        .category-card .cat-title {
-            font-size: 16px; font-weight: bold; color: var(--accent);
-            text-transform: uppercase; letter-spacing: 2px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-        }
-        .category-card .cat-count {
-            position: absolute; top: 12px; right: 12px;
-            font-size: 14px; color: #fff;
-            background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 10px;
-        }
-        .category-card .cat-list {
-            list-style: none; padding: 0; margin-top: auto;
-        }
-        .category-card .cat-list li {
-            padding: 3px 0; font-size: 14px;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
-        }
-        .category-card .cat-list li.owned {
-            font-weight: bold; font-size: 16px; color: #fff;
-        }
-        .category-card .cat-list li.missing {
-            color: rgba(255,255,255,0.5); font-size: 12px;
-        }
-        .completed-badge {
-            position: absolute; top: 8px; left: 8px;
-            background: var(--green); color: #fff; font-size: 11px;
-            padding: 4px 10px; border-radius: 12px; font-weight: bold; z-index: 5;
-        }
+        .category-card .cat-title { font-size: 16px; font-weight: bold; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
+        .category-card .cat-count { position: absolute; top: 12px; right: 12px; font-size: 14px; color: #fff; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 10px; }
+        .category-card .cat-list { list-style: none; padding: 0; margin-top: auto; }
+        .category-card .cat-list li { padding: 3px 0; font-size: 14px; text-shadow: 1px 1px 3px rgba(0,0,0,0.9); }
+        .category-card .cat-list li.owned { font-weight: bold; font-size: 16px; color: #fff; }
+        .category-card .cat-list li.missing { color: rgba(255,255,255,0.5); font-size: 12px; }
+        .completed-badge { position: absolute; top: 8px; left: 8px; background: var(--green); color: #fff; font-size: 11px; padding: 4px 10px; border-radius: 12px; font-weight: bold; z-index: 5; }
 
-        .game-log {
-            background: var(--card); border: 1px solid var(--border);
-            border-radius: 12px; padding: 12px; margin: 12px 0;
-            max-height: 100px; overflow-y: auto; font-size: 12px; color: var(--text2);
-        }
+        .game-log { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin: 12px 0; max-height: 100px; overflow-y: auto; font-size: 12px; color: var(--text2); }
         .game-log p { margin: 2px 0; }
 
-        .modal {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.85); display: flex;
-            align-items: center; justify-content: center; z-index: 100;
-        }
-        .modal-content {
-            background: var(--card); border-radius: 16px; padding: 24px;
-            max-width: 400px; width: 90%; text-align: center;
-        }
+        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .modal-content { background: var(--card); border-radius: 16px; padding: 24px; max-width: 400px; width: 90%; text-align: center; }
         .modal-content h2 { margin-bottom: 16px; color: var(--accent); }
-        .modal-content .choice-btn {
-            display: block; width: 100%; padding: 14px; margin: 8px 0;
-            background: var(--bg); border: 1px solid var(--border);
-            border-radius: 10px; color: var(--text); font-size: 16px;
-            cursor: pointer; transition: all 0.2s;
-        }
+        .modal-content .choice-btn { display: block; width: 100%; padding: 14px; margin: 8px 0; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 16px; cursor: pointer; transition: all 0.2s; }
         .modal-content .choice-btn:hover { border-color: var(--accent); }
 
         .hidden { display: none !important; }
         .scoreboard { text-align: center; margin: 16px 0; }
-        .score-item {
-            background: var(--card); border-radius: 12px; padding: 12px;
-            margin: 8px 0; display: flex; justify-content: space-between;
-        }
+        .score-item { background: var(--card); border-radius: 12px; padding: 12px; margin: 8px 0; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
     <div class="container">
         <!-- ГЛАВНОЕ МЕНЮ -->
         <div id="main-menu">
-            <div class="header">
-                <h1>📖 Библейский квартет</h1>
-                <p style="color:var(--text2)">37 квартетов · 148 карт</p>
-            </div>
+            <div class="header"><h1>📖 Библейский квартет</h1><p style="color:var(--text2)">37 квартетов · 148 карт</p></div>
             <button class="btn btn-primary" onclick="showCardCountChoice()">🎮 Играть с ботом</button>
         </div>
 
@@ -127,10 +75,7 @@
 
         <!-- ИГРА -->
         <div id="game-screen" class="hidden">
-            <div class="header">
-                <h2 id="game-status" style="color:var(--accent)"></h2>
-                <p style="color:var(--text2)" id="turn-info"></p>
-            </div>
+            <div class="header"><h2 id="game-status" style="color:var(--accent)"></h2><p style="color:var(--text2)" id="turn-info"></p></div>
             <div class="game-log" id="game-log"></div>
             <div id="categories-container"></div>
             <button class="btn btn-primary hidden" id="request-btn" onclick="showRequestModal()">❓ Запросить карту</button>
@@ -139,20 +84,12 @@
 
         <!-- МОДАЛКА -->
         <div id="request-modal" class="modal hidden">
-            <div class="modal-content">
-                <h2>❓ У кого запросить?</h2>
-                <div id="player-choose-list"></div>
-                <button class="btn btn-secondary" onclick="closeRequestModal()">Отмена</button>
-            </div>
+            <div class="modal-content"><h2 id="modal-title">❓ Запрос карты</h2><div id="player-choose-list"></div><button class="btn btn-secondary" onclick="closeRequestModal()">Отмена</button></div>
         </div>
 
         <!-- ПОБЕДА -->
         <div id="win-screen" class="hidden">
-            <div class="header">
-                <h1>🏆 Игра окончена!</h1>
-                <div class="scoreboard" id="scoreboard"></div>
-                <button class="btn btn-primary" onclick="showMainMenu()">В меню</button>
-            </div>
+            <div class="header"><h1>🏆 Игра окончена!</h1><div class="scoreboard" id="scoreboard"></div><button class="btn btn-primary" onclick="showMainMenu()">В меню</button></div>
         </div>
     </div>
 
@@ -164,9 +101,7 @@
         let playerName = 'Игрок';
         let selectedCategory = null;
 
-        if (tg?.initDataUnsafe?.user) {
-            playerName = tg.initDataUnsafe.user.first_name || 'Игрок';
-        }
+        if (tg?.initDataUnsafe?.user) playerName = tg.initDataUnsafe.user.first_name || 'Игрок';
 
         async function loadGameData() {
             const resp = await fetch('data.json');
@@ -188,24 +123,15 @@
             if (!data.length) return alert('Ошибка загрузки');
 
             let deck = [];
-            data.forEach(q => {
-                q.cards.forEach(c => {
-                    deck.push({ category: q.name, categoryId: q.id, cardName: c.name, image: c.image });
-                });
-            });
-
+            data.forEach(q => q.cards.forEach(c => deck.push({ category: q.name, categoryId: q.id, cardName: c.name, image: c.image })));
             deck = shuffle(deck);
-
-            const playerHand = deck.splice(0, cardsPerPlayer);
-            const botHand = deck.splice(0, cardsPerPlayer);
-            const bank = deck;
 
             gameState = {
                 players: [
-                    { id: 0, name: playerName, hand: playerHand, quartets: [] },
-                    { id: 1, name: 'Бот', hand: botHand, quartets: [] }
+                    { id: 0, name: playerName, hand: deck.splice(0, cardsPerPlayer), quartets: [] },
+                    { id: 1, name: 'Бот', hand: deck.splice(0, cardsPerPlayer), quartets: [] }
                 ],
-                bank: bank, currentPlayer: 0, log: [], data: data
+                bank: deck, currentPlayer: 0, log: [], data: data
             };
 
             document.getElementById('card-count-screen').classList.add('hidden');
@@ -216,9 +142,9 @@
 
         function updateGameUI() {
             const me = gameState.players[0];
-            const current = gameState.players[gameState.currentPlayer];
+            const cur = gameState.players[gameState.currentPlayer];
             document.getElementById('game-status').textContent = gameState.currentPlayer === 0 ? '🎯 Ваш ход' : '⏳ Бот думает...';
-            document.getElementById('turn-info').textContent = `Ходит: ${current.name} | 🏆 Вы: ${me.quartets.length} | Бот: ${gameState.players[1].quartets.length}`;
+            document.getElementById('turn-info').textContent = `Ходит: ${cur.name} | 🏆 Вы: ${me.quartets.length} | Бот: ${gameState.players[1].quartets.length}`;
 
             if (gameState.currentPlayer === 0) {
                 document.getElementById('request-btn').classList.remove('hidden');
@@ -228,76 +154,41 @@
                 document.getElementById('end-btn').classList.add('hidden');
                 setTimeout(botTurn, 1200);
             }
-
             renderCategories();
             checkWin();
         }
 
-function renderCategories() {
-    const me = gameState.players[0];
-    const container = document.getElementById('categories-container');
+        function renderCategories() {
+            const me = gameState.players[0];
+            const container = document.getElementById('categories-container');
+            const grouped = {};
+            me.hand.forEach(c => { if (!grouped[c.category]) grouped[c.category] = []; grouped[c.category].push(c); });
 
-    // Группируем ТОЛЬКО карты, которые ЕСТЬ у игрока
-    const playerGrouped = {};
-    me.hand.forEach(card => {
-        if (!playerGrouped[card.category]) {
-            playerGrouped[card.category] = [];
+            const active = Object.keys(grouped);
+            if (active.length === 0) { container.innerHTML = '<p style="text-align:center;padding:40px;color:var(--text2)">У вас нет карт</p>'; return; }
+            active.sort();
+
+            container.innerHTML = active.map(cat => {
+                const owned = grouped[cat];
+                const cnt = owned.length;
+                const done = cnt === 4;
+                const sel = selectedCategory === cat;
+                const names = owned.map(c => c.cardName);
+                const q = gameState.data.find(q => q.name === cat);
+                if (!q) return '';
+                const bg = owned[0].image;
+                const list = q.cards.map(c => `<li class="${names.includes(c.name) ? 'owned' : 'missing'}">${names.includes(c.name) ? '✅' : '◻'} ${c.name}</li>`).join('');
+                return `<div class="category-card ${done ? 'completed' : ''} ${sel ? 'selected' : ''}" onclick="selectCategory('${cat.replace(/'/g, "\\'")}')">
+                    ${done ? '<div class="completed-badge">СОБРАН!</div>' : ''}
+                    <img class="card-bg" src="${bg}" alt="${cat}" onerror="this.style.display='none'">
+                    <div class="card-overlay"><div class="cat-title">${cat}</div><div class="cat-count">${cnt}/4</div><ul class="cat-list">${list}</ul></div>
+                </div>`;
+            }).join('');
         }
-        playerGrouped[card.category].push(card);
-    });
 
-    // Берём ТОЛЬКО те категории, где есть карты
-    const activeCategories = Object.keys(playerGrouped);
-
-    if (activeCategories.length === 0) {
-        container.innerHTML = '<p style="text-align:center;padding:40px;color:var(--text2)">У вас нет карт</p>';
-        return;
-    }
-
-    // Сортируем по названию
-    activeCategories.sort();
-
-    container.innerHTML = activeCategories.map(catName => {
-        const owned = playerGrouped[catName];
-        const ownedCount = owned.length;
-        const isComplete = ownedCount === 4;
-        const isSelected = selectedCategory === catName;
-        const ownedNames = owned.map(c => c.cardName);
-
-        // Находим полные данные категории
-        const q = gameState.data.find(q => q.name === catName);
-        if (!q) return '';
-
-        // Фон — первая карта, которая есть
-        const bgImage = owned[0].image;
-
-        // Список из 4 карт: крупно что есть, мелко чего нет
-        const listHTML = q.cards.map(c => {
-            if (ownedNames.includes(c.name)) {
-                return '<li class="owned">✅ ' + c.name + '</li>';
-            } else {
-                return '<li class="missing">◻ ' + c.name + '</li>';
-            }
-        }).join('');
-
-        return `
-            <div class="category-card ${isComplete ? 'completed' : ''} ${isSelected ? 'selected' : ''}" 
-                 onclick="selectCategory('${catName.replace(/'/g, "\\'")}')">
-                ${isComplete ? '<div class="completed-badge">СОБРАН!</div>' : ''}
-                <img class="card-bg" src="${bgImage}" alt="${catName}" onerror="this.style.display='none'">
-                <div class="card-overlay">
-                    <div class="cat-title">${catName}</div>
-                    <div class="cat-count">${ownedCount}/4</div>
-                    <ul class="cat-list">${listHTML}</ul>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-        
-        function selectCategory(category) {
+        function selectCategory(cat) {
             if (gameState.currentPlayer !== 0) return;
-            selectedCategory = selectedCategory === category ? null : category;
+            selectedCategory = selectedCategory === cat ? null : cat;
             renderCategories();
         }
 
@@ -306,49 +197,54 @@ function renderCategories() {
             const me = gameState.players[0];
             const owned = me.hand.filter(c => c.category === selectedCategory);
             if (owned.length === 0) { alert('У вас нет карт этой категории!'); return; }
+            const q = gameState.data.find(q => q.name === selectedCategory);
+            if (!q) return;
+            const ownedNames = owned.map(c => c.cardName);
+            const missing = q.cards.filter(c => !ownedNames.includes(c.name));
+            if (missing.length === 0) { alert('У вас все карты этой категории!'); return; }
 
-            const list = document.getElementById('player-choose-list');
-            list.innerHTML = gameState.players.filter(p => p.id !== 0).map(p => `
-                <div class="choice-btn" onclick="requestFromPlayer(${p.id}, '${selectedCategory.replace(/'/g, "\\'")}')">${p.name} (${p.hand.length} карт)</div>
+            document.getElementById('modal-title').textContent = '🃏 Какую карту запросить?';
+            document.getElementById('player-choose-list').innerHTML = missing.map(c => `
+                <div class="choice-btn" onclick="chooseCard('${selectedCategory.replace(/'/g, "\\'")}', '${c.name.replace(/'/g, "\\'")}')">${c.name}</div>
             `).join('');
             document.getElementById('request-modal').classList.remove('hidden');
         }
 
-        function closeRequestModal() { document.getElementById('request-modal').classList.add('hidden'); }
-
-        function requestFromPlayer(targetId, category) {
-            closeRequestModal();
-            const me = gameState.players[0];
-            const target = gameState.players.find(p => p.id === targetId);
-            const allCards = gameState.data.find(q => q.name === category).cards;
-            const ownedNames = me.hand.filter(c => c.category === category).map(c => c.cardName);
-            const missingCard = allCards.find(c => !ownedNames.includes(c.name));
-            if (!missingCard) { alert('У вас все карты этой категории!'); return; }
-
-            const cardName = missingCard.name;
-            const cardIndex = target.hand.findIndex(c => c.category === category && c.cardName === cardName);
-
-            if (cardIndex !== -1) {
-                const card = target.hand.splice(cardIndex, 1)[0];
-                me.hand.push(card);
-                addLog(`✅ Вы забрали "${cardName}" у ${target.name}!`);
-                checkQuartets();
-                selectedCategory = null;
-                updateGameUI();
-            } else {
-                if (gameState.bank.length > 0) {
-                    const newCard = gameState.bank.pop();
-                    me.hand.push(newCard);
-                    addLog(`❌ У ${target.name} нет "${cardName}". Берёте из банка.`);
-                } else {
-                    addLog(`❌ У ${target.name} нет "${cardName}". Банк пуст.`);
-                }
-                selectedCategory = null;
-                gameState.currentPlayer = 1;
-                updateGameUI();
-            }
+        function chooseCard(cat, name) {
+            window._req = { category: cat, cardName: name };
+            document.getElementById('modal-title').textContent = '❓ У кого запросить?';
+            document.getElementById('player-choose-list').innerHTML = gameState.players.filter(p => p.id !== 0).map(p => `
+                <div class="choice-btn" onclick="doRequest(${p.id})">${p.name} (${p.hand.length} карт)</div>
+            `).join('');
         }
 
+        function doRequest(targetId) {
+            closeRequestModal();
+            const r = window._req;
+            if (!r) return;
+            const me = gameState.players[0];
+            const target = gameState.players.find(p => p.id === targetId);
+            const idx = target.hand.findIndex(c => c.category === r.category && c.cardName === r.cardName);
+
+            if (idx !== -1) {
+                me.hand.push(target.hand.splice(idx, 1)[0]);
+                addLog(`✅ Вы забрали "${r.cardName}" у ${target.name}!`);
+                checkQuartets();
+            } else {
+                if (gameState.bank.length > 0) {
+                    me.hand.push(gameState.bank.pop());
+                    addLog(`❌ У ${target.name} нет "${r.cardName}". Берёте случайную карту из банка.`);
+                } else {
+                    addLog(`❌ У ${target.name} нет "${r.cardName}". Банк пуст.`);
+                }
+                gameState.currentPlayer = 1;
+            }
+            selectedCategory = null;
+            window._req = null;
+            updateGameUI();
+        }
+
+        function closeRequestModal() { document.getElementById('request-modal').classList.add('hidden'); }
         function endTurn() { selectedCategory = null; gameState.currentPlayer = 1; updateGameUI(); }
 
         function botTurn() {
@@ -356,22 +252,16 @@ function renderCategories() {
             const bot = gameState.players[1];
             if (bot.hand.length === 0) { gameState.currentPlayer = 0; updateGameUI(); return; }
 
-            const randomCard = bot.hand[Math.floor(Math.random() * bot.hand.length)];
-            const target = gameState.players[0];
-            const cardIndex = target.hand.findIndex(c => c.category === randomCard.category && c.cardName === randomCard.cardName);
+            const card = bot.hand[Math.floor(Math.random() * bot.hand.length)];
+            const idx = gameState.players[0].hand.findIndex(c => c.category === card.category && c.cardName === card.cardName);
 
-            if (cardIndex !== -1) {
-                const card = target.hand.splice(cardIndex, 1)[0];
-                bot.hand.push(card);
-                addLog(`😈 Бот забрал "${randomCard.cardName}"!`);
+            if (idx !== -1) {
+                bot.hand.push(gameState.players[0].hand.splice(idx, 1)[0]);
+                addLog(`😈 Бот забрал "${card.cardName}"!`);
                 checkQuartets();
             } else {
-                if (gameState.bank.length > 0) {
-                    bot.hand.push(gameState.bank.pop());
-                    addLog(`🤖 Бот искал "${randomCard.cardName}". Взял из банка.`);
-                } else {
-                    addLog(`🤖 Бот искал "${randomCard.cardName}". Банк пуст.`);
-                }
+                if (gameState.bank.length > 0) { bot.hand.push(gameState.bank.pop()); addLog(`🤖 Бот искал "${card.cardName}". Взял из банка.`); }
+                else { addLog(`🤖 Бот искал "${card.cardName}". Банк пуст.`); }
             }
             gameState.currentPlayer = 0;
             updateGameUI();
@@ -379,18 +269,11 @@ function renderCategories() {
 
         function checkQuartets() {
             [0, 1].forEach(pid => {
-                const player = gameState.players[pid];
-                const grouped = {};
-                player.hand.forEach(card => {
-                    if (!grouped[card.category]) grouped[card.category] = [];
-                    grouped[card.category].push(card);
-                });
-                Object.entries(grouped).forEach(([cat, cards]) => {
-                    if (cards.length === 4) {
-                        player.quartets.push(cat);
-                        player.hand = player.hand.filter(c => c.category !== cat);
-                        addLog(`🏆 ${player.name} собрал квартет "${cat}"!`);
-                    }
+                const p = gameState.players[pid];
+                const g = {};
+                p.hand.forEach(c => { if (!g[c.category]) g[c.category] = []; g[c.category].push(c); });
+                Object.entries(g).forEach(([cat, cards]) => {
+                    if (cards.length === 4) { p.quartets.push(cat); p.hand = p.hand.filter(c => c.category !== cat); addLog(`🏆 ${p.name} собрал квартет "${cat}"!`); }
                 });
             });
         }
@@ -399,31 +282,25 @@ function renderCategories() {
             const total = gameState.data.length;
             const p1 = gameState.players[0].quartets.length;
             const p2 = gameState.players[1].quartets.length;
-            if (p1 + p2 >= total || (gameState.bank.length === 0 && gameState.players[0].hand.length === 0 && gameState.players[1].hand.length === 0)) {
-                endGame();
-            }
+            if (p1 + p2 >= total || (gameState.bank.length === 0 && gameState.players[0].hand.length === 0 && gameState.players[1].hand.length === 0)) endGame();
         }
 
         function endGame() {
             document.getElementById('game-screen').classList.add('hidden');
             document.getElementById('win-screen').classList.remove('hidden');
-            document.getElementById('scoreboard').innerHTML = gameState.players.sort((a, b) => b.quartets.length - a.quartets.length).map(p => `
-                <div class="score-item"><span>${p.quartets.length >= Math.max(...gameState.players.map(x => x.quartets.length)) ? '👑 ' : ''}${p.name}</span><span style="color:var(--accent)">${p.quartets.length} квартетов</span></div>
-            `).join('');
+            document.getElementById('scoreboard').innerHTML = gameState.players.sort((a, b) => b.quartets.length - a.quartets.length).map(p =>
+                `<div class="score-item"><span>${p.quartets.length >= Math.max(...gameState.players.map(x => x.quartets.length)) ? '👑 ' : ''}${p.name}</span><span style="color:var(--accent)">${p.quartets.length} квартетов</span></div>`
+            ).join('');
         }
 
         function addLog(msg) {
             gameState.log.push(msg);
-            const logEl = document.getElementById('game-log');
-            logEl.innerHTML = gameState.log.slice(-8).map(m => `<p>${m}</p>`).join('');
-            logEl.scrollTop = logEl.scrollHeight;
+            const el = document.getElementById('game-log');
+            el.innerHTML = gameState.log.slice(-8).map(m => `<p>${m}</p>`).join('');
+            el.scrollTop = el.scrollHeight;
         }
 
-        function shuffle(arr) {
-            const a = [...arr];
-            for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
-            return a;
-        }
+        function shuffle(a) { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; }
 
         showMainMenu();
     </script>
