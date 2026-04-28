@@ -2,17 +2,16 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Библейский квартет</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --bg: #0d0d1a; --card: #1a1a35; --accent: #e2a03f;
-            --accent2: #7c3aed; --text: #f1f5f9; --text2: #94a3b8;
-            --green: #10b981; --red: #ef4444; --border: #2d2d4a;
+            --bg: #0d0d1a; --card: #1a1a35; --accent: #e2a03f; --accent2: #7c3aed;
+            --text: #f1f5f9; --text2: #94a3b8; --green: #10b981; --red: #ef4444; --border: #2d2d4a;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Georgia', serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 16px; }
+        body { font-family: 'Georgia', serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 16px; padding-bottom: 100px; }
         .container { max-width: 700px; margin: 0 auto; }
         .header { text-align: center; padding: 16px 0; }
         .btn { width: 100%; padding: 14px; font-size: 15px; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; margin: 6px 0; }
@@ -20,7 +19,32 @@
         .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
         .btn-danger { background: var(--red); color: #fff; }
 
-        /* Заголовок категории (сворачиваемый) */
+        /* ПЛАВАЮЩАЯ КНОПКА */
+        .fab {
+            position: fixed; bottom: 20px; right: 16px;
+            background: var(--accent2); color: #fff;
+            padding: 14px 20px; border-radius: 16px;
+            font-weight: bold; font-size: 14px; cursor: pointer;
+            box-shadow: 0 8px 30px rgba(124, 58, 237, 0.5);
+            z-index: 50; transition: all 0.2s; border: none;
+            display: none; align-items: center; gap: 8px;
+        }
+        .fab.visible { display: flex; }
+        .fab:active { transform: scale(0.95); }
+
+        /* УВЕДОМЛЕНИЕ */
+        .toast {
+            position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+            background: var(--card); border: 1px solid var(--accent);
+            color: var(--text); padding: 12px 20px; border-radius: 12px;
+            font-size: 13px; z-index: 60; opacity: 0; transition: opacity 0.3s;
+            pointer-events: none; max-width: 90%; text-align: center;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        }
+        .toast.show { opacity: 1; }
+        .toast.success { border-color: var(--green); }
+        .toast.error { border-color: var(--red); }
+
         .cat-header {
             background: var(--card); border: 1px solid var(--border);
             border-radius: 12px; padding: 12px 16px; margin: 8px 0 0;
@@ -36,11 +60,9 @@
         .cat-header .arrow { font-size: 18px; transition: transform 0.3s; }
         .cat-header .arrow.open { transform: rotate(180deg); }
 
-        /* Сетка карт */
         .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 6px 0 0; }
         .cards-grid.collapsed { display: none; }
 
-        /* Карточка */
         .card-cell {
             background: var(--card); border: 3px solid var(--border);
             border-radius: 10px; overflow: hidden; cursor: pointer;
@@ -49,23 +71,17 @@
         .card-cell.owned { border-color: var(--green); cursor: default; }
         .card-cell.missing { opacity: 0.5; filter: grayscale(0.6); }
         .card-cell.missing:hover { opacity: 0.8; filter: grayscale(0.2); border-color: var(--accent2); }
-        
-        /* ВЫБРАНА */
         .card-cell.selected {
             border-color: var(--accent2) !important;
             box-shadow: 0 0 20px rgba(124, 58, 237, 0.6);
-            opacity: 1 !important; filter: none !important;
-            transform: scale(1.03);
+            opacity: 1 !important; filter: none !important; transform: scale(1.03);
         }
         .card-cell.selected::after {
-            content: '✅';
-            position: absolute; top: 6px; right: 6px;
-            font-size: 18px; z-index: 5;
-            background: var(--accent2); border-radius: 50%;
-            width: 28px; height: 28px; display: flex;
-            align-items: center; justify-content: center;
+            content: '✅'; position: absolute; top: 6px; right: 6px;
+            font-size: 18px; z-index: 5; background: var(--accent2);
+            border-radius: 50%; width: 28px; height: 28px;
+            display: flex; align-items: center; justify-content: center;
         }
-
         .card-cell img { width: 100%; height: 100%; object-fit: cover; }
         .card-cell .label {
             position: absolute; bottom: 0; left: 0; right: 0;
@@ -73,12 +89,17 @@
             font-size: 10px; text-align: center; color: #fff;
         }
 
-        .game-log { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin: 12px 0; max-height: 80px; overflow-y: auto; font-size: 11px; color: var(--text2); }
         .hidden { display: none !important; }
         .score-item { background: var(--card); border-radius: 12px; padding: 12px; margin: 8px 0; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
+    <!-- УВЕДОМЛЕНИЕ -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ПЛАВАЮЩАЯ КНОПКА -->
+    <button class="fab" id="fab" onclick="requestSelected()">❓ Запросить</button>
+
     <div class="container">
         <div id="main-menu">
             <div class="header"><h1>📖 Библейский квартет</h1><p style="color:var(--text2)">37 квартетов · 148 карт</p></div>
@@ -93,9 +114,7 @@
         </div>
         <div id="game-screen" class="hidden">
             <div class="header"><h2 id="game-status" style="color:var(--accent)"></h2><p style="color:var(--text2)" id="turn-info"></p></div>
-            <div class="game-log" id="game-log"></div>
             <div id="play-area"></div>
-            <button class="btn btn-primary hidden" id="request-btn" onclick="requestSelected()">❓ Запросить выбранную карту</button>
             <button class="btn btn-danger hidden" id="end-btn" onclick="endTurn()">✅ Закончить ход</button>
         </div>
         <div id="win-screen" class="hidden">
@@ -108,8 +127,28 @@
         if (tg) { tg.expand(); tg.ready(); }
         let gameState = null;
         let playerName = 'Игрок';
-        let selectedCard = null; // {category, cardName}
+        let selectedCard = null;
         if (tg?.initDataUnsafe?.user) playerName = tg.initDataUnsafe.user.first_name || 'Игрок';
+
+        // УВЕДОМЛЕНИЕ
+        function showToast(msg, type) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast ' + (type || '') + ' show';
+            clearTimeout(t._timeout);
+            t._timeout = setTimeout(() => t.classList.remove('show'), 2500);
+        }
+
+        // FAB
+        function updateFab() {
+            const fab = document.getElementById('fab');
+            if (selectedCard && gameState && gameState.currentPlayer === 0) {
+                fab.classList.add('visible');
+                fab.textContent = `❓ Запросить "${selectedCard.cardName}"`;
+            } else {
+                fab.classList.remove('visible');
+            }
+        }
 
         async function loadData() { const r = await fetch('data.json'); return await r.json(); }
         function showMainMenu() { document.querySelectorAll('#main-menu, #card-count-screen, #game-screen, #win-screen').forEach(e => e.classList.add('hidden')); document.getElementById('main-menu').classList.remove('hidden'); }
@@ -121,26 +160,25 @@
             let deck = [];
             data.forEach(q => q.cards.forEach(c => deck.push({ category: q.name, categoryId: q.id, cardName: c.name, image: c.image })));
             deck = shuffle(deck);
-            gameState = { players: [{ id: 0, name: playerName, hand: deck.splice(0, n), quartets: [] }, { id: 1, name: 'Бот', hand: deck.splice(0, n), quartets: [] }], bank: deck, currentPlayer: 0, log: [], data: data };
+            gameState = { players: [{ id: 0, name: playerName, hand: deck.splice(0, n), quartets: [] }, { id: 1, name: 'Бот', hand: deck.splice(0, n), quartets: [] }], bank: deck, currentPlayer: 0, data: data };
             document.getElementById('card-count-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
-            addLog('🎮 Игра началась! Выберите тусклую карту (❓) и нажмите "Запросить".');
+            showToast('🎮 Игра началась! Выберите тусклую карту.', '');
             updateUI();
         }
 
         function updateUI() {
             const me = gameState.players[0], cur = gameState.players[gameState.currentPlayer];
             document.getElementById('game-status').textContent = gameState.currentPlayer === 0 ? '🎯 Ваш ход' : '⏳ Бот думает...';
-            document.getElementById('turn-info').textContent = `Ходит: ${cur.name} | 🏆 Вы: ${me.quartets.length} | Бот: ${gameState.players[1].quartets.length}`;
+            document.getElementById('turn-info').textContent = `🏆 Вы: ${me.quartets.length} | Бот: ${gameState.players[1].quartets.length}`;
             if (gameState.currentPlayer === 0) {
-                document.getElementById('request-btn').classList.remove('hidden');
                 document.getElementById('end-btn').classList.remove('hidden');
             } else {
-                document.getElementById('request-btn').classList.add('hidden');
                 document.getElementById('end-btn').classList.add('hidden');
                 setTimeout(botTurn, 1200);
             }
             renderPlayArea();
+            updateFab();
             checkWin();
         }
 
@@ -179,7 +217,6 @@
             }).join('');
         }
 
-        // СВОРАЧИВАНИЕ
         function toggleCategory(catId) {
             const grid = document.getElementById('grid-' + catId);
             const arrow = document.getElementById('arrow-' + catId);
@@ -190,24 +227,29 @@
         function selectCard(cat, name) {
             if (gameState.currentPlayer !== 0) return;
             if (selectedCard && selectedCard.category === cat && selectedCard.cardName === name) {
-                selectedCard = null; // снять выбор
+                selectedCard = null;
             } else {
                 selectedCard = { category: cat, cardName: name };
             }
             renderPlayArea();
+            updateFab();
         }
 
         function requestSelected() {
-            if (!selectedCard) return alert('Сначала выберите тусклую карту (❓)!');
+            if (!selectedCard) { showToast('⚠️ Сначала выберите карту!', 'error'); return; }
             const me = gameState.players[0], bot = gameState.players[1];
             const idx = bot.hand.findIndex(c => c.category === selectedCard.category && c.cardName === selectedCard.cardName);
             if (idx !== -1) {
                 me.hand.push(bot.hand.splice(idx, 1)[0]);
-                addLog(`✅ Вы забрали "${selectedCard.cardName}" у бота!`);
+                showToast(`✅ Вы забрали "${selectedCard.cardName}" у бота!`, 'success');
                 checkQuartets();
             } else {
-                if (gameState.bank.length) { me.hand.push(gameState.bank.pop()); addLog(`❌ У бота нет "${selectedCard.cardName}". Берёте из банка.`); }
-                else addLog(`❌ У бота нет "${selectedCard.cardName}". Банк пуст.`);
+                if (gameState.bank.length) {
+                    me.hand.push(gameState.bank.pop());
+                    showToast(`❌ У бота нет "${selectedCard.cardName}". Тянете из банка.`, 'error');
+                } else {
+                    showToast(`❌ У бота нет "${selectedCard.cardName}". Банк пуст.`, 'error');
+                }
                 gameState.currentPlayer = 1;
             }
             selectedCard = null;
@@ -222,15 +264,21 @@
             if (!bot.hand.length) { gameState.currentPlayer = 0; updateUI(); return; }
             const card = bot.hand[Math.floor(Math.random() * bot.hand.length)];
             const idx = gameState.players[0].hand.findIndex(c => c.category === card.category && c.cardName === card.cardName);
-            if (idx !== -1) { bot.hand.push(gameState.players[0].hand.splice(idx, 1)[0]); addLog(`😈 Бот забрал "${card.cardName}"!`); checkQuartets(); }
-            else { if (gameState.bank.length) { bot.hand.push(gameState.bank.pop()); addLog(`🤖 Бот искал "${card.cardName}". Взял из банка.`); } else addLog(`🤖 Бот искал "${card.cardName}". Банк пуст.`); }
-            gameState.currentPlayer = 0; updateUI();
+            if (idx !== -1) {
+                bot.hand.push(gameState.players[0].hand.splice(idx, 1)[0]);
+                showToast(`😈 Бот забрал у вас "${card.cardName}"!`, 'error');
+                checkQuartets();
+            } else {
+                if (gameState.bank.length) { bot.hand.push(gameState.bank.pop()); showToast(`🤖 Бот искал "${card.cardName}" и взял из банка.`, ''); }
+                else showToast(`🤖 Бот искал "${card.cardName}". Банк пуст.`, '');
+            }
+            gameState.currentPlayer = 0;
+            updateUI();
         }
 
-        function checkQuartets() { [0, 1].forEach(pid => { const p = gameState.players[pid], g = {}; p.hand.forEach(c => { if (!g[c.category]) g[c.category] = []; g[c.category].push(c); }); Object.entries(g).forEach(([cat, cards]) => { if (cards.length === 4) { p.quartets.push(cat); p.hand = p.hand.filter(c => c.category !== cat); addLog(`🏆 ${p.name} собрал квартет "${cat}"!`); } }); }); }
+        function checkQuartets() { [0, 1].forEach(pid => { const p = gameState.players[pid], g = {}; p.hand.forEach(c => { if (!g[c.category]) g[c.category] = []; g[c.category].push(c); }); Object.entries(g).forEach(([cat, cards]) => { if (cards.length === 4) { p.quartets.push(cat); p.hand = p.hand.filter(c => c.category !== cat); showToast(`🏆 ${p.name} собрал квартет "${cat}"!`, 'success'); } }); }); }
         function checkWin() { const t = gameState.data.length, p1 = gameState.players[0].quartets.length, p2 = gameState.players[1].quartets.length; if (p1 + p2 >= t || (!gameState.bank.length && !gameState.players[0].hand.length && !gameState.players[1].hand.length)) endGame(); }
         function endGame() { document.getElementById('game-screen').classList.add('hidden'); document.getElementById('win-screen').classList.remove('hidden'); document.getElementById('scoreboard').innerHTML = gameState.players.sort((a, b) => b.quartets.length - a.quartets.length).map(p => `<div class="score-item"><span>${p.quartets.length >= Math.max(...gameState.players.map(x => x.quartets.length)) ? '👑 ' : ''}${p.name}</span><span style="color:var(--accent)">${p.quartets.length} квартетов</span></div>`).join(''); }
-        function addLog(m) { gameState.log.push(m); const el = document.getElementById('game-log'); el.innerHTML = gameState.log.slice(-6).map(x => `<p>${x}</p>`).join(''); el.scrollTop = el.scrollHeight; }
         function shuffle(a) { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; }
 
         showMainMenu();
