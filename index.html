@@ -38,18 +38,26 @@
         .btn-danger { background: var(--red); color: #fff; }
         .btn-success { background: var(--green); color: #fff; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin: 16px 0; }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
         .card-item {
             background: var(--card); border: 1px solid var(--border);
             border-radius: 12px; padding: 10px; text-align: center;
             cursor: pointer; transition: all 0.2s; font-size: 12px;
-            position: relative; min-height: 180px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative;
+            display: flex; flex-direction: column; align-items: center;
         }
         .card-item:hover { border-color: var(--accent); transform: translateY(-2px); }
         .card-item.selected { border-color: var(--accent2); box-shadow: 0 0 12px rgba(124, 58, 237, 0.4); }
-        .card-item img { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 6px; }
-        .card-item .card-name { font-weight: bold; font-size: 11px; margin: 4px 0; }
+        .card-item img {
+            width: 100%;
+            height: auto;
+            max-height: 220px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: rgba(0,0,0,0.3);
+        }
+        .card-item .card-name { font-weight: bold; font-size: 12px; margin: 4px 0; }
         .card-item .card-category { font-size: 10px; color: var(--text2); }
         .card-item.collected { border-color: var(--green); opacity: 0.7; }
         .quartet-badge {
@@ -166,15 +174,6 @@
             </div>
         </div>
 
-        <!-- МОДАЛЬНОЕ ОКНО ВЫБОРА КАРТЫ -->
-        <div id="card-modal" class="modal hidden">
-            <div class="modal-content">
-                <h2>❓ Какую карту запросить?</h2>
-                <div id="card-choose-list"></div>
-                <button class="btn btn-secondary" onclick="closeCardModal()">Отмена</button>
-            </div>
-        </div>
-
         <!-- ПОБЕДА -->
         <div id="win-screen" class="hidden">
             <div class="header">
@@ -186,18 +185,14 @@
     </div>
 
     <script>
-        // ===== TELEGRAM =====
         const tg = window.Telegram.WebApp;
         if (tg) { tg.expand(); tg.ready(); }
 
-        // ===== СОСТОЯНИЕ =====
         let gameState = null;
         let playerId = null;
         let playerName = 'Игрок';
         let selectedCard = null;
-        let requestTarget = null;
 
-        // ===== ИНИЦИАЛИЗАЦИЯ =====
         if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
             playerName = tg.initDataUnsafe.user.first_name || 'Игрок';
             playerId = tg.initDataUnsafe.user.id;
@@ -205,18 +200,13 @@
             playerId = Math.floor(Math.random() * 1000000);
         }
 
-        // ===== ЗАГРУЗКА ДАННЫХ =====
         async function loadGameData() {
             try {
                 const resp = await fetch('data.json');
                 return await resp.json();
-            } catch (e) {
-                console.error('Ошибка загрузки data.json:', e);
-                return [];
-            }
+            } catch (e) { return []; }
         }
 
-        // ===== ГЛАВНОЕ МЕНЮ =====
         function showMainMenu() {
             document.querySelectorAll('#main-menu, #join-screen, #lobby, #game-screen, #win-screen').forEach(el => el.classList.add('hidden'));
             document.getElementById('main-menu').classList.remove('hidden');
@@ -227,36 +217,21 @@
             document.getElementById('join-screen').classList.remove('hidden');
         }
 
-        function backToMenu() {
-            gameState = null;
-            showMainMenu();
-        }
+        function backToMenu() { gameState = null; showMainMenu(); }
 
-        // ===== МУЛЬТИПЛЕЕР (ЛОКАЛЬНЫЙ) =====
-        // Для простоты делаем игру на одном устройстве (hot-seat)
-        // Полноценный мультиплеер требует сервера (Render)
-        
         async function createGame() {
             const data = await loadGameData();
             if (!data.length) return alert('Ошибка загрузки колоды');
 
-            // Создаём колоду: каждая карта = {category, card}
             let deck = [];
             data.forEach(q => {
                 q.cards.forEach(c => {
-                    deck.push({
-                        category: q.name,
-                        categoryId: q.id,
-                        cardName: c.name,
-                        image: c.image
-                    });
+                    deck.push({ category: q.name, categoryId: q.id, cardName: c.name, image: c.image });
                 });
             });
 
-            // Перемешиваем
             deck = shuffle(deck);
 
-            // Раздаём по 7 карт (минимум)
             const handSize = Math.min(7, Math.floor(deck.length / 2));
             const playerHand = deck.splice(0, handSize);
             const botHand = deck.splice(0, handSize);
@@ -267,21 +242,13 @@
                     { id: 0, name: playerName, hand: playerHand, quartets: [] },
                     { id: 1, name: 'Бот', hand: botHand, quartets: [] }
                 ],
-                bank: bank,
-                currentPlayer: 0,
-                turnActive: false,
-                log: [],
-                data: data
+                bank: bank, currentPlayer: 0, turnActive: false, log: [], data: data
             };
-
             showGame();
         }
 
-        function joinGame() {
-            alert('Мультиплеер по сети требует сервер. Играйте в локальном режиме (Создать игру → игра с ботом).');
-        }
+        function joinGame() { alert('Мультиплеер по сети требует сервер. Играйте с ботом.'); }
 
-        // ===== ИГРА =====
         function showGame() {
             document.querySelectorAll('#main-menu, #join-screen, #lobby, #game-screen, #win-screen').forEach(el => el.classList.add('hidden'));
             document.getElementById('game-screen').classList.remove('hidden');
@@ -292,13 +259,9 @@
         }
 
         function updateGameUI() {
-            const me = gameState.players[0];
             const current = gameState.players[gameState.currentPlayer];
-            
-            document.getElementById('game-status').textContent = 
-                gameState.currentPlayer === 0 ? '🎯 Ваш ход!' : '⏳ Ход бота...';
-            document.getElementById('turn-info').textContent = 
-                `Ходит: ${current.name} | Банк: ${gameState.bank.length} карт`;
+            document.getElementById('game-status').textContent = gameState.currentPlayer === 0 ? '🎯 Ваш ход!' : '⏳ Ход бота...';
+            document.getElementById('turn-info').textContent = `Ходит: ${current.name} | Банк: ${gameState.bank.length} карт`;
 
             if (gameState.currentPlayer === 0) {
                 document.getElementById('request-btn').classList.remove('hidden');
@@ -308,7 +271,6 @@
                 document.getElementById('end-btn').classList.add('hidden');
                 setTimeout(botTurn, 1500);
             }
-
             showMyCards();
             checkWin();
         }
@@ -316,8 +278,6 @@
         function showMyCards() {
             const me = gameState.players[0];
             const grid = document.getElementById('card-grid');
-            
-            // Группируем по категориям
             const grouped = {};
             me.hand.forEach(card => {
                 if (!grouped[card.category]) grouped[card.category] = [];
@@ -325,13 +285,12 @@
             });
 
             grid.innerHTML = Object.entries(grouped).map(([cat, cards]) => {
-                const total = 4; // В квартете всегда 4 карты
                 const collected = cards.length;
                 return cards.map(card => `
-                    <div class="card-item ${selectedCard === card ? 'selected' : ''}" onclick="selectCard(this, '${card.category}', '${card.cardName}')">
+                    <div class="card-item ${selectedCard === card ? 'selected' : ''}" onclick="selectCard(this, '${card.category.replace(/'/g, "\\'")}', '${card.cardName.replace(/'/g, "\\'")}')">
                         <img src="${card.image}" alt="${card.cardName}" onerror="this.style.display='none'">
                         <div class="card-name">${card.cardName}</div>
-                        <div class="card-category">${cat} (${collected}/${total})</div>
+                        <div class="card-category">${cat} (${collected}/4)</div>
                     </div>
                 `).join('');
             }).join('');
@@ -340,41 +299,28 @@
         function showQuartets() {
             const me = gameState.players[0];
             const grid = document.getElementById('card-grid');
-            grid.innerHTML = me.quartets.length === 0 ? 
+            grid.innerHTML = me.quartets.length === 0 ?
                 '<p style="text-align:center;padding:20px;">У вас пока нет собранных квартетов</p>' :
-                me.quartets.map(q => `
-                    <div class="card-item collected">
-                        <div class="quartet-badge">✅</div>
-                        <div class="card-name" style="font-size:14px;">${q}</div>
-                    </div>
-                `).join('');
+                me.quartets.map(q => `<div class="card-item collected"><div class="quartet-badge">✅</div><div class="card-name" style="font-size:14px;">${q}</div></div>`).join('');
         }
 
         function selectCard(el, category, cardName) {
             document.querySelectorAll('.card-item').forEach(c => c.classList.remove('selected'));
             el.classList.add('selected');
-            selectedCard = { category, cardName };
+            const card = gameState.players[0].hand.find(c => c.category === category && c.cardName === cardName);
+            selectedCard = card;
         }
 
         function showRequestModal() {
-            if (!selectedCard) {
-                alert('Сначала выберите карту, которую хотите запросить!');
-                return;
-            }
+            if (!selectedCard) { alert('Сначала выберите карту!'); return; }
             const list = document.getElementById('player-choose-list');
-            list.innerHTML = gameState.players
-                .filter(p => p.id !== 0)
-                .map(p => `
-                    <div class="player-choose" onclick="selectTarget(${p.id})">
-                        ${p.name} (${p.hand.length} карт)
-                    </div>
-                `).join('');
+            list.innerHTML = gameState.players.filter(p => p.id !== 0).map(p => `
+                <div class="player-choose" onclick="selectTarget(${p.id})">${p.name} (${p.hand.length} карт)</div>
+            `).join('');
             document.getElementById('request-modal').classList.remove('hidden');
         }
 
-        function closeRequestModal() {
-            document.getElementById('request-modal').classList.add('hidden');
-        }
+        function closeRequestModal() { document.getElementById('request-modal').classList.add('hidden'); }
 
         function selectTarget(targetId) {
             closeRequestModal();
@@ -386,7 +332,6 @@
             const cardIndex = target.hand.findIndex(c => c.category === category && c.cardName === cardName);
 
             if (cardIndex !== -1) {
-                // Карта есть — забираем
                 const card = target.hand.splice(cardIndex, 1)[0];
                 gameState.players[0].hand.push(card);
                 addLog(`✅ ${playerName} забрал "${cardName}" у ${target.name}!`);
@@ -394,11 +339,10 @@
                 selectedCard = null;
                 updateGameUI();
             } else {
-                // Карты нет — берём из банка
                 if (gameState.bank.length > 0) {
                     const newCard = gameState.bank.pop();
                     gameState.players[0].hand.push(newCard);
-                    addLog(`❌ У ${target.name} нет "${cardName}". ${playerName} берёт карту из банка.`);
+                    addLog(`❌ У ${target.name} нет "${cardName}". Вы берёте карту из банка.`);
                 } else {
                     addLog(`❌ У ${target.name} нет "${cardName}". Банк пуст.`);
                 }
@@ -408,23 +352,13 @@
             }
         }
 
-        function endTurn() {
-            selectedCard = null;
-            gameState.currentPlayer = 1;
-            updateGameUI();
-        }
+        function endTurn() { selectedCard = null; gameState.currentPlayer = 1; updateGameUI(); }
 
         function botTurn() {
             if (gameState.currentPlayer !== 1) return;
             const bot = gameState.players[1];
+            if (bot.hand.length === 0) { gameState.currentPlayer = 0; updateGameUI(); return; }
 
-            if (bot.hand.length === 0) {
-                gameState.currentPlayer = 0;
-                updateGameUI();
-                return;
-            }
-
-            // Бот выбирает случайную карту и запрашивает у игрока
             const randomCard = bot.hand[Math.floor(Math.random() * bot.hand.length)];
             const target = gameState.players[0];
             const cardIndex = target.hand.findIndex(c => c.category === randomCard.category && c.cardName === randomCard.cardName);
@@ -438,12 +372,11 @@
                 if (gameState.bank.length > 0) {
                     const newCard = gameState.bank.pop();
                     bot.hand.push(newCard);
-                    addLog(`🤖 Бот запросил "${randomCard.cardName}". У вас нет. Бот берёт карту из банка.`);
+                    addLog(`🤖 Бот запросил "${randomCard.cardName}". У вас нет. Бот берёт из банка.`);
                 } else {
                     addLog(`🤖 Бот запросил "${randomCard.cardName}". У вас нет. Банк пуст.`);
                 }
             }
-
             gameState.currentPlayer = 0;
             updateGameUI();
         }
@@ -456,10 +389,8 @@
                     if (!grouped[card.category]) grouped[card.category] = [];
                     grouped[card.category].push(card);
                 });
-
                 Object.entries(grouped).forEach(([cat, cards]) => {
                     if (cards.length === 4) {
-                        // Собрали квартет!
                         player.quartets.push(cat);
                         player.hand = player.hand.filter(c => c.category !== cat);
                         addLog(`🏆 ${player.name} собрал квартет "${cat}"!`);
@@ -469,12 +400,10 @@
         }
 
         function checkWin() {
-            const totalQuartets = gameState.data.length;
+            const total = gameState.data.length;
             const p1 = gameState.players[0].quartets.length;
             const p2 = gameState.players[1].quartets.length;
-            
-            if (p1 + p2 >= totalQuartets || (p1 === 0 && p2 === 0 && gameState.bank.length === 0 && 
-                gameState.players[0].hand.length === 0 && gameState.players[1].hand.length === 0)) {
+            if (p1 + p2 >= total || (p1 === 0 && p2 === 0 && gameState.bank.length === 0 && gameState.players[0].hand.length === 0 && gameState.players[1].hand.length === 0)) {
                 endGame();
             }
         }
@@ -482,16 +411,10 @@
         function endGame() {
             document.getElementById('game-screen').classList.add('hidden');
             document.getElementById('win-screen').classList.remove('hidden');
-            
             const sb = document.getElementById('scoreboard');
-            sb.innerHTML = gameState.players
-                .sort((a, b) => b.quartets.length - a.quartets.length)
-                .map(p => `
-                    <div class="score-item">
-                        <span>${p.quartets.length >= Math.max(...gameState.players.map(x => x.quartets.length)) ? '👑 ' : ''}${p.name}</span>
-                        <span style="color:var(--accent)">${p.quartets.length} квартетов</span>
-                    </div>
-                `).join('');
+            sb.innerHTML = gameState.players.sort((a, b) => b.quartets.length - a.quartets.length).map(p => `
+                <div class="score-item"><span>${p.quartets.length >= Math.max(...gameState.players.map(x => x.quartets.length)) ? '👑 ' : ''}${p.name}</span><span style="color:var(--accent)">${p.quartets.length} квартетов</span></div>
+            `).join('');
         }
 
         function addLog(msg) {
@@ -510,7 +433,6 @@
             return a;
         }
 
-        // Старт
         showMainMenu();
     </script>
 </body>
