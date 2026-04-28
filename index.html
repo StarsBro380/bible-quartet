@@ -5,115 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Библейский квартет</title>
     <style>
-        :root {
-            --bg: #1a1a2e;
-            --card: #16213e;
-            --accent: #e2a03f;
-            --text: #fff;
-            --text-secondary: #a0a0b0;
-        }
-
+        :root { --bg: #1a1a2e; --card: #16213e; --accent: #e2a03f; --text: #fff; --text-secondary: #a0a0b0; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Georgia', serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
+        body { font-family: 'Georgia', serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; }
         .container { max-width: 800px; margin: 0 auto; }
-
-        .header {
-            text-align: center;
-            padding: 30px 0;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            color: var(--accent);
-            margin-bottom: 8px;
-        }
-
-        .header p {
-            color: var(--text-secondary);
-            font-size: 14px;
-        }
-
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 16px;
-        }
-
-        .card {
-            background: var(--card);
-            border-radius: 12px;
-            overflow: hidden;
-            transition: transform 0.2s;
-            cursor: pointer;
-        }
-
-        .card:hover {
-            transform: scale(1.03);
-        }
-
-        .card img {
-            width: 100%;
-            height: 250px;
-            object-fit: cover;
-        }
-
-        .card-info {
-            padding: 12px;
-        }
-
-        .card-info h3 {
-            font-size: 14px;
-            color: var(--accent);
-            margin-bottom: 4px;
-        }
-
-        .card-info p {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .tabs {
-            display: flex;
-            gap: 4px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            background: var(--card);
-            border-radius: 12px;
-            padding: 4px;
-        }
-
-        .tab {
-            padding: 10px 16px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 13px;
-            transition: all 0.2s;
-            color: var(--text-secondary);
-        }
-
-        .tab:hover {
-            color: var(--text);
-        }
-
-        .tab.active {
-            background: var(--accent);
-            color: #000;
-            font-weight: bold;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: var(--text-secondary);
-        }
+        .header { text-align: center; padding: 30px 0; }
+        .header h1 { font-size: 28px; color: var(--accent); margin-bottom: 8px; }
+        .header p { color: var(--text-secondary); font-size: 14px; }
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+        .card { background: var(--card); border-radius: 12px; overflow: hidden; transition: transform 0.2s; cursor: pointer; }
+        .card:hover { transform: scale(1.03); }
+        .card img { width: 100%; height: 250px; object-fit: cover; }
+        .card-info { padding: 12px; }
+        .card-info h3 { font-size: 14px; color: var(--accent); margin-bottom: 4px; }
+        .card-info p { font-size: 12px; color: var(--text-secondary); }
+        .tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; background: var(--card); border-radius: 12px; padding: 4px; }
+        .tab { padding: 10px 16px; border-radius: 10px; cursor: pointer; font-size: 13px; transition: all 0.2s; color: var(--text-secondary); }
+        .tab:hover { color: var(--text); }
+        .tab.active { background: var(--accent); color: #000; font-weight: bold; }
+        .loading { text-align: center; padding: 40px; color: var(--text-secondary); }
     </style>
 </head>
 <body>
@@ -122,70 +32,44 @@
             <h1>📖 Библейский квартет</h1>
             <p id="stats">Загрузка...</p>
         </div>
-
         <div class="tabs" id="tabs"></div>
         <div class="cards-grid" id="cards"></div>
     </div>
-
     <script>
         async function loadData() {
             try {
                 const resp = await fetch('data.json');
                 const data = await resp.json();
-                render(data);
+                window.allData = data;
+                document.getElementById('stats').textContent = `Квартетов: ${data.length} | Карт: ${data.reduce((s, q) => s + q.cards.length, 0)}`;
+                const tabs = document.getElementById('tabs');
+                tabs.innerHTML = '<div class="tab active" onclick="filterCards(null, this)">Все</div>';
+                data.forEach(q => {
+                    const tab = document.createElement('div');
+                    tab.className = 'tab';
+                    tab.textContent = q.name;
+                    tab.onclick = function() { filterCards(q.id, this); };
+                    tabs.appendChild(tab);
+                });
+                filterCards(null, tabs.firstChild);
             } catch (e) {
-                document.getElementById('cards').innerHTML = 
-                    '<div class="loading">Ошибка загрузки data.json</div>';
+                document.getElementById('cards').innerHTML = '<div class="loading">❌ Ошибка загрузки data.json</div>';
             }
         }
-
-        function render(data) {
-            document.getElementById('stats').textContent = 
-                `Квартетов: ${data.length} | Карт: ${data.reduce((s, q) => s + q.cards.length, 0)}`;
-
-            const tabs = document.getElementById('tabs');
-            tabs.innerHTML = '<div class="tab active" onclick="filterCards(null, this)">Все</div>';
-            
-            data.forEach(q => {
-                const tab = document.createElement('div');
-                tab.className = 'tab';
-                tab.textContent = q.name;
-                tab.onclick = function() { filterCards(q.id, this); };
-                tabs.appendChild(tab);
-            });
-
-            window.allData = data;
-            filterCards(null, tabs.firstChild);
-        }
-
         function filterCards(quartetId, tabEl) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             if (tabEl) tabEl.classList.add('active');
-
             let cards = [];
             if (quartetId) {
                 const q = window.allData.find(q => q.id === quartetId);
                 if (q) cards = q.cards.map(c => ({...c, category: q.name, reference: q.reference}));
             } else {
-                window.allData.forEach(q => {
-                    q.cards.forEach(c => {
-                        cards.push({...c, category: q.name, reference: q.reference});
-                    });
-                });
+                window.allData.forEach(q => { q.cards.forEach(c => { cards.push({...c, category: q.name, reference: q.reference}); }); });
             }
-
-            const grid = document.getElementById('cards');
-            grid.innerHTML = cards.map(c => `
-                <div class="card">
-                    <img src="${c.image}" alt="${c.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22250%22><rect fill=%22%23333%22 width=%22200%22 height=%22250%22/><text fill=%22%23aaa%22 x=%22100%22 y=%22125%22 text-anchor=%22middle%22 font-size=%2216%22>Нет фото</text></svg>'">
-                    <div class="card-info">
-                        <h3>${c.name}</h3>
-                        <p>${c.category} · ${c.reference}</p>
-                    </div>
-                </div>
+            document.getElementById('cards').innerHTML = cards.map(c => `
+                <div class="card"><img src="${c.image}" alt="${c.name}" onerror="this.style.display='none'"><div class="card-info"><h3>${c.name}</h3><p>${c.category}</p></div></div>
             `).join('');
         }
-
         loadData();
     </script>
 </body>
