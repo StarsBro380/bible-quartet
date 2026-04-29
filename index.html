@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Библейский квартет</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -11,33 +11,45 @@
             --text: #f1f5f9; --text2: #94a3b8; --green: #10b981; --red: #ef4444; --border: #2d2d4a;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Georgia', serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 16px; padding-bottom: 100px; }
-        .container { max-width: 700px; margin: 0 auto; }
-        .header { text-align: center; padding: 16px 0; }
-        .btn { width: 100%; padding: 14px; font-size: 15px; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; margin: 6px 0; }
+        body {
+            font-family: 'Georgia', serif; background: var(--bg); color: var(--text);
+            min-height: 100vh; padding: 12px; padding-bottom: 140px;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        .container { max-width: 100%; margin: 0 auto; }
+        .header { text-align: center; padding: 8px 0 12px; }
+        .header h1 { font-size: 20px; }
+        .header p { font-size: 12px; }
+        .btn {
+            width: 100%; padding: 14px; font-size: 15px; font-weight: 600;
+            border: none; border-radius: 12px; cursor: pointer; margin: 5px 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn:active { opacity: 0.8; }
         .btn-primary { background: var(--accent); color: #000; }
         .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
         .btn-danger { background: var(--red); color: #fff; }
 
-        /* ПЛАВАЮЩАЯ КНОПКА */
+        /* FAB */
         .fab {
-            position: fixed; bottom: 20px; right: 16px;
+            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
             background: var(--accent2); color: #fff;
-            padding: 14px 20px; border-radius: 16px;
+            padding: 14px 24px; border-radius: 16px;
             font-weight: bold; font-size: 14px; cursor: pointer;
             box-shadow: 0 8px 30px rgba(124, 58, 237, 0.5);
             z-index: 50; transition: all 0.2s; border: none;
-            display: none; align-items: center; gap: 8px;
+            display: none; white-space: nowrap;
         }
-        .fab.visible { display: flex; }
-        .fab:active { transform: scale(0.95); }
+        .fab.visible { display: block; }
+        .fab:active { transform: translateX(-50%) scale(0.95); }
 
-        /* УВЕДОМЛЕНИЕ */
+        /* TOAST */
         .toast {
-            position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+            position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
             background: var(--card); border: 1px solid var(--accent);
-            color: var(--text); padding: 12px 20px; border-radius: 12px;
-            font-size: 13px; z-index: 60; opacity: 0; transition: opacity 0.3s;
+            color: var(--text); padding: 10px 16px; border-radius: 12px;
+            font-size: 12px; z-index: 60; opacity: 0; transition: opacity 0.3s;
             pointer-events: none; max-width: 90%; text-align: center;
             box-shadow: 0 4px 16px rgba(0,0,0,0.3);
         }
@@ -45,60 +57,76 @@
         .toast.success { border-color: var(--green); }
         .toast.error { border-color: var(--red); }
 
+        /* КАТЕГОРИИ */
         .cat-header {
             background: var(--card); border: 1px solid var(--border);
-            border-radius: 12px; padding: 12px 16px; margin: 8px 0 0;
+            border-radius: 10px; padding: 10px 12px; margin: 6px 0 0;
             display: flex; justify-content: space-between; align-items: center;
-            cursor: pointer; user-select: none; transition: all 0.2s;
+            cursor: pointer; transition: all 0.2s; font-size: 13px;
         }
-        .cat-header:hover { border-color: var(--accent); }
-        .cat-header .title { font-weight: bold; color: var(--accent); font-size: 14px; text-transform: uppercase; }
-        .cat-header .info { display: flex; gap: 10px; align-items: center; }
-        .cat-header .count { font-size: 13px; padding: 4px 10px; border-radius: 8px; }
+        .cat-header .title { font-weight: bold; color: var(--accent); font-size: 12px; text-transform: uppercase; }
+        .cat-header .count { font-size: 11px; padding: 3px 8px; border-radius: 6px; }
         .count-full { background: var(--green); color: #fff; }
         .count-partial { background: rgba(226,160,63,0.2); color: var(--accent); }
-        .cat-header .arrow { font-size: 18px; transition: transform 0.3s; }
+        .cat-header .arrow { font-size: 14px; transition: transform 0.3s; }
         .cat-header .arrow.open { transform: rotate(180deg); }
 
-        .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 6px 0 0; }
+        /* КАРТОЧКИ */
+        .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px 0 0; }
         .cards-grid.collapsed { display: none; }
 
         .card-cell {
-            background: var(--card); border: 3px solid var(--border);
-            border-radius: 10px; overflow: hidden; cursor: pointer;
+            background: var(--card); border: 2px solid var(--border);
+            border-radius: 8px; overflow: hidden; cursor: pointer;
             transition: all 0.2s; aspect-ratio: 3/4; position: relative;
         }
         .card-cell.owned { border-color: var(--green); cursor: default; }
-        .card-cell.missing { opacity: 0.5; filter: grayscale(0.6); }
-        .card-cell.missing:hover { opacity: 0.8; filter: grayscale(0.2); border-color: var(--accent2); }
+        .card-cell.missing { opacity: 0.45; filter: grayscale(0.5); }
+        .card-cell.missing:active { opacity: 0.8; filter: grayscale(0.2); border-color: var(--accent2); }
         .card-cell.selected {
             border-color: var(--accent2) !important;
-            box-shadow: 0 0 20px rgba(124, 58, 237, 0.6);
-            opacity: 1 !important; filter: none !important; transform: scale(1.03);
+            box-shadow: 0 0 16px rgba(124, 58, 237, 0.6);
+            opacity: 1 !important; filter: none !important; transform: scale(1.02);
         }
         .card-cell.selected::after {
-            content: '✅'; position: absolute; top: 6px; right: 6px;
-            font-size: 18px; z-index: 5; background: var(--accent2);
-            border-radius: 50%; width: 28px; height: 28px;
+            content: '✅'; position: absolute; top: 4px; right: 4px;
+            font-size: 14px; z-index: 5; background: var(--accent2);
+            border-radius: 50%; width: 22px; height: 22px;
             display: flex; align-items: center; justify-content: center;
         }
         .card-cell img { width: 100%; height: 100%; object-fit: cover; }
         .card-cell .label {
             position: absolute; bottom: 0; left: 0; right: 0;
-            background: rgba(0,0,0,0.7); padding: 3px 6px;
-            font-size: 10px; text-align: center; color: #fff;
+            background: rgba(0,0,0,0.75); padding: 2px 4px;
+            font-size: 9px; text-align: center; color: #fff;
         }
 
         .hidden { display: none !important; }
-        .score-item { background: var(--card); border-radius: 12px; padding: 12px; margin: 8px 0; display: flex; justify-content: space-between; }
+        .score-item { background: var(--card); border-radius: 10px; padding: 10px; margin: 6px 0; display: flex; justify-content: space-between; font-size: 13px; }
+
+        /* ИСТОРИЯ (снизу) */
+        .history-bar {
+            position: fixed; bottom: 60px; left: 4px; right: 4px;
+            height: 60px; overflow-x: auto; overflow-y: hidden;
+            white-space: nowrap; z-index: 30;
+            display: flex; gap: 4px; padding: 4px 0; align-items: center;
+        }
+        .history-item {
+            flex-shrink: 0; background: var(--card); border-radius: 8px;
+            padding: 5px 8px; font-size: 10px; display: flex; align-items: center; gap: 4px;
+        }
+        .history-item .icon { font-size: 12px; }
+        .history-item .text { color: var(--text2); }
+        .history-item .text b { color: var(--accent); }
+        .history-item.success { border-bottom: 2px solid var(--green); }
+        .history-item.fail { border-bottom: 2px solid var(--red); }
+        .history-item.neutral { border-bottom: 2px solid var(--accent2); }
     </style>
 </head>
 <body>
-    <!-- УВЕДОМЛЕНИЕ -->
     <div class="toast" id="toast"></div>
-
-    <!-- ПЛАВАЮЩАЯ КНОПКА -->
     <button class="fab" id="fab" onclick="requestSelected()">❓ Запросить</button>
+    <div class="history-bar" id="history-bar"></div>
 
     <div class="container">
         <div id="main-menu">
@@ -113,9 +141,9 @@
             <button class="btn btn-secondary" onclick="showMainMenu()">← Назад</button>
         </div>
         <div id="game-screen" class="hidden">
-            <div class="header"><h2 id="game-status" style="color:var(--accent)"></h2><p style="color:var(--text2)" id="turn-info"></p></div>
+            <div class="header"><h2 id="game-status" style="color:var(--accent)"></h2><p style="color:var(--text2);font-size:12px;" id="turn-info"></p></div>
             <div id="play-area"></div>
-            <button class="btn btn-danger hidden" id="end-btn" onclick="endTurn()">✅ Закончить ход</button>
+            <button class="btn btn-danger hidden" id="end-btn" onclick="endTurn()" style="margin-bottom:80px;">✅ Закончить ход</button>
         </div>
         <div id="win-screen" class="hidden">
             <div class="header"><h1>🏆 Игра окончена!</h1><div class="scoreboard" id="scoreboard"></div><button class="btn btn-primary" onclick="showMainMenu()">В меню</button></div>
@@ -124,30 +152,35 @@
 
     <script>
         const tg = window.Telegram.WebApp;
-        if (tg) { tg.expand(); tg.ready(); }
-        let gameState = null;
-        let playerName = 'Игрок';
-        let selectedCard = null;
+        if (tg) { tg.expand(); tg.ready(); tg.setHeaderColor('#0d0d1a'); tg.setBackgroundColor('#0d0d1a'); }
+        let gameState = null, playerName = 'Игрок', selectedCard = null, moveHistory = [];
         if (tg?.initDataUnsafe?.user) playerName = tg.initDataUnsafe.user.first_name || 'Игрок';
 
-        // УВЕДОМЛЕНИЕ
         function showToast(msg, type) {
             const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.className = 'toast ' + (type || '') + ' show';
+            t.textContent = msg; t.className = 'toast ' + (type || '') + ' show';
             clearTimeout(t._timeout);
             t._timeout = setTimeout(() => t.classList.remove('show'), 2500);
         }
 
-        // FAB
+        function addHistory(icon, text, type) {
+            moveHistory.unshift({ icon, text, type });
+            if (moveHistory.length > 20) moveHistory.pop();
+            renderHistory();
+        }
+
+        function renderHistory() {
+            document.getElementById('history-bar').innerHTML = moveHistory.slice(0, 10).map(h => 
+                `<div class="history-item ${h.type}"><span class="icon">${h.icon}</span><span class="text">${h.text}</span></div>`
+            ).join('');
+        }
+
         function updateFab() {
             const fab = document.getElementById('fab');
             if (selectedCard && gameState && gameState.currentPlayer === 0) {
                 fab.classList.add('visible');
                 fab.textContent = `❓ Запросить "${selectedCard.cardName}"`;
-            } else {
-                fab.classList.remove('visible');
-            }
+            } else { fab.classList.remove('visible'); }
         }
 
         async function loadData() { const r = await fetch('data.json'); return await r.json(); }
@@ -161,14 +194,16 @@
             data.forEach(q => q.cards.forEach(c => deck.push({ category: q.name, categoryId: q.id, cardName: c.name, image: c.image })));
             deck = shuffle(deck);
             gameState = { players: [{ id: 0, name: playerName, hand: deck.splice(0, n), quartets: [] }, { id: 1, name: 'Бот', hand: deck.splice(0, n), quartets: [] }], bank: deck, currentPlayer: 0, data: data };
+            moveHistory = []; renderHistory();
             document.getElementById('card-count-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
             showToast('🎮 Игра началась! Выберите тусклую карту.', '');
+            addHistory('🎮', 'Игра началась!', 'neutral');
             updateUI();
         }
 
         function updateUI() {
-            const me = gameState.players[0], cur = gameState.players[gameState.currentPlayer];
+            const me = gameState.players[0];
             document.getElementById('game-status').textContent = gameState.currentPlayer === 0 ? '🎯 Ваш ход' : '⏳ Бот думает...';
             document.getElementById('turn-info').textContent = `🏆 Вы: ${me.quartets.length} | Бот: ${gameState.players[1].quartets.length}`;
             if (gameState.currentPlayer === 0) {
@@ -177,9 +212,7 @@
                 document.getElementById('end-btn').classList.add('hidden');
                 setTimeout(botTurn, 1200);
             }
-            renderPlayArea();
-            updateFab();
-            checkWin();
+            renderPlayArea(); updateFab(); checkWin();
         }
 
         function renderPlayArea() {
@@ -194,45 +227,20 @@
             container.innerHTML = active.map(cat => {
                 const cards = allGrouped[cat] || [], cnt = grouped[cat].length, done = cnt === 4;
                 const catId = cat.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_');
-                return `
-                    <div class="cat-header" onclick="toggleCategory('${catId}')">
-                        <span class="title">${cat}</span>
-                        <div class="info">
-                            <span class="count ${done ? 'count-full' : 'count-partial'}">${cnt}/4${done ? ' ✅' : ''}</span>
-                            <span class="arrow" id="arrow-${catId}">▼</span>
-                        </div>
-                    </div>
-                    <div class="cards-grid" id="grid-${catId}">
-                        ${cards.map(c => {
-                            const isOwned = c.owned;
-                            const isSel = selectedCard && selectedCard.category === cat && selectedCard.cardName === c.name;
-                            if (isOwned) {
-                                return `<div class="card-cell owned"><img src="${c.image}" alt=""><div class="label">✅ ${c.name}</div></div>`;
-                            } else {
-                                return `<div class="card-cell missing ${isSel ? 'selected' : ''}" onclick="selectCard('${cat.replace(/'/g, "\\'")}', '${c.name.replace(/'/g, "\\'")}')"><img src="${c.image}" alt=""><div class="label">❓ ${c.name}</div></div>`;
-                            }
-                        }).join('')}
-                    </div>
-                `;
+                return `<div class="cat-header" onclick="toggleCategory('${catId}')"><span class="title">${cat}</span><div class="info"><span class="count ${done ? 'count-full' : 'count-partial'}">${cnt}/4${done ? ' ✅' : ''}</span><span class="arrow" id="arrow-${catId}">▼</span></div></div><div class="cards-grid" id="grid-${catId}">${cards.map(c => { const isOwned = c.owned; const isSel = selectedCard && selectedCard.category === cat && selectedCard.cardName === c.name; if (isOwned) return `<div class="card-cell owned"><img src="${c.image}" alt=""><div class="label">✅ ${c.name}</div></div>`; return `<div class="card-cell missing ${isSel ? 'selected' : ''}" onclick="selectCard('${cat.replace(/'/g, "\\'")}', '${c.name.replace(/'/g, "\\'")}')"><img src="${c.image}" alt=""><div class="label">❓ ${c.name}</div></div>`; }).join('')}</div>`;
             }).join('');
         }
 
         function toggleCategory(catId) {
-            const grid = document.getElementById('grid-' + catId);
-            const arrow = document.getElementById('arrow-' + catId);
-            if (grid) grid.classList.toggle('collapsed');
-            if (arrow) arrow.classList.toggle('open');
+            document.getElementById('grid-' + catId).classList.toggle('collapsed');
+            document.getElementById('arrow-' + catId).classList.toggle('open');
         }
 
         function selectCard(cat, name) {
             if (gameState.currentPlayer !== 0) return;
-            if (selectedCard && selectedCard.category === cat && selectedCard.cardName === name) {
-                selectedCard = null;
-            } else {
-                selectedCard = { category: cat, cardName: name };
-            }
-            renderPlayArea();
-            updateFab();
+            if (selectedCard && selectedCard.category === cat && selectedCard.cardName === name) { selectedCard = null; }
+            else { selectedCard = { category: cat, cardName: name }; }
+            renderPlayArea(); updateFab();
         }
 
         function requestSelected() {
@@ -241,19 +249,21 @@
             const idx = bot.hand.findIndex(c => c.category === selectedCard.category && c.cardName === selectedCard.cardName);
             if (idx !== -1) {
                 me.hand.push(bot.hand.splice(idx, 1)[0]);
-                showToast(`✅ Вы забрали "${selectedCard.cardName}" у бота!`, 'success');
+                showToast(`✅ Вы забрали "${selectedCard.cardName}"!`, 'success');
+                addHistory('🎯', `Вы забрали <b>${selectedCard.cardName}</b>`, 'success');
                 checkQuartets();
             } else {
                 if (gameState.bank.length) {
                     me.hand.push(gameState.bank.pop());
-                    showToast(`❌ У бота нет "${selectedCard.cardName}". Тянете из банка.`, 'error');
+                    showToast(`❌ У бота нет "${selectedCard.cardName}". Взяли из банка.`, 'error');
+                    addHistory('📦', `Нет <b>${selectedCard.cardName}</b>. Взяли из банка`, 'fail');
                 } else {
                     showToast(`❌ У бота нет "${selectedCard.cardName}". Банк пуст.`, 'error');
+                    addHistory('🚫', `Нет <b>${selectedCard.cardName}</b>. Банк пуст`, 'fail');
                 }
                 gameState.currentPlayer = 1;
             }
-            selectedCard = null;
-            updateUI();
+            selectedCard = null; updateUI();
         }
 
         function endTurn() { selectedCard = null; gameState.currentPlayer = 1; updateUI(); }
@@ -267,18 +277,41 @@
             if (idx !== -1) {
                 bot.hand.push(gameState.players[0].hand.splice(idx, 1)[0]);
                 showToast(`😈 Бот забрал у вас "${card.cardName}"!`, 'error');
+                addHistory('👾', `Бот забрал <b>${card.cardName}</b>`, 'fail');
                 checkQuartets();
             } else {
-                if (gameState.bank.length) { bot.hand.push(gameState.bank.pop()); showToast(`🤖 Бот искал "${card.cardName}" и взял из банка.`, ''); }
-                else showToast(`🤖 Бот искал "${card.cardName}". Банк пуст.`, '');
+                if (gameState.bank.length) { bot.hand.push(gameState.bank.pop()); addHistory('📦', `Бот искал <b>${card.cardName}</b>. Взял из банка`, 'neutral'); }
+                else { addHistory('🚫', `Бот искал <b>${card.cardName}</b>. Банк пуст`, 'neutral'); }
             }
-            gameState.currentPlayer = 0;
-            updateUI();
+            gameState.currentPlayer = 0; updateUI();
         }
 
-        function checkQuartets() { [0, 1].forEach(pid => { const p = gameState.players[pid], g = {}; p.hand.forEach(c => { if (!g[c.category]) g[c.category] = []; g[c.category].push(c); }); Object.entries(g).forEach(([cat, cards]) => { if (cards.length === 4) { p.quartets.push(cat); p.hand = p.hand.filter(c => c.category !== cat); showToast(`🏆 ${p.name} собрал квартет "${cat}"!`, 'success'); } }); }); }
-        function checkWin() { const t = gameState.data.length, p1 = gameState.players[0].quartets.length, p2 = gameState.players[1].quartets.length; if (p1 + p2 >= t || (!gameState.bank.length && !gameState.players[0].hand.length && !gameState.players[1].hand.length)) endGame(); }
-        function endGame() { document.getElementById('game-screen').classList.add('hidden'); document.getElementById('win-screen').classList.remove('hidden'); document.getElementById('scoreboard').innerHTML = gameState.players.sort((a, b) => b.quartets.length - a.quartets.length).map(p => `<div class="score-item"><span>${p.quartets.length >= Math.max(...gameState.players.map(x => x.quartets.length)) ? '👑 ' : ''}${p.name}</span><span style="color:var(--accent)">${p.quartets.length} квартетов</span></div>`).join(''); }
+        function checkQuartets() {
+            [0, 1].forEach(pid => {
+                const p = gameState.players[pid], g = {};
+                p.hand.forEach(c => { if (!g[c.category]) g[c.category] = []; g[c.category].push(c); });
+                Object.entries(g).forEach(([cat, cards]) => {
+                    if (cards.length === 4) {
+                        p.quartets.push(cat);
+                        p.hand = p.hand.filter(c => c.category !== cat);
+                        showToast(`🏆 ${p.name} собрал квартет "${cat}"!`, 'success');
+                        addHistory('🏆', `<b>${p.name}</b> собрал «${cat}»`, 'success');
+                    }
+                });
+            });
+        }
+
+        function checkWin() {
+            const t = gameState.data.length, p1 = gameState.players[0].quartets.length, p2 = gameState.players[1].quartets.length;
+            if (p1 + p2 >= t || (!gameState.bank.length && !gameState.players[0].hand.length && !gameState.players[1].hand.length)) endGame();
+        }
+
+        function endGame() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('win-screen').classList.remove('hidden');
+            document.getElementById('scoreboard').innerHTML = gameState.players.sort((a, b) => b.quartets.length - a.quartets.length).map(p => `<div class="score-item"><span>${p.quartets.length >= Math.max(...gameState.players.map(x => x.quartets.length)) ? '👑 ' : ''}${p.name}</span><span style="color:var(--accent)">${p.quartets.length} квартетов</span></div>`).join('');
+        }
+
         function shuffle(a) { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; }
 
         showMainMenu();
