@@ -13,7 +13,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Georgia', serif; background: var(--bg); color: var(--text);
-            min-height: 100vh; padding: 10px; padding-bottom: 130px;
+            min-height: 100vh; padding: 8px; padding-bottom: 110px;
             -webkit-tap-highlight-color: transparent; user-select: none;
         }
         .container { max-width: 100%; margin: 0 auto; }
@@ -30,11 +30,10 @@
         .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
         .btn-danger { background: var(--red); color: #fff; }
 
-        /* FAB */
         .fab {
-            position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
             background: var(--accent2); color: #fff;
-            padding: 13px 22px; border-radius: 14px;
+            padding: 12px 20px; border-radius: 14px;
             font-weight: bold; font-size: 13px; cursor: pointer;
             box-shadow: 0 6px 24px rgba(124, 58, 237, 0.5);
             z-index: 50; transition: all 0.2s; border: none;
@@ -43,7 +42,6 @@
         .fab.visible { display: block; }
         .fab:active { transform: translateX(-50%) scale(0.95); }
 
-        /* TOAST */
         .toast {
             position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
             background: var(--card); border: 1px solid var(--accent);
@@ -56,7 +54,6 @@
         .toast.success { border-color: var(--green); }
         .toast.error { border-color: var(--red); }
 
-        /* КАТЕГОРИИ */
         .cat-header {
             background: var(--card); border: 1px solid var(--border);
             border-radius: 8px; padding: 8px 10px; margin: 5px 0 0;
@@ -71,7 +68,6 @@
         .cat-header .arrow { font-size: 12px; transition: transform 0.3s; }
         .cat-header .arrow.open { transform: rotate(180deg); }
 
-        /* КАРТОЧКИ */
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
@@ -111,23 +107,23 @@
         .hidden { display: none !important; }
         .score-item { background: var(--card); border-radius: 8px; padding: 8px; margin: 5px 0; display: flex; justify-content: space-between; font-size: 12px; }
 
-        /* ИСТОРИЯ */
         .history-bar {
-            position: fixed; bottom: 55px; left: 4px; right: 4px;
-            height: 45px; overflow-x: auto; overflow-y: hidden;
+            position: fixed; bottom: 52px; left: 2px; right: 2px;
+            height: 32px; overflow-x: auto; overflow-y: hidden;
             white-space: nowrap; z-index: 30;
-            display: flex; gap: 3px; padding: 2px 0; align-items: center;
+            display: flex; gap: 3px; padding: 0 2px; align-items: center;
         }
         .history-item {
-            flex-shrink: 0; background: var(--card); border-radius: 6px;
-            padding: 3px 6px; font-size: 9px; display: flex; align-items: center; gap: 3px;
+            flex-shrink: 0; background: var(--card); border-radius: 5px;
+            padding: 2px 5px; font-size: 8px; display: flex; align-items: center; gap: 2px;
+            max-width: 150px; overflow: hidden;
         }
-        .history-item .icon { font-size: 10px; }
-        .history-item .text { color: var(--text2); }
+        .history-item .icon { font-size: 9px; flex-shrink: 0; }
+        .history-item .text { color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .history-item .text b { color: var(--accent); }
-        .history-item.success { border-bottom: 2px solid var(--green); }
-        .history-item.fail { border-bottom: 2px solid var(--red); }
-        .history-item.neutral { border-bottom: 2px solid var(--accent2); }
+        .history-item.success { border-left: 2px solid var(--green); padding-left: 4px; }
+        .history-item.fail { border-left: 2px solid var(--red); padding-left: 4px; }
+        .history-item.neutral { border-left: 2px solid var(--accent2); padding-left: 4px; }
     </style>
 </head>
 <body>
@@ -150,7 +146,7 @@
         <div id="game-screen" class="hidden">
             <div class="header"><h2 id="game-status" style="color:var(--accent);font-size:16px;"></h2><p style="color:var(--text2);font-size:11px;" id="turn-info"></p></div>
             <div id="play-area"></div>
-            <button class="btn btn-danger hidden" id="end-btn" onclick="endTurn()" style="margin-bottom:70px;">✅ Закончить ход</button>
+            <button class="btn btn-danger hidden" id="end-btn" onclick="endTurn()" style="margin-bottom:60px;">✅ Закончить ход</button>
         </div>
         <div id="win-screen" class="hidden">
             <div class="header"><h1>🏆 Игра окончена!</h1><div class="scoreboard" id="scoreboard"></div><button class="btn btn-primary" onclick="showMainMenu()">В меню</button></div>
