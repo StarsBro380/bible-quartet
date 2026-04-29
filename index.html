@@ -239,7 +239,7 @@
             try {
                 const r = await fetch(API+'/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:playerName,cards:n})});
                 const d = await r.json();
-                if(d.ok){roomCode=d.code;playerId=d.playerId;showLobby();} else toast(d.error,'error');
+                if(d.ok){roomCode=d.code;playerId=Number(d.playerId);showLobby();} else toast(d.error,'error');
             } catch(e){toast('Ошибка соединения','error');}
         }
         async function joinGame() {
@@ -248,7 +248,7 @@
             try {
                 const r=await fetch(API+'/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,name:playerName})});
                 const d=await r.json();
-                if(d.ok){roomCode=code;playerId=d.playerId;startPolling();} else toast(d.error,'error');
+                if(d.ok){roomCode=code;playerId=Number(d.playerId);startPolling();} else toast(d.error,'error');
             } catch(e){toast('Ошибка соединения','error');}
         }
         async function startGame() {
@@ -304,7 +304,7 @@
             const me=state.players.find(p=>p.id===playerId);
             if(!me)return;
             const isMyTurn = Number(state.currentPlayer) === Number(playerId);
-            const curName=state.players[state.currentPlayer]?.name||'Неизвестно';
+            const curName=state.players[Number(state.currentPlayer)]?.name||'Неизвестно';
             
             let html=`<div class="info-bar"><span class="turn">${isMyTurn?'🎯 Ваш ход':'⏳ Ход: '+curName}</span><span class="score">🏆 ${me.quartets.length} | Запас: ${state.bankCount}</span></div>`;
             
@@ -348,10 +348,10 @@
         }
         async function requestCard(){
             if(!selectedCard){toast('⚠️ Выберите карточку!','error');return;}
-            const toPlayer=selectedPlayerId!==null?selectedPlayerId:state.players.find(p=>p.id!==playerId)?.id;
+            const toPlayer=selectedPlayerId!==null?selectedPlayerId:state.players.find(p=>Number(p.id)!==Number(playerId))?.id;
             if(toPlayer===undefined){toast('⚠️ Выберите игрока!','error');return;}
             try {
-                const r=await fetch(API+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,fromPlayer:playerId,toPlayer,category:selectedCard.category,cardName:selectedCard.cardName})});
+                const r=await fetch(API+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,fromPlayer:Number(playerId),toPlayer:Number(toPlayer),category:selectedCard.category,cardName:selectedCard.cardName})});
                 const d=await r.json();
                 if(d.ok){
                     if(d.found){toast(`✅ Получили "${d.card.cardName}"!`,'success');}
