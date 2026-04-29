@@ -31,9 +31,7 @@
         .btn:active { transform: scale(0.96); }
         .btn-primary { background: #7b4b2a; color: #fff; }
         .btn-secondary { background: #fff; color: var(--text); border: 2px solid #d5c8b5; }
-        .btn-danger { background: #c0392b; color: #fff; }
         .btn-full { width: 100%; display: block; }
-        .btn-small { padding: 8px 14px; font-size: 12px; }
         .input {
             width: 100%; padding: 14px 18px; font-size: 16px; text-align: center;
             border: 2px solid #d5c8b5; border-radius: 10px; background: #fff;
@@ -68,7 +66,6 @@
             display: flex; justify-content: space-between; align-items: center;
             font-size: 14px; box-shadow: 0 2px 8px rgba(123,75,42,0.2);
         }
-        .cat-header:active { opacity: 0.9; }
         .cat-header .title { font-weight: bold; color: #fff; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
         .cat-header .badge { font-size: 12px; padding: 4px 12px; border-radius: 14px; font-weight: bold; }
         .badge-full { background: #fff; color: #1e8449; }
@@ -99,7 +96,6 @@
             opacity: 1 !important; transform: scale(1.04); z-index: 5;
         }
         .card-chip .chip-name { font-size: 12px; line-height: 1.4; font-weight: 500; }
-        .card-chip .chip-player { font-size: 9px; color: var(--accent); margin-top: 2px; }
         .hidden { display: none !important; }
         .player-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
         .player-card {
@@ -112,6 +108,13 @@
         .player-card.current { border-color: var(--accent); background: #fdf5ec; }
         .player-card .p-name { font-weight: bold; font-size: 14px; color: var(--accent); }
         .player-card .p-info { font-size: 11px; color: var(--text2); margin-top: 4px; }
+        .score-item {
+            background: #fff; border-radius: 12px; padding: 12px 16px;
+            margin: 6px 0; display: flex; justify-content: space-between;
+            font-size: 15px; border: 2px solid #e8dccf;
+            box-shadow: var(--shadow);
+        }
+        .winner { border-color: var(--accent); background: #fdf5ec; }
         .bottom-panel {
             position: fixed; bottom: 0; left: 0; right: 0;
             background: #fffef9; border-top: 2px solid #e8dccf;
@@ -155,7 +158,7 @@
         if (tg) { tg.expand(); tg.ready(); tg.setHeaderColor('#f5f0e8'); tg.setBackgroundColor('#f5f0e8'); }
         
         const API = 'https://bible-quartet-server.onrender.com';
-        let state = null, playerId = null, roomCode = null, selectedCard = null, moveHistory = [];
+        let state = null, playerId = null, roomCode = null, selectedCard = null, selectedPlayerId = null, moveHistory = [];
         let playerName = tg?.initDataUnsafe?.user?.first_name || 'Игрок';
         let pollTimer = null;
 
@@ -164,182 +167,114 @@
             t.textContent = msg; t.className = 'toast ' + (type||'') + ' show';
             clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2500);
         }
-        function addHistory(icon, text, type) {
-            moveHistory.unshift({ icon, text, type }); if (moveHistory.length > 30) moveHistory.pop(); renderHistory();
-        }
-        function renderHistory() {
-            document.getElementById('history-row').innerHTML = moveHistory.slice(0, 8).map(h => `<div class="h-item ${h.type}">${h.icon} ${h.text}</div>`).join('');
-        }
+        function addHistory(icon, text, type) { moveHistory.unshift({icon,text,type}); if(moveHistory.length>30) moveHistory.pop(); renderHistory(); }
+        function renderHistory() { document.getElementById('history-row').innerHTML = moveHistory.slice(0,8).map(h=>`<div class="h-item ${h.type}">${h.icon} ${h.text}</div>`).join(''); }
         function renderActions() {
             const row = document.getElementById('action-row');
-            if (!state || state.currentPlayer !== playerId) { row.innerHTML = ''; return; }
-            if (selectedCard) {
+            if(!state||state.currentPlayer!==playerId){row.innerHTML='';return;}
+            if(selectedCard){
                 row.innerHTML = `<button class="btn btn-primary" onclick="requestCard()">❓ Просить "${selectedCard.cardName}"</button>`;
-            } else {
-                row.innerHTML = '<span style="color:var(--text2);font-size:12px;">👆 Выберите карточку и игрока</span>';
-            }
+            } else { row.innerHTML = '<span style="color:var(--text2);font-size:12px;">👆 Выберите карточку и игрока</span>'; }
         }
 
-        // МЕНЮ
         function showMenu() {
-            clearInterval(pollTimer);
-            document.getElementById('bottom-panel').classList.add('hidden');
-            document.getElementById('app').innerHTML = `
-                <div class="header"><h1>📖 Библейский квартет</h1><p>37 категорий · 148 карточек</p></div>
-                <button class="btn btn-primary btn-full" onclick="showCreate()">🎮 Создать игру</button>
-                <button class="btn btn-secondary btn-full" onclick="showJoin()">🔗 Присоединиться</button>`;
+            clearInterval(pollTimer); document.getElementById('bottom-panel').classList.add('hidden');
+            document.getElementById('app').innerHTML = `<div class="header"><h1>📖 Библейский квартет</h1><p>37 категорий · 148 карточек</p></div><button class="btn btn-primary btn-full" onclick="showCreate()">🎮 Создать игру</button><button class="btn btn-secondary btn-full" onclick="showJoin()">🔗 Присоединиться</button>`;
         }
-
         function showCreate() {
-            document.getElementById('app').innerHTML = `
-                <div class="header"><h2>Создание игры</h2></div>
-                <p style="text-align:center;color:var(--text2);margin-bottom:12px;">Сколько карт раздать?</p>
-                <button class="btn btn-primary btn-full" onclick="createGame(7)">7 карт</button>
-                <button class="btn btn-primary btn-full" onclick="createGame(10)">10 карт</button>
-                <button class="btn btn-primary btn-full" onclick="createGame(15)">15 карт</button>
-                <button class="btn btn-secondary btn-full" onclick="showMenu()">← Назад</button>`;
+            document.getElementById('app').innerHTML = `<div class="header"><h2>Создание игры</h2></div><p style="text-align:center;color:var(--text2);margin-bottom:12px;">Сколько карт раздать?</p><button class="btn btn-primary btn-full" onclick="createGame(7)">7 карт</button><button class="btn btn-primary btn-full" onclick="createGame(10)">10 карт</button><button class="btn btn-primary btn-full" onclick="createGame(15)">15 карт</button><button class="btn btn-secondary btn-full" onclick="showMenu()">← Назад</button>`;
         }
-
         function showJoin() {
-            document.getElementById('app').innerHTML = `
-                <div class="header"><h2>Подключение</h2></div>
-                <p style="text-align:center;color:var(--text2);margin-bottom:12px;">Введите код комнаты</p>
-                <input class="input" id="join-code" placeholder="ABC123" maxlength="6">
-                <button class="btn btn-primary btn-full" onclick="joinGame()">🔗 Присоединиться</button>
-                <button class="btn btn-secondary btn-full" onclick="showMenu()">← Назад</button>`;
+            document.getElementById('app').innerHTML = `<div class="header"><h2>Подключение</h2></div><p style="text-align:center;color:var(--text2);margin-bottom:12px;">Введите код комнаты</p><input class="input" id="join-code" placeholder="ABC123" maxlength="6"><button class="btn btn-primary btn-full" onclick="joinGame()">🔗 Присоединиться</button><button class="btn btn-secondary btn-full" onclick="showMenu()">← Назад</button>`;
         }
 
         async function createGame(n) {
             try {
-                const r = await fetch(API + '/create', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:playerName, cards:n}) });
+                const r = await fetch(API+'/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:playerName,cards:n})});
                 const d = await r.json();
-                if (d.ok) { roomCode = d.code; playerId = d.playerId; showLobby(); }
-                else toast(d.error, 'error');
-            } catch(e) { toast('Ошибка соединения', 'error'); }
+                if(d.ok){roomCode=d.code;playerId=d.playerId;showLobby();} else toast(d.error,'error');
+            } catch(e){toast('Ошибка соединения','error');}
         }
-
         async function joinGame() {
             const code = document.getElementById('join-code').value.trim().toUpperCase();
-            if (!code) { toast('Введите код', 'error'); return; }
+            if(!code){toast('Введите код','error');return;}
             try {
-                const r = await fetch(API + '/join', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({code, name:playerName}) });
+                const r = await fetch(API+'/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,name:playerName})});
                 const d = await r.json();
-                if (d.ok) { roomCode = code; playerId = d.playerId; startPolling(); }
-                else toast(d.error, 'error');
-            } catch(e) { toast('Ошибка соединения', 'error'); }
+                if(d.ok){roomCode=code;playerId=d.playerId;startPolling();} else toast(d.error,'error');
+            } catch(e){toast('Ошибка соединения','error');}
         }
-
         function showLobby() {
-            document.getElementById('app').innerHTML = `
-                <div class="code-display">
-                    <p style="color:var(--text2);">Код комнаты:</p>
-                    <div class="code">${roomCode}</div>
-                    <p class="waiting">⏳ Ожидание игроков...</p>
-                </div>
-                <button class="btn btn-secondary btn-full" onclick="startPolling()">🎮 Начать игру (2+ игроков)</button>
-                <button class="btn btn-secondary btn-full" onclick="showMenu()">← Отмена</button>`;
+            document.getElementById('app').innerHTML = `<div class="code-display"><p style="color:var(--text2);">Код комнаты:</p><div class="code">${roomCode}</div><p class="waiting">⏳ Ожидание игроков...</p></div><button class="btn btn-secondary btn-full" onclick="startPolling()">🎮 Начать игру (2+ игроков)</button><button class="btn btn-secondary btn-full" onclick="showMenu()">← Отмена</button>`;
         }
-
-        function startPolling() {
-            if (pollTimer) clearInterval(pollTimer);
-            pollTimer = setInterval(fetchState, 2000);
-            fetchState();
-        }
-
+        function startPolling() { if(pollTimer) clearInterval(pollTimer); pollTimer = setInterval(fetchState, 2000); fetchState(); }
         async function fetchState() {
-            if (!roomCode || playerId === null) return;
+            if(!roomCode||playerId===null) return;
             try {
                 const r = await fetch(`${API}/state/${roomCode}/${playerId}`);
                 const d = await r.json();
-                if (d.ok) { state = d; renderGame(); }
-            } catch(e) {}
+                if(d.ok){state=d;renderGame();}
+            } catch(e){}
         }
 
         function renderGame() {
-            if (!state || state.status === 'waiting') { showLobby(); return; }
+            if(!state||state.status==='waiting'){showLobby();return;}
             document.getElementById('bottom-panel').classList.remove('hidden');
-            const me = state.players.find(p => p.id === playerId);
-            
-            let html = `<div class="info-bar"><span class="turn">${state.currentPlayer === playerId ? '🎯 Ваш ход' : '⏳ Ход игрока: ' + state.players[state.currentPlayer].name}</span><span class="score">🏆 ${me.quartets.length} квартетов | Запас: ${state.bankCount}</span></div>`;
-            
-            // Список игроков
+            const me = state.players.find(p=>p.id===playerId);
+            let html = `<div class="info-bar"><span class="turn">${state.currentPlayer===playerId?'🎯 Ваш ход':'⏳ Ход: '+state.players[state.currentPlayer].name}</span><span class="score">🏆 ${me.quartets.length} | Запас: ${state.bankCount}</span></div>`;
             html += '<div class="player-list">';
-            for (const p of state.players) {
-                if (p.id === playerId) continue;
-                const isCur = state.currentPlayer === p.id;
-                html += `<div class="player-card ${isCur ? 'current' : ''}" onclick="selectPlayer(${p.id})"><div class="p-name">${p.name}</div><div class="p-info">🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов</div></div>`;
+            for(const p of state.players){
+                if(p.id===playerId) continue;
+                const isCur = state.currentPlayer===p.id;
+                html += `<div class="player-card ${isCur?'current':''}" onclick="selectPlayer(${p.id})"><div class="p-name">${p.name}</div><div class="p-info">🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов</div></div>`;
             }
             html += '</div>';
-
-            // Карты игрока
             const grouped = {};
-            if (me.hand) me.hand.forEach(c => { if (!grouped[c.category]) grouped[c.category] = []; grouped[c.category].push(c); });
+            if(me.hand) me.hand.forEach(c=>{if(!grouped[c.category]) grouped[c.category]=[]; grouped[c.category].push(c);});
             const allCats = {};
-            state.categories.forEach(q => { allCats[q.name] = q.cards.map(c => ({ name: c.name, category: q.name, owned: me.hand ? me.hand.some(h => h.category === q.name && h.cardName === c.name) : false })); });
+            state.categories.forEach(q=>{allCats[q.name]=q.cards.map(c=>({name:c.name,category:q.name,owned:me.hand?me.hand.some(h=>h.category===q.name&&h.cardName===c.name):false}));});
             const active = Object.keys(grouped).sort();
-            
-            if (!active.length) html += '<p style="text-align:center;padding:40px;color:var(--text2)">У вас нет карт</p>';
+            if(!active.length) html += '<p style="text-align:center;padding:40px;color:var(--text2)">У вас нет карт</p>';
             else {
-                html += active.map(cat => {
-                    const cards = allCats[cat] || [], cnt = grouped[cat].length, done = cnt === 4;
-                    const catId = cat.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_');
-                    return `<div class="cat-section"><div class="cat-header" onclick="toggleCat('${catId}')"><span class="title">${cat}</span><span class="badge ${done ? 'badge-full' : 'badge-partial'}">${cnt}/4${done ? ' ✅' : ''}</span><span class="arrow" id="arrow-${catId}">▼</span></div><div class="cards-row" id="row-${catId}">${cards.map(c => { const o = c.owned; const s = selectedCard && selectedCard.category === cat && selectedCard.cardName === c.name; return o ? `<div class="card-chip owned"><div class="chip-name">✅ ${c.name}</div></div>` : `<div class="card-chip missing ${s ? 'selected' : ''}" onclick="selectCard('${cat.replace(/'/g, "\\'")}', '${c.name.replace(/'/g, "\\'")}')"><div class="chip-name">🃏 ${c.name}</div></div>`; }).join('')}</div></div>`;
+                html += active.map(cat=>{
+                    const cards=allCats[cat]||[], cnt=grouped[cat].length, done=cnt===4;
+                    const catId=cat.replace(/[^a-zA-Zа-яА-Я0-9]/g,'_');
+                    return `<div class="cat-section"><div class="cat-header" onclick="toggleCat('${catId}')"><span class="title">${cat}</span><span class="badge ${done?'badge-full':'badge-partial'}">${cnt}/4${done?' ✅':''}</span><span class="arrow" id="arrow-${catId}">▼</span></div><div class="cards-row" id="row-${catId}">${cards.map(c=>{const o=c.owned;const s=selectedCard&&selectedCard.category===cat&&selectedCard.cardName===c.name;return o?`<div class="card-chip owned"><div class="chip-name">✅ ${c.name}</div></div>`:`<div class="card-chip missing ${s?'selected':''}" onclick="selectCard('${cat.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')"><div class="chip-name">🃏 ${c.name}</div></div>`;}).join('')}</div></div>`;
                 }).join('');
             }
-
             document.getElementById('app').innerHTML = html;
-            renderActions();
-            checkWin();
+            renderActions(); checkWin();
         }
 
-        function toggleCat(id) { document.getElementById('row-' + id).classList.toggle('collapsed'); document.getElementById('arrow-' + id).classList.toggle('open'); }
-        
-        let selectedPlayerId = null;
-        function selectPlayer(pid) {
-            selectedPlayerId = pid;
-            toast(`Выбран игрок: ${state.players[pid].name}`, '');
-        }
-        function selectCard(cat, name) {
-            if (state.currentPlayer !== playerId) return;
-            selectedCard = (selectedCard && selectedCard.category === cat && selectedCard.cardName === name) ? null : { category: cat, cardName: name };
+        function toggleCat(id){document.getElementById('row-'+id).classList.toggle('collapsed');document.getElementById('arrow-'+id).classList.toggle('open');}
+        function selectPlayer(pid){selectedPlayerId=pid;toast(`Выбран: ${state.players[pid].name}`,'');}
+        function selectCard(cat,name){
+            if(state.currentPlayer!==playerId) return;
+            selectedCard=(selectedCard&&selectedCard.category===cat&&selectedCard.cardName===name)?null:{category:cat,cardName:name};
             renderGame();
         }
-
-        async function requestCard() {
-            if (!selectedCard) { toast('⚠️ Выберите карточку!', 'error'); return; }
-            if (!selectedPlayerId && state.players.length > 2) { toast('⚠️ Выберите игрока!', 'error'); return; }
-            
-            const toPlayer = selectedPlayerId !== null ? selectedPlayerId : (playerId === 0 ? 1 : 0);
-            
+        async function requestCard(){
+            if(!selectedCard){toast('⚠️ Выберите карточку!','error');return;}
+            const toPlayer = selectedPlayerId!==null ? selectedPlayerId : state.players.find(p=>p.id!==playerId)?.id;
+            if(toPlayer===undefined){toast('⚠️ Выберите игрока!','error');return;}
             try {
-                const r = await fetch(API + '/request', {
-                    method:'POST', headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({code:roomCode, fromPlayer:playerId, toPlayer, category:selectedCard.category, cardName:selectedCard.cardName})
-                });
+                const r = await fetch(API+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,fromPlayer:playerId,toPlayer,category:selectedCard.category,cardName:selectedCard.cardName})});
                 const d = await r.json();
-                if (d.ok) {
-                    if (d.found) {
-                        toast(`✅ Получили "${d.card.cardName}"!`, 'success');
-                        addHistory('✅', `Вы: "${d.card.cardName}"`, 'ok');
-                    } else {
-                        toast(d.drawn ? '❌ Не угадали. Запас.' : '❌ Не угадали. Пусто.', 'error');
-                        addHistory('📦', `Нет "${selectedCard.cardName}"`, 'no');
-                    }
-                    selectedCard = null; selectedPlayerId = null;
-                    fetchState();
-                } else toast(d.error, 'error');
-            } catch(e) { toast('Ошибка', 'error'); }
+                if(d.ok){
+                    if(d.found){toast(`✅ Получили "${d.card.cardName}"!`,'success');addHistory('✅',`Вы: "${d.card.cardName}"`,'ok');}
+                    else {toast(d.drawn?'❌ Не угадали. Запас.':'❌ Не угадали. Пусто.','error');addHistory('📦',`Нет "${selectedCard.cardName}"`,'no');}
+                    selectedCard=null;selectedPlayerId=null;fetchState();
+                } else toast(d.error,'error');
+            } catch(e){toast('Ошибка','error');}
         }
-
-        function checkWin() {
-            if (!state) return;
-            const total = state.categories.length;
-            const allCollected = state.players.reduce((s, p) => s + p.quartets.length, 0);
-            if (allCollected >= total || (state.bankCount === 0 && state.players.every(p => p.handCount === 0))) {
-                clearInterval(pollTimer);
-                document.getElementById('bottom-panel').classList.add('hidden');
-                const sorted = [...state.players].sort((a, b) => b.quartets.length - a.quartets.length);
-                document.getElementById('app').innerHTML = `<div class="header"><h1>🏆 Игра окончена!</h1></div>` + sorted.map((p, i) => `<div class="score-item ${i === 0 && sorted[0].quartets.length > 0 ? 'winner' : ''}"><span>${i === 0 && sorted[0].quartets.length > 0 ? '👑 ' : ''}${p.name}</span><span style="color:var(--accent);font-weight:bold;">${p.quartets.length} квартетов</span></div>`).join('') + '<button class="btn btn-primary btn-full" onclick="showMenu()">В меню</button>';
+        function checkWin(){
+            if(!state) return;
+            const total=state.categories.length;
+            const allCollected=state.players.reduce((s,p)=>s+p.quartets.length,0);
+            if(allCollected>=total||(state.bankCount===0&&state.players.every(p=>p.handCount===0))){
+                clearInterval(pollTimer);document.getElementById('bottom-panel').classList.add('hidden');
+                const sorted=[...state.players].sort((a,b)=>b.quartets.length-a.quartets.length);
+                document.getElementById('app').innerHTML=`<div class="header"><h1>🏆 Игра окончена!</h1></div>`+sorted.map((p,i)=>`<div class="score-item ${i===0&&sorted[0].quartets.length>0?'winner':''}"><span>${i===0&&sorted[0].quartets.length>0?'👑 ':''}${p.name}</span><span style="color:var(--accent);font-weight:bold;">${p.quartets.length} квартетов</span></div>`).join('')+'<button class="btn btn-primary btn-full" onclick="showMenu()">В меню</button>';
             }
         }
 
