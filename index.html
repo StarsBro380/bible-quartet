@@ -33,12 +33,19 @@
         .btn-secondary { background: #fff; color: var(--text); border: 2px solid #d5c8b5; }
         .btn-full { width: 100%; display: block; }
         .input {
-            width: 100%; padding: 14px 18px; font-size: 16px; text-align: center;
+            width: 100%; padding: 14px 18px; font-size: 16px;
             border: 2px solid #d5c8b5; border-radius: 10px; background: #fff;
-            font-family: inherit; letter-spacing: 4px; font-weight: bold;
-            text-transform: uppercase; color: var(--accent);
+            font-family: inherit; color: var(--accent);
         }
         .input:focus { outline: none; border-color: var(--accent); }
+        .input-code {
+            text-align: center; letter-spacing: 4px; font-weight: bold;
+            text-transform: uppercase;
+        }
+        .input-name {
+            text-align: left; letter-spacing: 0; font-weight: normal;
+            text-transform: none;
+        }
         .toast {
             position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
             background: #fff; border: 2px solid var(--accent);
@@ -141,12 +148,17 @@
         .action-row .btn { flex: 1; min-width: 110px; padding: 12px; font-size: 13px; }
         .code-display {
             text-align: center; padding: 20px; background: #fff; border-radius: 12px;
-            border: 2px dashed var(--accent); margin: 16px 0;
+            border: 2px dashed var(--accent); margin: 16px 0; cursor: pointer;
+            transition: all 0.2s;
         }
+        .code-display:active { background: #fdf5ec; border-color: var(--accent2); }
         .code-display .code { font-size: 36px; font-weight: bold; color: var(--accent); letter-spacing: 8px; }
+        .code-display .copy-hint { color: var(--text2); font-size: 11px; margin-top: 6px; }
         .code-display .waiting { color: var(--text2); font-size: 12px; margin-top: 8px; }
         .players-waiting { margin: 12px 0; }
         .players-waiting .pw-item { padding: 8px 12px; background: #fff; border-radius: 8px; margin: 4px 0; border: 1px solid var(--border); }
+        .name-section { margin-bottom: 12px; }
+        .name-section label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 4px; }
     </style>
 </head>
 <body>
@@ -166,7 +178,7 @@
         
         const API = 'https://bible-quartet-server.onrender.com';
         let state = null, playerId = null, roomCode = null, selectedCard = null, selectedPlayerId = null;
-        let playerName = tg?.initDataUnsafe?.user?.first_name || 'Игрок';
+        let playerName = tg?.initDataUnsafe?.user?.first_name || '';
         let pollTimer = null, historyExpanded = false;
 
         function toast(msg, type) {
@@ -208,13 +220,29 @@
             clearInterval(pollTimer); document.getElementById('bottom-panel').classList.add('hidden');
             document.getElementById('app').innerHTML = `
                 <div class="header"><h1>📖 Библейский квартет</h1><p>37 категорий · 148 карточек</p></div>
-                <button class="btn btn-primary btn-full" onclick="showCreate()">🎮 Создать игру</button>
-                <button class="btn btn-secondary btn-full" onclick="showJoin()">🔗 Присоединиться</button>`;
+                <div class="name-section">
+                    <label>Ваше имя</label>
+                    <input class="input input-name" id="player-name" placeholder="Введите имя" value="${playerName}" maxlength="20">
+                </div>
+                <button class="btn btn-primary btn-full" onclick="saveNameAndCreate()">🎮 Создать игру</button>
+                <button class="btn btn-secondary btn-full" onclick="saveNameAndJoin()">🔗 Присоединиться</button>`;
+        }
+
+        function saveNameAndCreate() {
+            const name = document.getElementById('player-name').value.trim() || 'Игрок';
+            playerName = name;
+            showCreate();
+        }
+
+        function saveNameAndJoin() {
+            const name = document.getElementById('player-name').value.trim() || 'Игрок';
+            playerName = name;
+            showJoin();
         }
 
         function showCreate() {
             document.getElementById('app').innerHTML = `
-                <div class="header"><h2>Создание игры</h2></div>
+                <div class="header"><h2>Создание игры</h2><p style="color:var(--text2);">Игрок: ${playerName}</p></div>
                 <p style="text-align:center;color:var(--text2);margin-bottom:12px;">Сколько карт раздать?</p>
                 <button class="btn btn-primary btn-full" onclick="createGame(7)">7 карт</button>
                 <button class="btn btn-primary btn-full" onclick="createGame(10)">10 карт</button>
@@ -224,9 +252,9 @@
 
         function showJoin() {
             document.getElementById('app').innerHTML = `
-                <div class="header"><h2>Подключение</h2></div>
+                <div class="header"><h2>Подключение</h2><p style="color:var(--text2);">Игрок: ${playerName}</p></div>
                 <p style="text-align:center;color:var(--text2);margin-bottom:12px;">Введите код комнаты</p>
-                <input class="input" id="join-code" placeholder="ABC123" maxlength="6">
+                <input class="input input-code" id="join-code" placeholder="ABC123" maxlength="6">
                 <button class="btn btn-primary btn-full" onclick="joinGame()">🔗 Присоединиться</button>
                 <button class="btn btn-secondary btn-full" onclick="showMenu()">← Назад</button>`;
         }
@@ -260,6 +288,15 @@
             } catch(e) { toast('Ошибка соединения','error'); }
         }
 
+        function copyCode() {
+            if (!roomCode) return;
+            navigator.clipboard.writeText(roomCode).then(() => {
+                toast('📋 Код скопирован!', 'success');
+            }).catch(() => {
+                toast('Не удалось скопировать', 'error');
+            });
+        }
+
         function showLobby() {
             clearInterval(pollTimer);
             pollTimer = setInterval(async () => {
@@ -276,9 +313,10 @@
             }, 2000);
             
             document.getElementById('app').innerHTML = `
-                <div class="code-display">
-                    <p style="color:var(--text2);">Код комнаты:</p>
+                <div class="code-display" onclick="copyCode()">
+                    <p style="color:var(--text2);">Код комнаты (нажмите, чтобы скопировать):</p>
                     <div class="code">${roomCode}</div>
+                    <p class="copy-hint">📋 Нажмите, чтобы скопировать код</p>
                     <p class="waiting">Поделитесь кодом с другими игроками</p>
                 </div>
                 <div class="players-waiting" id="players-waiting">
