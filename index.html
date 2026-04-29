@@ -18,16 +18,14 @@
             min-height: 100vh; padding: 10px; padding-bottom: 130px;
             -webkit-tap-highlight-color: transparent; user-select: none;
             font-size: 13px; line-height: 1.4;
-            background-image: radial-gradient(ellipse at 50% 0%, rgba(200,150,62,0.06) 0%, transparent 60%);
+            background-image: radial-gradient(ellipse at 50% 0%, rgba(200,150,62,0.05) 0%, transparent 60%);
         }
         .container { max-width: 100%; margin: 0 auto; }
 
-        /* ШАПКА */
         .header { text-align: center; padding: 8px 0; }
         .header h1 { font-size: 20px; color: var(--gold); letter-spacing: 1px; }
         .header p { font-size: 11px; color: var(--text2); margin-top: 2px; }
 
-        /* КНОПКИ */
         .btn {
             display: inline-block; padding: 12px 20px; font-size: 13px; font-weight: 600;
             border: none; border-radius: 8px; cursor: pointer; margin: 3px;
@@ -37,10 +35,8 @@
         .btn-primary { background: linear-gradient(135deg, #d4a24e, #b8862d); color: #1a1a2e; }
         .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
         .btn-danger { background: var(--red); color: #fff; }
-        .btn-success { background: var(--green); color: #fff; }
         .btn-full { width: 100%; display: block; }
 
-        /* TOAST */
         .toast {
             position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
             background: var(--card); border: 1px solid var(--gold);
@@ -52,7 +48,6 @@
         .toast.success { border-color: var(--green); }
         .toast.error { border-color: var(--red); }
 
-        /* ИНФО-БАР */
         .info-bar {
             display: flex; justify-content: space-between; align-items: center;
             padding: 8px 12px; background: var(--card); border-radius: 10px;
@@ -61,7 +56,6 @@
         .info-bar .turn { color: var(--gold); font-weight: bold; }
         .info-bar .score { color: var(--text2); }
 
-        /* КАТЕГОРИИ */
         .cat-section { margin: 4px 0; }
         .cat-header {
             background: var(--card); border: 1px solid var(--border);
@@ -79,7 +73,6 @@
         .cat-header .arrow { font-size: 10px; transition: transform 0.3s; color: var(--text2); }
         .cat-header .arrow.open { transform: rotate(180deg); }
 
-        /* КАРТОЧКИ */
         .cards-row {
             display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 0 0;
         }
@@ -102,11 +95,11 @@
             opacity: 1 !important; transform: scale(1.03);
             z-index: 5;
         }
-        .card-chip .chip-icon { font-size: 14px; margin-bottom: 2px; }
-        .card-chip .chip-name { font-size: 10px; line-height: 1.2; }
-        .card-chip .chip-status {
-            position: absolute; top: 4px; right: 6px; font-size: 9px;
-        }
+        .card-chip .chip-name { font-size: 10px; line-height: 1.3; }
+
+        .hidden { display: none !important; }
+        .score-item { background: var(--card); border-radius: 8px; padding: 8px 12px; margin: 4px 0; display: flex; justify-content: space-between; font-size: 12px; border: 1px solid var(--border); }
+        .winner { border-color: var(--gold); background: rgba(200,150,62,0.1); }
 
         /* НИЖНЯЯ ПАНЕЛЬ */
         .bottom-panel {
@@ -115,14 +108,16 @@
             z-index: 50; padding: 6px 8px; padding-bottom: max(6px, env(safe-area-inset-bottom));
         }
         .history-row {
-            display: flex; gap: 4px; overflow-x: auto; padding: 2px 0;
-            white-space: nowrap; height: 26px; align-items: center; margin-bottom: 4px;
+            display: flex; gap: 6px; overflow-x: auto; padding: 4px 0;
+            white-space: nowrap; height: 30px; align-items: center; margin-bottom: 4px;
+            -webkit-overflow-scrolling: touch;
         }
+        .history-row::-webkit-scrollbar { display: none; }
         .history-row .h-item {
-            flex-shrink: 0; font-size: 9px; padding: 3px 7px;
-            background: rgba(255,255,255,0.03); border-radius: 5px;
-            color: var(--text2); max-width: 140px;
-            overflow: hidden; text-overflow: ellipsis;
+            flex-shrink: 0; font-size: 9px; padding: 4px 8px;
+            background: rgba(255,255,255,0.04); border-radius: 6px;
+            color: var(--text2); max-width: 160px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .history-row .h-item.ok { border-left: 2px solid var(--green); }
         .history-row .h-item.no { border-left: 2px solid var(--red); }
@@ -130,10 +125,6 @@
 
         .action-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
         .action-row .btn { flex: 1; min-width: 100px; padding: 10px; font-size: 12px; }
-
-        .hidden { display: none !important; }
-        .score-item { background: var(--card); border-radius: 8px; padding: 8px 12px; margin: 4px 0; display: flex; justify-content: space-between; font-size: 12px; border: 1px solid var(--border); }
-        .winner { border-color: var(--gold); background: rgba(200,150,62,0.1); }
     </style>
 </head>
 <body>
@@ -144,18 +135,22 @@
         <div id="main-menu">
             <div class="header">
                 <h1>📖 Библейский квартет</h1>
-                <p>37 категорий · 148 карточек · 2–4 игрока</p>
+                <p>37 категорий · 148 карточек</p>
             </div>
             <button class="btn btn-primary btn-full" onclick="showGameSetup()">🎮 Играть с ботом</button>
-            <div style="margin-top:12px;padding:12px;background:var(--card);border-radius:10px;border:1px solid var(--border);font-size:10px;color:var(--text2);line-height:1.5;">
-                <b style="color:var(--gold)">Правила:</b> Спрашивайте у бота карточку по названию. Если есть — забираете и ходите снова. Если нет — берёте из запаса. Соберите 4 карточки одной категории — это квартет! Побеждает тот, у кого больше квартетов.
+            <div style="margin-top:12px;padding:12px;background:var(--card);border-radius:10px;border:1px solid var(--border);font-size:10px;color:var(--text2);line-height:1.6;">
+                <b style="color:var(--gold)">Правила:</b><br>
+                • Спросите у бота карточку по названию<br>
+                • Если есть — забираете и ходите снова<br>
+                • Если нет — берёте из запаса<br>
+                • Соберите 4 карточки категории = квартет!<br>
+                • Побеждает собравший больше квартетов
             </div>
         </div>
 
-        <!-- НАСТРОЙКА ИГРЫ -->
+        <!-- НАСТРОЙКА -->
         <div id="setup-screen" class="hidden">
-            <div class="header"><h2>🃏 Настройка игры</h2></div>
-            <p style="text-align:center;color:var(--text2);font-size:11px;margin-bottom:8px;">Сколько карт раздать?</p>
+            <div class="header"><h2>🃏 Сколько карт раздать?</h2></div>
             <button class="btn btn-primary btn-full" onclick="startGame(7)">7 карт</button>
             <button class="btn btn-primary btn-full" onclick="startGame(10)">10 карт (рекомендуется)</button>
             <button class="btn btn-primary btn-full" onclick="startGame(15)">15 карт</button>
@@ -180,7 +175,7 @@
     </div>
 
     <!-- НИЖНЯЯ ПАНЕЛЬ -->
-    <div class="bottom-panel" id="bottom-panel">
+    <div class="bottom-panel hidden" id="bottom-panel">
         <div class="history-row" id="history-row"></div>
         <div class="action-row" id="action-row"></div>
     </div>
@@ -192,7 +187,6 @@
         let gameState = null, playerName = 'Вы', selectedCard = null, moveHistory = [];
         if (tg?.initDataUnsafe?.user) playerName = tg.initDataUnsafe.user.first_name || 'Вы';
 
-        // TOAST
         function toast(msg, type) {
             const t = document.getElementById('toast');
             t.textContent = msg; t.className = 'toast ' + (type||'') + ' show';
@@ -200,18 +194,17 @@
             t._t = setTimeout(() => t.classList.remove('show'), 2000);
         }
 
-        // ИСТОРИЯ
         function addHistory(icon, text, type) {
-            moveHistory.unshift({ icon, text, type });
+            const cleanText = text.replace(/<[^>]*>/g, '');
+            moveHistory.unshift({ icon, text: cleanText, type });
             if (moveHistory.length > 30) moveHistory.pop();
             renderHistory();
         }
         function renderHistory() {
-            document.getElementById('history-row').innerHTML = moveHistory.slice(0, 6).map(h => 
+            document.getElementById('history-row').innerHTML = moveHistory.slice(0, 8).map(h => 
                 `<div class="h-item ${h.type}">${h.icon} ${h.text}</div>`).join('');
         }
 
-        // КНОПКИ ДЕЙСТВИЙ
         function renderActions() {
             const row = document.getElementById('action-row');
             if (!gameState || gameState.currentPlayer !== 0) { row.innerHTML = ''; return; }
@@ -224,10 +217,8 @@
             }
         }
 
-        // ДАННЫЕ
         async function loadData() { const r = await fetch('data.json'); return await r.json(); }
 
-        // НАВИГАЦИЯ
         function showMainMenu() {
             document.querySelectorAll('#main-menu, #setup-screen, #game-screen, #win-screen').forEach(e => e.classList.add('hidden'));
             document.getElementById('main-menu').classList.remove('hidden');
@@ -238,10 +229,9 @@
             document.getElementById('setup-screen').classList.remove('hidden');
         }
 
-        // СТАРТ ИГРЫ
         async function startGame(n) {
             const data = await loadData();
-            if (!data.length) return alert('Ошибка загрузки данных');
+            if (!data.length) return;
             
             let deck = [];
             data.forEach(q => q.cards.forEach(c => deck.push({
@@ -254,13 +244,10 @@
                     { id: 0, name: playerName, hand: deck.splice(0, n), quartets: [] },
                     { id: 1, name: 'Бот', hand: deck.splice(0, n), quartets: [] }
                 ],
-                bank: deck,
-                currentPlayer: 0,
-                data: data
+                bank: deck, currentPlayer: 0, data: data
             };
             
-            moveHistory = [];
-            selectedCard = null;
+            moveHistory = []; selectedCard = null;
             renderHistory();
             document.getElementById('setup-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
@@ -270,24 +257,14 @@
             updateUI();
         }
 
-        // ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
         function updateUI() {
             const me = gameState.players[0];
             document.getElementById('game-status').textContent = gameState.currentPlayer === 0 ? '🎯 Ваш ход' : '⏳ Бот думает...';
             document.getElementById('turn-info').textContent = `🏆 Вы: ${me.quartets.length} | Бот: ${gameState.players[1].quartets.length}`;
-            
-            if (gameState.currentPlayer === 1) {
-                selectedCard = null;
-                setTimeout(botTurn, 1000);
-            }
-            
-            renderPlayArea();
-            renderActions();
-            renderHistory();
-            checkWin();
+            if (gameState.currentPlayer === 1) { selectedCard = null; setTimeout(botTurn, 1000); }
+            renderPlayArea(); renderActions(); renderHistory(); checkWin();
         }
 
-        // ОТРИСОВКА КАРТ
         function renderPlayArea() {
             const me = gameState.players[0];
             const container = document.getElementById('play-area');
@@ -300,7 +277,7 @@
             const allCats = {};
             gameState.data.forEach(q => {
                 allCats[q.name] = q.cards.map(c => ({
-                    ...c, category: q.name,
+                    name: c.name, category: q.name,
                     owned: me.hand.some(h => h.category === q.name && h.cardName === c.name)
                 }));
             });
@@ -317,25 +294,24 @@
                 const done = cnt === 4;
                 const catId = cat.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_');
                 
-                return `
-                    <div class="cat-section">
-                        <div class="cat-header" onclick="toggleCat('${catId}')">
-                            <span class="title">${cat}</span>
-                            <span class="badge ${done ? 'badge-full' : 'badge-partial'}">${cnt}/4${done ? ' ✅' : ''}</span>
-                            <span class="arrow" id="arrow-${catId}">▼</span>
-                        </div>
-                        <div class="cards-row" id="row-${catId}">
-                            ${cards.map(c => {
-                                const isOwned = c.owned;
-                                const isSel = selectedCard && selectedCard.category === cat && selectedCard.cardName === c.name;
-                                if (isOwned) {
-                                    return `<div class="card-chip owned"><div class="chip-icon">✅</div><div class="chip-name">${c.name}</div></div>`;
-                                } else {
-                                    return `<div class="card-chip missing ${isSel ? 'selected' : ''}" onclick="selectCard('${cat.replace(/'/g, "\\'")}', '${c.name.replace(/'/g, "\\'")}')"><div class="chip-icon">🃏</div><div class="chip-name">${c.name}</div></div>`;
-                                }
-                            }).join('')}
-                        </div>
-                    </div>`;
+                return `<div class="cat-section">
+                    <div class="cat-header" onclick="toggleCat('${catId}')">
+                        <span class="title">${cat}</span>
+                        <span class="badge ${done ? 'badge-full' : 'badge-partial'}">${cnt}/4${done ? ' ✅' : ''}</span>
+                        <span class="arrow" id="arrow-${catId}">▼</span>
+                    </div>
+                    <div class="cards-row" id="row-${catId}">
+                        ${cards.map(c => {
+                            const isOwned = c.owned;
+                            const isSel = selectedCard && selectedCard.category === cat && selectedCard.cardName === c.name;
+                            if (isOwned) {
+                                return `<div class="card-chip owned"><div class="chip-name">✅ ${c.name}</div></div>`;
+                            } else {
+                                return `<div class="card-chip missing ${isSel ? 'selected' : ''}" onclick="selectCard('${cat.replace(/'/g, "\\'")}', '${c.name.replace(/'/g, "\\'")}')"><div class="chip-name">🃏 ${c.name}</div></div>`;
+                            }
+                        }).join('')}
+                    </div>
+                </div>`;
             }).join('');
         }
 
@@ -351,151 +327,100 @@
             } else {
                 selectedCard = { category: cat, cardName: name };
             }
-            renderPlayArea();
-            renderActions();
+            renderPlayArea(); renderActions();
         }
 
-        // ЗАПРОС КАРТЫ
         function requestCard() {
             if (!selectedCard) { toast('⚠️ Выберите карточку!', 'error'); return; }
-            
             const me = gameState.players[0];
             const bot = gameState.players[1];
             
-            // Проверяем правило: у игрока должна быть хотя бы одна карта из этой категории
             const hasCategory = me.hand.some(c => c.category === selectedCard.category);
-            if (!hasCategory) {
-                toast('⚠️ У вас нет карт из этой категории!', 'error');
-                return;
-            }
+            if (!hasCategory) { toast('⚠️ У вас нет карт из этой категории!', 'error'); return; }
             
             const idx = bot.hand.findIndex(c => c.category === selectedCard.category && c.cardName === selectedCard.cardName);
             
             if (idx !== -1) {
-                // Бот отдаёт карту
                 me.hand.push(bot.hand.splice(idx, 1)[0]);
                 toast(`✅ Бот отдал "${selectedCard.cardName}"!`, 'success');
-                addHistory('✅', `Вы забрали <b>${selectedCard.cardName}</b>`, 'ok');
+                addHistory('✅', `Вы забрали "${selectedCard.cardName}"`, 'ok');
                 checkQuartets();
-                // Игрок ходит снова
             } else {
-                // У бота нет
                 if (gameState.bank.length) {
                     const drawn = gameState.bank.pop();
                     me.hand.push(drawn);
-                    toast(`❌ Нет "${selectedCard.cardName}". Взяли из запаса: "${drawn.cardName}"`, 'error');
-                    addHistory('📦', `Нет <b>${selectedCard.cardName}</b>. Взяли из запаса`, 'no');
+                    toast(`❌ Нет "${selectedCard.cardName}". Взяли из запаса.`, 'error');
+                    addHistory('📦', `Нет "${selectedCard.cardName}". Запас`, 'no');
                 } else {
                     toast(`❌ Нет "${selectedCard.cardName}". Запас пуст.`, 'error');
-                    addHistory('🚫', `Нет <b>${selectedCard.cardName}</b>. Запас пуст`, 'no');
+                    addHistory('🚫', `Нет "${selectedCard.cardName}". Пусто`, 'no');
                 }
                 gameState.currentPlayer = 1;
             }
-            
-            selectedCard = null;
-            updateUI();
+            selectedCard = null; updateUI();
         }
 
-        function endTurn() {
-            selectedCard = null;
-            gameState.currentPlayer = 1;
-            updateUI();
-        }
+        function endTurn() { selectedCard = null; gameState.currentPlayer = 1; updateUI(); }
 
-        // ХОД БОТА
         function botTurn() {
             if (gameState.currentPlayer !== 1) return;
-            
             const bot = gameState.players[1];
             const me = gameState.players[0];
+            if (!bot.hand.length) { gameState.currentPlayer = 0; updateUI(); return; }
             
-            if (!bot.hand.length) {
-                gameState.currentPlayer = 0;
-                updateUI();
-                return;
-            }
-            
-            // Бот выбирает случайную карту из своей руки
             const card = bot.hand[Math.floor(Math.random() * bot.hand.length)];
             const idx = me.hand.findIndex(c => c.category === card.category && c.cardName === card.cardName);
             
             if (idx !== -1) {
-                // Бот забирает у игрока
                 bot.hand.push(me.hand.splice(idx, 1)[0]);
                 toast(`😈 Бот забрал у вас "${card.cardName}"!`, 'error');
-                addHistory('👾', `Бот забрал <b>${card.cardName}</b>`, 'no');
+                addHistory('👾', `Бот забрал "${card.cardName}"`, 'no');
                 checkQuartets();
             } else {
-                if (gameState.bank.length) {
-                    bot.hand.push(gameState.bank.pop());
-                    addHistory('📦', `Бот искал <b>${card.cardName}</b>. Взял из запаса`, 'ok');
-                } else {
-                    addHistory('🚫', `Бот искал <b>${card.cardName}</b>. Запас пуст`, 'ok');
-                }
+                if (gameState.bank.length) { bot.hand.push(gameState.bank.pop()); addHistory('📦', `Бот искал "${card.cardName}"`, 'ok'); }
+                else { addHistory('🚫', `Бот искал "${card.cardName}". Пусто`, 'ok'); }
                 gameState.currentPlayer = 0;
             }
-            
             updateUI();
         }
 
-        // ПРОВЕРКА КВАРТЕТОВ
         function checkQuartets() {
             [0, 1].forEach(pid => {
-                const p = gameState.players[pid];
-                const g = {};
-                p.hand.forEach(c => {
-                    if (!g[c.category]) g[c.category] = [];
-                    g[c.category].push(c);
-                });
+                const p = gameState.players[pid], g = {};
+                p.hand.forEach(c => { if (!g[c.category]) g[c.category] = []; g[c.category].push(c); });
                 Object.entries(g).forEach(([cat, cards]) => {
                     if (cards.length === 4) {
                         p.quartets.push(cat);
                         p.hand = p.hand.filter(c => c.category !== cat);
                         toast(`🏆 ${p.name} собрал квартет «${cat}»!`, 'success');
-                        addHistory('🏆', `<b>${p.name}</b> собрал «${cat}»`, 'ok');
+                        addHistory('🏆', `${p.name} собрал «${cat}»`, 'ok');
                     }
                 });
             });
         }
 
-        // ПРОВЕРКА ПОБЕДЫ
         function checkWin() {
             const total = gameState.data.length;
             const p1 = gameState.players[0].quartets.length;
             const p2 = gameState.players[1].quartets.length;
-            
-            if (p1 + p2 >= total || 
-                (!gameState.bank.length && !gameState.players[0].hand.length && !gameState.players[1].hand.length)) {
-                endGame();
-            }
+            if (p1 + p2 >= total || (!gameState.bank.length && !gameState.players[0].hand.length && !gameState.players[1].hand.length)) endGame();
         }
 
         function endGame() {
             document.getElementById('game-screen').classList.add('hidden');
             document.getElementById('win-screen').classList.remove('hidden');
             document.getElementById('bottom-panel').classList.add('hidden');
-            
             const sorted = gameState.players.sort((a, b) => b.quartets.length - a.quartets.length);
             const max = sorted[0].quartets.length;
-            
             document.getElementById('scoreboard').innerHTML = sorted.map((p, i) => `
                 <div class="score-item ${i === 0 && max > 0 ? 'winner' : ''}">
                     <span>${i === 0 && max > 0 ? '👑 ' : ''}${p.name}</span>
                     <span style="color:var(--gold)">${p.quartets.length} квартетов</span>
-                </div>
-            `).join('');
+                </div>`).join('');
         }
 
-        function shuffle(a) {
-            const b = [...a];
-            for (let i = b.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [b[i], b[j]] = [b[j], b[i]];
-            }
-            return b;
-        }
+        function shuffle(a) { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; }
 
-        // СТАРТ
         showMainMenu();
     </script>
 </body>
