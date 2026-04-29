@@ -9,7 +9,7 @@
         :root {
             --bg: #f5f0e8; --card: #fffef9; --accent: #7b4b2a; --accent2: #5b3ec9;
             --text: #1a0f08; --text2: #8a7568; --green: #27ae60; --red: #c0392b;
-            --border: #e0d5c5; --gold: #7b4b2a; --shadow: 0 2px 10px rgba(0,0,0,0.05);
+            --border: #e0d5c5; --shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -38,14 +38,8 @@
             font-family: inherit; color: var(--accent);
         }
         .input:focus { outline: none; border-color: var(--accent); }
-        .input-code {
-            text-align: center; letter-spacing: 4px; font-weight: bold;
-            text-transform: uppercase;
-        }
-        .input-name {
-            text-align: left; letter-spacing: 0; font-weight: normal;
-            text-transform: none;
-        }
+        .input-code { text-align: center; letter-spacing: 4px; font-weight: bold; text-transform: uppercase; }
+        .input-name { text-align: left; letter-spacing: 0; font-weight: normal; text-transform: none; }
         .toast {
             position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
             background: #fff; border: 2px solid var(--accent);
@@ -96,8 +90,7 @@
         .card-chip.missing { opacity: 0.45; border-style: dashed; background: #fafafa; }
         .card-chip.missing:active { opacity: 0.9; border-color: var(--accent2); background: #f5f0ff; }
         .card-chip.selected {
-            border-color: #5b3ec9 !important;
-            background: #f0ebff !important;
+            border-color: #5b3ec9 !important; background: #f0ebff !important;
             box-shadow: 0 0 20px rgba(91,62,201,0.3);
             opacity: 1 !important; transform: scale(1.04); z-index: 5;
         }
@@ -107,10 +100,9 @@
         .player-card {
             background: #fff; border: 2px solid #e0d5c5; border-radius: 12px;
             padding: 12px; flex: 1 1 calc(50% - 8px); min-width: 120px;
-            text-align: center; cursor: pointer; transition: all 0.2s;
-            box-shadow: var(--shadow);
+            text-align: center; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow);
         }
-        .player-card:hover, .player-card:active { border-color: var(--accent2); background: #faf7ff; }
+        .player-card:active { border-color: var(--accent2); background: #faf7ff; }
         .player-card.current { border-color: var(--accent); background: #fdf5ec; }
         .player-card .p-name { font-weight: bold; font-size: 14px; color: var(--accent); }
         .player-card .p-info { font-size: 11px; color: var(--text2); margin-top: 4px; }
@@ -128,12 +120,12 @@
             box-shadow: 0 -3px 14px rgba(0,0,0,0.06);
         }
         .history-container {
-            max-height: 120px; overflow: hidden; transition: max-height 0.3s;
+            max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
         }
-        .history-container.expanded { max-height: 400px; overflow-y: auto; }
+        .history-container.open { max-height: 300px; overflow-y: auto; }
         .history-toggle {
             font-size: 11px; color: var(--accent); cursor: pointer;
-            text-align: center; padding: 4px 0;
+            text-align: center; padding: 4px 0; user-select: none;
         }
         .history-item {
             font-size: 11px; padding: 5px 10px; margin: 2px 0;
@@ -144,12 +136,11 @@
         .history-item.system { background: #f5f0e8; border-left: 3px solid var(--accent); }
         .history-item .h-time { color: var(--text2); white-space: nowrap; font-size: 10px; }
         .history-item .h-text { flex: 1; }
-        .action-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+        .action-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
         .action-row .btn { flex: 1; min-width: 110px; padding: 12px; font-size: 13px; }
         .code-display {
             text-align: center; padding: 20px; background: #fff; border-radius: 12px;
-            border: 2px dashed var(--accent); margin: 16px 0; cursor: pointer;
-            transition: all 0.2s;
+            border: 2px dashed var(--accent); margin: 16px 0; cursor: pointer; transition: all 0.2s;
         }
         .code-display:active { background: #fdf5ec; border-color: var(--accent2); }
         .code-display .code { font-size: 36px; font-weight: bold; color: var(--accent); letter-spacing: 8px; }
@@ -165,10 +156,10 @@
     <div class="toast" id="toast"></div>
     <div class="container" id="app"></div>
     <div class="bottom-panel hidden" id="bottom-panel">
+        <div class="history-toggle" id="history-toggle" onclick="toggleHistory()">📜 История ▼</div>
         <div class="history-container" id="history-container">
             <div id="history-list"></div>
         </div>
-        <div class="history-toggle" id="history-toggle" onclick="toggleHistory()">📜 История ▼</div>
         <div class="action-row" id="action-row"></div>
     </div>
 
@@ -179,7 +170,7 @@
         const API = 'https://bible-quartet-server.onrender.com';
         let state = null, playerId = null, roomCode = null, selectedCard = null, selectedPlayerId = null;
         let playerName = tg?.initDataUnsafe?.user?.first_name || '';
-        let pollTimer = null, historyExpanded = false;
+        let pollTimer = null, historyOpen = false;
 
         function toast(msg, type) {
             const t = document.getElementById('toast');
@@ -188,17 +179,25 @@
         }
 
         function toggleHistory() {
-            historyExpanded = !historyExpanded;
-            document.getElementById('history-container').classList.toggle('expanded', historyExpanded);
-            document.getElementById('history-toggle').textContent = historyExpanded ? '📜 Свернуть ▲' : '📜 История ▼';
+            historyOpen = !historyOpen;
+            const container = document.getElementById('history-container');
+            const toggle = document.getElementById('history-toggle');
+            if (historyOpen) {
+                container.classList.add('open');
+                toggle.textContent = '📜 Свернуть ▲';
+            } else {
+                container.classList.remove('open');
+                toggle.textContent = '📜 История ▼';
+            }
         }
 
         function renderHistory(history) {
+            const list = document.getElementById('history-list');
             if (!history || !history.length) {
-                document.getElementById('history-list').innerHTML = '<div class="history-item system"><span class="h-text">История пуста</span></div>';
+                list.innerHTML = '<div class="history-item system"><span class="h-text">История пуста</span></div>';
                 return;
             }
-            document.getElementById('history-list').innerHTML = history.slice().reverse().map(h => 
+            list.innerHTML = history.slice().reverse().map(h => 
                 `<div class="history-item ${h.type||'system'}"><span class="h-time">${h.time}</span><span class="h-text">${h.text}</span></div>`
             ).join('');
         }
@@ -220,25 +219,13 @@
             clearInterval(pollTimer); document.getElementById('bottom-panel').classList.add('hidden');
             document.getElementById('app').innerHTML = `
                 <div class="header"><h1>📖 Библейский квартет</h1><p>37 категорий · 148 карточек</p></div>
-                <div class="name-section">
-                    <label>Ваше имя</label>
-                    <input class="input input-name" id="player-name" placeholder="Введите имя" value="${playerName}" maxlength="20">
-                </div>
+                <div class="name-section"><label>Ваше имя</label><input class="input input-name" id="player-name" placeholder="Введите имя" value="${playerName}" maxlength="20"></div>
                 <button class="btn btn-primary btn-full" onclick="saveNameAndCreate()">🎮 Создать игру</button>
                 <button class="btn btn-secondary btn-full" onclick="saveNameAndJoin()">🔗 Присоединиться</button>`;
         }
 
-        function saveNameAndCreate() {
-            const name = document.getElementById('player-name').value.trim() || 'Игрок';
-            playerName = name;
-            showCreate();
-        }
-
-        function saveNameAndJoin() {
-            const name = document.getElementById('player-name').value.trim() || 'Игрок';
-            playerName = name;
-            showJoin();
-        }
+        function saveNameAndCreate() { playerName = document.getElementById('player-name').value.trim() || 'Игрок'; showCreate(); }
+        function saveNameAndJoin() { playerName = document.getElementById('player-name').value.trim() || 'Игрок'; showJoin(); }
 
         function showCreate() {
             document.getElementById('app').innerHTML = `
@@ -290,11 +277,7 @@
 
         function copyCode() {
             if (!roomCode) return;
-            navigator.clipboard.writeText(roomCode).then(() => {
-                toast('📋 Код скопирован!', 'success');
-            }).catch(() => {
-                toast('Не удалось скопировать', 'error');
-            });
+            navigator.clipboard.writeText(roomCode).then(() => toast('📋 Код скопирован!', 'success')).catch(() => toast('Не удалось скопировать', 'error'));
         }
 
         function showLobby() {
@@ -304,9 +287,7 @@
                     const r = await fetch(`${API}/state/${roomCode}/${playerId}`);
                     const d = await r.json();
                     if (d.ok) {
-                        document.getElementById('players-waiting').innerHTML = d.players.map(p => 
-                            `<div class="pw-item">👤 ${p.name} ${p.id === d.ownerId ? '(Создатель)' : ''}</div>`
-                        ).join('');
+                        document.getElementById('players-waiting').innerHTML = d.players.map(p => `<div class="pw-item">👤 ${p.name} ${p.id === d.ownerId ? '(Создатель)' : ''}</div>`).join('');
                         if (d.status === 'playing') { fetchState(); return; }
                     }
                 } catch(e) {}
@@ -319,17 +300,15 @@
                     <p class="copy-hint">📋 Нажмите, чтобы скопировать код</p>
                     <p class="waiting">Поделитесь кодом с другими игроками</p>
                 </div>
-                <div class="players-waiting" id="players-waiting">
-                    <div class="pw-item">👤 ${playerName} (Создатель)</div>
-                </div>
+                <div class="players-waiting" id="players-waiting"><div class="pw-item">👤 ${playerName} (Создатель)</div></div>
                 <button class="btn btn-primary btn-full" onclick="startGame()">🎮 Начать игру</button>
                 <button class="btn btn-secondary btn-full" onclick="clearInterval(pollTimer);showMenu();">← Отмена</button>`;
         }
 
         function startPolling() {
-            if (pollTimer) clearInterval(pollTimer);
-            pollTimer = setInterval(fetchState, 2000);
+            if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
             fetchState();
+            pollTimer = setInterval(fetchState, 2000);
         }
 
         async function fetchState() {
@@ -338,7 +317,7 @@
                 const r = await fetch(`${API}/state/${roomCode}/${playerId}`);
                 const d = await r.json();
                 if (d.ok) { state = d; renderGame(); }
-            } catch(e) {}
+            } catch(e) { console.error('fetchState:', e); }
         }
 
         function renderGame() {
@@ -347,13 +326,15 @@
             const me = state.players.find(p => p.id === playerId);
             if (!me) return;
             
-            let html = `<div class="info-bar"><span class="turn">${state.currentPlayer===playerId?'🎯 Ваш ход':'⏳ Ход: '+(state.players[state.currentPlayer]?.name||'')}</span><span class="score">🏆 ${me.quartets.length} | Запас: ${state.bankCount}</span></div>`;
+            const isMyTurn = state.currentPlayer === playerId;
+            const curName = state.players[state.currentPlayer]?.name || 'Неизвестно';
+            
+            let html = `<div class="info-bar"><span class="turn">${isMyTurn ? '🎯 Ваш ход' : '⏳ Ход: ' + curName}</span><span class="score">🏆 ${me.quartets.length} | Запас: ${state.bankCount}</span></div>`;
             
             html += '<div class="player-list">';
             for (const p of state.players) {
                 if (p.id === playerId) continue;
-                const isCur = state.currentPlayer === p.id;
-                html += `<div class="player-card ${isCur?'current':''}" onclick="selectPlayer(${p.id})"><div class="p-name">${p.name}</div><div class="p-info">🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов</div></div>`;
+                html += `<div class="player-card ${state.currentPlayer === p.id ? 'current' : ''}" onclick="selectPlayer(${p.id})"><div class="p-name">${p.name}</div><div class="p-info">🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов</div></div>`;
             }
             html += '</div>';
             
