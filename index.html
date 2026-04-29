@@ -13,42 +13,27 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Georgia', serif; background: var(--bg); color: var(--text);
-            min-height: 100vh; padding: 8px; padding-bottom: 110px;
-            -webkit-tap-highlight-color: transparent; user-select: none;
+            min-height: 100vh; padding: 8px; padding-bottom: 60px;
+            -webkit-tap-highlight-color: transparent; user-select: none; font-size: 13px;
         }
         .container { max-width: 100%; margin: 0 auto; }
-        .header { text-align: center; padding: 6px 0 10px; }
-        .header h1 { font-size: 18px; }
-        .header p { font-size: 11px; }
+        .header { text-align: center; padding: 4px 0 8px; }
+        .header h1 { font-size: 17px; }
+        .header p { font-size: 10px; }
         .btn {
-            width: 100%; padding: 13px; font-size: 14px; font-weight: 600;
-            border: none; border-radius: 10px; cursor: pointer; margin: 4px 0;
-            -webkit-tap-highlight-color: transparent;
+            width: 100%; padding: 12px; font-size: 13px; font-weight: 600;
+            border: none; border-radius: 10px; cursor: pointer; margin: 3px 0;
         }
-        .btn:active { opacity: 0.8; }
         .btn-primary { background: var(--accent); color: #000; }
         .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
         .btn-danger { background: var(--red); color: #fff; }
 
-        .fab {
-            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-            background: var(--accent2); color: #fff;
-            padding: 12px 20px; border-radius: 14px;
-            font-weight: bold; font-size: 13px; cursor: pointer;
-            box-shadow: 0 6px 24px rgba(124, 58, 237, 0.5);
-            z-index: 50; transition: all 0.2s; border: none;
-            display: none; white-space: nowrap;
-        }
-        .fab.visible { display: block; }
-        .fab:active { transform: translateX(-50%) scale(0.95); }
-
         .toast {
-            position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+            position: fixed; top: 8px; left: 50%; transform: translateX(-50%);
             background: var(--card); border: 1px solid var(--accent);
-            color: var(--text); padding: 8px 14px; border-radius: 10px;
-            font-size: 11px; z-index: 60; opacity: 0; transition: opacity 0.3s;
+            color: var(--text); padding: 6px 12px; border-radius: 8px;
+            font-size: 10px; z-index: 60; opacity: 0; transition: opacity 0.3s;
             pointer-events: none; max-width: 90%; text-align: center;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
         }
         .toast.show { opacity: 1; }
         .toast.success { border-color: var(--green); }
@@ -56,80 +41,81 @@
 
         .cat-header {
             background: var(--card); border: 1px solid var(--border);
-            border-radius: 8px; padding: 8px 10px; margin: 5px 0 0;
+            border-radius: 6px; padding: 6px 8px; margin: 3px 0 0;
             display: flex; justify-content: space-between; align-items: center;
-            cursor: pointer; transition: all 0.2s; font-size: 12px;
+            cursor: pointer; font-size: 11px;
         }
-        .cat-header .title { font-weight: bold; color: var(--accent); font-size: 11px; text-transform: uppercase; }
-        .cat-header .info { display: flex; gap: 8px; align-items: center; }
-        .cat-header .count { font-size: 10px; padding: 2px 7px; border-radius: 5px; }
+        .cat-header .title { font-weight: bold; color: var(--accent); font-size: 10px; text-transform: uppercase; }
+        .cat-header .count { font-size: 9px; padding: 1px 6px; border-radius: 4px; }
         .count-full { background: var(--green); color: #fff; }
         .count-partial { background: rgba(226,160,63,0.2); color: var(--accent); }
-        .cat-header .arrow { font-size: 12px; transition: transform 0.3s; }
+        .cat-header .arrow { font-size: 10px; transition: transform 0.3s; }
         .cat-header .arrow.open { transform: rotate(180deg); }
 
         .cards-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-            gap: 3px; padding: 3px 0 0;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2px; padding: 2px 0 0;
         }
         .cards-grid.collapsed { display: none; }
 
         .card-cell {
-            background: var(--card); border: 2px solid var(--border);
-            border-radius: 6px; overflow: hidden; cursor: pointer;
+            background: var(--card); border: 1.5px solid var(--border);
+            border-radius: 4px; overflow: hidden; cursor: pointer;
             transition: all 0.2s; position: relative;
-            max-width: 130px; margin: 0 auto;
-            aspect-ratio: 2.5/3.5;
+            aspect-ratio: 2.4/3.4;
         }
         .card-cell.owned { border-color: var(--green); cursor: default; }
         .card-cell.missing { opacity: 0.4; filter: grayscale(0.5); }
         .card-cell.missing:active { opacity: 0.8; filter: grayscale(0.2); border-color: var(--accent2); }
         .card-cell.selected {
             border-color: var(--accent2) !important;
-            box-shadow: 0 0 14px rgba(124, 58, 237, 0.6);
-            opacity: 1 !important; filter: none !important; transform: scale(1.03);
+            box-shadow: 0 0 10px rgba(124, 58, 237, 0.5);
+            opacity: 1 !important; filter: none !important;
         }
         .card-cell.selected::after {
-            content: '✅'; position: absolute; top: 3px; right: 3px;
-            font-size: 11px; z-index: 5; background: var(--accent2);
-            border-radius: 50%; width: 18px; height: 18px;
-            display: flex; align-items: center; justify-content: center;
+            content: '✓'; position: absolute; top: 2px; right: 2px;
+            font-size: 9px; z-index: 5; background: var(--accent2);
+            border-radius: 50%; width: 16px; height: 16px;
+            display: flex; align-items: center; justify-content: center; color: #fff;
         }
         .card-cell img { width: 100%; height: 100%; object-fit: cover; }
         .card-cell .label {
             position: absolute; bottom: 0; left: 0; right: 0;
-            background: rgba(0,0,0,0.8); padding: 1px 2px;
-            font-size: 7px; text-align: center; color: #fff;
+            background: rgba(0,0,0,0.85); padding: 1px 2px;
+            font-size: 6.5px; text-align: center; color: #fff;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
         .hidden { display: none !important; }
-        .score-item { background: var(--card); border-radius: 8px; padding: 8px; margin: 5px 0; display: flex; justify-content: space-between; font-size: 12px; }
+        .score-item { background: var(--card); border-radius: 8px; padding: 6px 10px; margin: 4px 0; display: flex; justify-content: space-between; font-size: 11px; }
 
-        .history-bar {
-            position: fixed; bottom: 52px; left: 2px; right: 2px;
-            height: 32px; overflow-x: auto; overflow-y: hidden;
-            white-space: nowrap; z-index: 30;
-            display: flex; gap: 3px; padding: 0 2px; align-items: center;
+        /* НИЖНЯЯ ПАНЕЛЬ */
+        .bottom-panel {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: var(--card); border-top: 1px solid var(--border);
+            z-index: 40; padding: 4px 6px;
         }
-        .history-item {
-            flex-shrink: 0; background: var(--card); border-radius: 5px;
-            padding: 2px 5px; font-size: 8px; display: flex; align-items: center; gap: 2px;
-            max-width: 150px; overflow: hidden;
+        .history-row {
+            display: flex; gap: 3px; overflow-x: auto; padding: 2px 0;
+            white-space: nowrap; height: 24px; align-items: center;
         }
-        .history-item .icon { font-size: 9px; flex-shrink: 0; }
-        .history-item .text { color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .history-item .text b { color: var(--accent); }
-        .history-item.success { border-left: 2px solid var(--green); padding-left: 4px; }
-        .history-item.fail { border-left: 2px solid var(--red); padding-left: 4px; }
-        .history-item.neutral { border-left: 2px solid var(--accent2); padding-left: 4px; }
+        .history-row .h-item {
+            flex-shrink: 0; font-size: 8px; padding: 2px 5px;
+            background: rgba(255,255,255,0.04); border-radius: 4px;
+            color: var(--text2); max-width: 130px;
+            overflow: hidden; text-overflow: ellipsis;
+        }
+        .history-row .h-item b { color: var(--accent); }
+        .history-row .h-item.ok { border-left: 2px solid var(--green); padding-left: 4px; }
+        .history-row .h-item.no { border-left: 2px solid var(--red); padding-left: 4px; }
+
+        .action-row { text-align: center; padding: 3px 0; }
+        .action-row .btn { width: auto; padding: 8px 16px; font-size: 12px; display: inline-block; }
     </style>
 </head>
 <body>
     <div class="toast" id="toast"></div>
-    <button class="fab" id="fab" onclick="requestSelected()">❓ Запросить</button>
-    <div class="history-bar" id="history-bar"></div>
 
     <div class="container">
         <div id="main-menu">
@@ -144,13 +130,18 @@
             <button class="btn btn-secondary" onclick="showMainMenu()">← Назад</button>
         </div>
         <div id="game-screen" class="hidden">
-            <div class="header"><h2 id="game-status" style="color:var(--accent);font-size:16px;"></h2><p style="color:var(--text2);font-size:11px;" id="turn-info"></p></div>
+            <div class="header"><h2 id="game-status" style="color:var(--accent);font-size:15px;"></h2><p style="color:var(--text2);font-size:10px;" id="turn-info"></p></div>
             <div id="play-area"></div>
-            <button class="btn btn-danger hidden" id="end-btn" onclick="endTurn()" style="margin-bottom:60px;">✅ Закончить ход</button>
         </div>
         <div id="win-screen" class="hidden">
-            <div class="header"><h1>🏆 Игра окончена!</h1><div class="scoreboard" id="scoreboard"></div><button class="btn btn-primary" onclick="showMainMenu()">В меню</button></div>
+            <div class="header"><h1>🏆 Игра окончена!</h1><div id="scoreboard"></div><button class="btn btn-primary" onclick="showMainMenu()">В меню</button></div>
         </div>
+    </div>
+
+    <!-- НИЖНЯЯ ПАНЕЛЬ -->
+    <div class="bottom-panel">
+        <div class="history-row" id="history-row"></div>
+        <div class="action-row" id="action-row"></div>
     </div>
 
     <script>
@@ -163,7 +154,7 @@
             const t = document.getElementById('toast');
             t.textContent = msg; t.className = 'toast ' + (type || '') + ' show';
             clearTimeout(t._timeout);
-            t._timeout = setTimeout(() => t.classList.remove('show'), 2500);
+            t._timeout = setTimeout(() => t.classList.remove('show'), 2000);
         }
 
         function addHistory(icon, text, type) {
@@ -173,17 +164,22 @@
         }
 
         function renderHistory() {
-            document.getElementById('history-bar').innerHTML = moveHistory.slice(0, 10).map(h => 
-                `<div class="history-item ${h.type}"><span class="icon">${h.icon}</span><span class="text">${h.text}</span></div>`
+            document.getElementById('history-row').innerHTML = moveHistory.slice(0, 8).map(h => 
+                `<div class="h-item ${h.type}">${h.icon} ${h.text}</div>`
             ).join('');
         }
 
-        function updateFab() {
-            const fab = document.getElementById('fab');
-            if (selectedCard && gameState && gameState.currentPlayer === 0) {
-                fab.classList.add('visible');
-                fab.textContent = `❓ Запросить "${selectedCard.cardName}"`;
-            } else { fab.classList.remove('visible'); }
+        function renderAction() {
+            const row = document.getElementById('action-row');
+            if (gameState && gameState.currentPlayer === 0) {
+                if (selectedCard) {
+                    row.innerHTML = `<button class="btn btn-primary" onclick="requestSelected()">❓ Запросить "${selectedCard.cardName}"</button> <button class="btn btn-danger" onclick="endTurn()">✅ Закончить</button>`;
+                } else {
+                    row.innerHTML = `<button class="btn btn-danger" onclick="endTurn()">✅ Закончить ход</button>`;
+                }
+            } else {
+                row.innerHTML = '';
+            }
         }
 
         async function loadData() { const r = await fetch('data.json'); return await r.json(); }
@@ -201,7 +197,7 @@
             document.getElementById('card-count-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
             showToast('🎮 Игра началась! Выберите тусклую карту.', '');
-            addHistory('🎮', 'Игра началась!', 'neutral');
+            addHistory('🎮', 'Игра началась!', 'ok');
             updateUI();
         }
 
@@ -209,13 +205,8 @@
             const me = gameState.players[0];
             document.getElementById('game-status').textContent = gameState.currentPlayer === 0 ? '🎯 Ваш ход' : '⏳ Бот думает...';
             document.getElementById('turn-info').textContent = `🏆 Вы: ${me.quartets.length} | Бот: ${gameState.players[1].quartets.length}`;
-            if (gameState.currentPlayer === 0) {
-                document.getElementById('end-btn').classList.remove('hidden');
-            } else {
-                document.getElementById('end-btn').classList.add('hidden');
-                setTimeout(botTurn, 1200);
-            }
-            renderPlayArea(); updateFab(); checkWin();
+            if (gameState.currentPlayer === 1) { setTimeout(botTurn, 1000); }
+            renderPlayArea(); renderAction(); renderHistory(); checkWin();
         }
 
         function renderPlayArea() {
@@ -230,7 +221,7 @@
             container.innerHTML = active.map(cat => {
                 const cards = allGrouped[cat] || [], cnt = grouped[cat].length, done = cnt === 4;
                 const catId = cat.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_');
-                return `<div class="cat-header" onclick="toggleCategory('${catId}')"><span class="title">${cat}</span><div class="info"><span class="count ${done ? 'count-full' : 'count-partial'}">${cnt}/4${done ? ' ✅' : ''}</span><span class="arrow" id="arrow-${catId}">▼</span></div></div><div class="cards-grid" id="grid-${catId}">${cards.map(c => { const isOwned = c.owned; const isSel = selectedCard && selectedCard.category === cat && selectedCard.cardName === c.name; if (isOwned) return `<div class="card-cell owned"><img src="${c.image}" alt=""><div class="label">✅ ${c.name}</div></div>`; return `<div class="card-cell missing ${isSel ? 'selected' : ''}" onclick="selectCard('${cat.replace(/'/g, "\\'")}', '${c.name.replace(/'/g, "\\'")}')"><img src="${c.image}" alt=""><div class="label">❓ ${c.name}</div></div>`; }).join('')}</div>`;
+                return `<div class="cat-header" onclick="toggleCategory('${catId}')"><span class="title">${cat}</span><span class="count ${done ? 'count-full' : 'count-partial'}">${cnt}/4${done ? ' ✅' : ''}</span><span class="arrow" id="arrow-${catId}">▼</span></div><div class="cards-grid" id="grid-${catId}">${cards.map(c => { const isOwned = c.owned; const isSel = selectedCard && selectedCard.category === cat && selectedCard.cardName === c.name; if (isOwned) return `<div class="card-cell owned"><img src="${c.image}" alt=""><div class="label">${c.name}</div></div>`; return `<div class="card-cell missing ${isSel ? 'selected' : ''}" onclick="selectCard('${cat.replace(/'/g, "\\'")}', '${c.name.replace(/'/g, "\\'")}')"><img src="${c.image}" alt=""><div class="label">${c.name}</div></div>`; }).join('')}</div>`;
             }).join('');
         }
 
@@ -243,7 +234,7 @@
             if (gameState.currentPlayer !== 0) return;
             if (selectedCard && selectedCard.category === cat && selectedCard.cardName === name) { selectedCard = null; }
             else { selectedCard = { category: cat, cardName: name }; }
-            renderPlayArea(); updateFab();
+            renderPlayArea(); renderAction();
         }
 
         function requestSelected() {
@@ -252,17 +243,17 @@
             const idx = bot.hand.findIndex(c => c.category === selectedCard.category && c.cardName === selectedCard.cardName);
             if (idx !== -1) {
                 me.hand.push(bot.hand.splice(idx, 1)[0]);
-                showToast(`✅ Вы забрали "${selectedCard.cardName}"!`, 'success');
-                addHistory('🎯', `Вы забрали <b>${selectedCard.cardName}</b>`, 'success');
+                showToast(`✅ Забрали "${selectedCard.cardName}"!`, 'success');
+                addHistory('🎯', `Вы: <b>${selectedCard.cardName}</b>`, 'ok');
                 checkQuartets();
             } else {
                 if (gameState.bank.length) {
                     me.hand.push(gameState.bank.pop());
-                    showToast(`❌ У бота нет "${selectedCard.cardName}". Взяли из банка.`, 'error');
-                    addHistory('📦', `Нет <b>${selectedCard.cardName}</b>. Взяли из банка`, 'fail');
+                    showToast(`❌ Нет "${selectedCard.cardName}". Банк.`, 'error');
+                    addHistory('📦', `Нет <b>${selectedCard.cardName}</b>`, 'no');
                 } else {
-                    showToast(`❌ У бота нет "${selectedCard.cardName}". Банк пуст.`, 'error');
-                    addHistory('🚫', `Нет <b>${selectedCard.cardName}</b>. Банк пуст`, 'fail');
+                    showToast(`❌ Нет "${selectedCard.cardName}". Банк пуст.`, 'error');
+                    addHistory('🚫', `Нет <b>${selectedCard.cardName}</b>`, 'no');
                 }
                 gameState.currentPlayer = 1;
             }
@@ -279,12 +270,12 @@
             const idx = gameState.players[0].hand.findIndex(c => c.category === card.category && c.cardName === card.cardName);
             if (idx !== -1) {
                 bot.hand.push(gameState.players[0].hand.splice(idx, 1)[0]);
-                showToast(`😈 Бот забрал у вас "${card.cardName}"!`, 'error');
-                addHistory('👾', `Бот забрал <b>${card.cardName}</b>`, 'fail');
+                showToast(`😈 Бот забрал "${card.cardName}"!`, 'error');
+                addHistory('👾', `Бот: <b>${card.cardName}</b>`, 'no');
                 checkQuartets();
             } else {
-                if (gameState.bank.length) { bot.hand.push(gameState.bank.pop()); addHistory('📦', `Бот искал <b>${card.cardName}</b>. Взял из банка`, 'neutral'); }
-                else { addHistory('🚫', `Бот искал <b>${card.cardName}</b>. Банк пуст`, 'neutral'); }
+                if (gameState.bank.length) { bot.hand.push(gameState.bank.pop()); addHistory('📦', `Бот искал <b>${card.cardName}</b>`, 'ok'); }
+                else { addHistory('🚫', `Бот искал <b>${card.cardName}</b>`, 'ok'); }
             }
             gameState.currentPlayer = 0; updateUI();
         }
@@ -297,8 +288,8 @@
                     if (cards.length === 4) {
                         p.quartets.push(cat);
                         p.hand = p.hand.filter(c => c.category !== cat);
-                        showToast(`🏆 ${p.name} собрал квартет "${cat}"!`, 'success');
-                        addHistory('🏆', `<b>${p.name}</b> собрал «${cat}»`, 'success');
+                        showToast(`🏆 ${p.name} собрал "${cat}"!`, 'success');
+                        addHistory('🏆', `<b>${p.name}</b>: «${cat}»`, 'ok');
                     }
                 });
             });
