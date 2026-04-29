@@ -24,6 +24,10 @@ def create_deck():
     random.shuffle(deck)
     return deck, data
 
+@app.route('/')
+def home():
+    return 'OK'
+
 @app.route('/create', methods=['POST'])
 def create_room():
     data = request.get_json()
@@ -47,10 +51,10 @@ def create_room():
         'deck': deck[cards_count:],
         'categories': categories,
         'currentPlayer': 0,
-        'status': 'lobby',  # Теперь статус lobby, а не waiting
+        'status': 'lobby',
         'maxPlayers': 4,
         'cardsPerPlayer': cards_count,
-        'history': [],  # История ходов
+        'history': [],
         'ownerId': 0
     }
     
@@ -59,7 +63,6 @@ def create_room():
 
 @app.route('/start', methods=['POST'])
 def start_game():
-    """Запуск игры создателем"""
     data = request.get_json()
     code = data.get('code', '').upper()
     player_id = data.get('playerId')
@@ -126,6 +129,11 @@ def get_state(code, player_id):
         return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
     
     room = rooms[code]
+    
+    # Проверяем, что игрок есть в комнате
+    if player_id >= len(room['players']):
+        return jsonify({'ok': False, 'error': 'Игрок не найден'}), 404
+    
     player = room['players'][player_id]
     
     players_info = []
@@ -149,7 +157,7 @@ def get_state(code, player_id):
         'currentPlayer': room['currentPlayer'],
         'status': room['status'],
         'categories': room['categories'],
-        'history': room['history'][-20:],  # Последние 20 записей
+        'history': room['history'][-30:],
         'ownerId': room['ownerId']
     })
 
@@ -167,6 +175,7 @@ def request_card():
     
     room = rooms[code]
     
+    # ВАЖНО: проверяем currentPlayer
     if room['currentPlayer'] != from_player:
         return jsonify({'ok': False, 'error': 'Не ваш ход'}), 400
     
@@ -186,6 +195,7 @@ def request_card():
     to_name = target['name']
     
     if card_index is not None:
+        # Забираем карту
         card = target['hand'].pop(card_index)
         requester['hand'].append(card)
         
@@ -198,6 +208,9 @@ def request_card():
             'type': 'ok'
         })
         
+        # Ход остаётся у того же игрока
+        # НЕ МЕНЯЕМ currentPlayer
+        
         return jsonify({
             'ok': True, 'found': True, 'card': card,
             'nextPlayer': from_player
@@ -209,6 +222,7 @@ def request_card():
             requester['hand'].append(drawn)
             check_quartets(room, from_player)
         
+        # Передаём ход следующему
         next_player = (from_player + 1) % len(room['players'])
         room['currentPlayer'] = next_player
         
