@@ -48,13 +48,15 @@
             box-shadow: 0 4px 16px rgba(0,0,0,0.12);
         }
         .toast.show { opacity: 1; }
+        .toast.success { border-color: var(--green); }
+        .toast.error { border-color: var(--red); }
         .info-bar {
             display: flex; justify-content: space-between; align-items: center;
             padding: 14px 16px; background: var(--card); border-radius: 12px;
             margin: 10px 0; font-size: 14px; border: 2px solid var(--border); box-shadow: var(--shadow);
         }
         .info-bar .turn { color: var(--accent); font-weight: bold; font-size: 15px; }
-        .info-bar .score { color: var(--text2); font-size: 11px; }
+        .info-bar .score { color: var(--text2); font-size: 13px; }
         .cat-section { margin: 6px 0; }
         .cat-header {
             background: var(--accent); color: #fff;
@@ -146,11 +148,6 @@
         .players-waiting .pw-item { padding: 8px 12px; background: #fff; border-radius: 8px; margin: 4px 0; border: 1px solid var(--border); }
         .name-section { margin-bottom: 12px; }
         .name-section label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 4px; }
-        .debug-info {
-            background: #ffeaa7; color: #000; padding: 6px 10px;
-            border-radius: 8px; font-size: 10px; margin: 4px 0;
-            font-family: monospace; text-align: center;
-        }
     </style>
 </head>
 <body>
@@ -214,7 +211,7 @@
         function showMenu() {
             clearInterval(pollTimer); document.getElementById('bottom-panel').classList.add('hidden');
             document.getElementById('app').innerHTML = `
-                <div class="header"><h1>📖 Библейский квартет</h1><p>37 категорий · 148 карточек</p></div>
+                <div class="header"><h1>📖 Библейский квартет</h1></div>
                 <div class="name-section"><label>Ваше имя</label><input class="input input-name" id="player-name" value="${playerName}" maxlength="20"></div>
                 <button class="btn btn-primary btn-full" onclick="saveNameAndCreate()">🎮 Создать игру</button>
                 <button class="btn btn-secondary btn-full" onclick="saveNameAndJoin()">🔗 Присоединиться</button>`;
@@ -309,14 +306,12 @@
             const isMyTurn=state.currentPlayer===playerId;
             const curName=state.players[state.currentPlayer]?.name||'Неизвестно';
             
-            // ОТЛАДКА: показываем ID
-            let html=`<div class="debug-info">🪲 Я: #${playerId} | Ход: #${state.currentPlayer} | Игроков: ${state.players.length}</div>`;
-            html+=`<div class="info-bar"><span class="turn">${isMyTurn?'🎯 Ваш ход':'⏳ Ход: '+curName}</span><span class="score">🏆 ${me.quartets.length} | Запас: ${state.bankCount}</span></div>`;
+            let html=`<div class="info-bar"><span class="turn">${isMyTurn?'🎯 Ваш ход':'⏳ Ход: '+curName}</span><span class="score">🏆 ${me.quartets.length} | Запас: ${state.bankCount}</span></div>`;
             
             html+='<div class="player-list">';
             for(const p of state.players){
                 if(p.id===playerId)continue;
-                html+=`<div class="player-card ${state.currentPlayer===p.id?'current':''}" onclick="selectPlayer(${p.id})"><div class="p-name">${p.name} #${p.id}</div><div class="p-info">🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов</div></div>`;
+                html+=`<div class="player-card ${state.currentPlayer===p.id?'current':''}" onclick="selectPlayer(${p.id})"><div class="p-name">${p.name}</div><div class="p-info">🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов</div></div>`;
             }
             html+='</div>';
             
