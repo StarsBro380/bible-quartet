@@ -378,4 +378,12 @@
                 document.getElementById('bottom-panel').classList.add('hidden');
                 const sorted = [...state.players].sort((a,b) => b.quartets.length - a.quartets.length);
                 document.getElementById('app').innerHTML = `<div class="header"><h1>🏆 Игра окончена!</h1></div>`
-                    + sorted.map((p,i) => `<
+                    + sorted.map((p,i) => `<div class="score-item ${i===0&&sorted[0].quartets.length>0?'winner':''}"><span>${i===0&&sorted[0].quartets.length>0?'👑 ':''}${p.name}</span><span style="color:var(--accent);font-weight:bold;">${p.quartets.length} квартетов</span></div>`).join('')
+                    + '<button class="btn btn-primary btn-full" onclick="showMenu()">В меню</button>';
+            }
+        }
+
+        showMenu();
+    </script>
+</body>
+</html>
