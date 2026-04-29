@@ -13,17 +13,16 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Georgia', serif; background: var(--bg); color: var(--text);
-            min-height: 100vh; padding: 12px; padding-bottom: 140px;
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
+            min-height: 100vh; padding: 10px; padding-bottom: 130px;
+            -webkit-tap-highlight-color: transparent; user-select: none;
         }
         .container { max-width: 100%; margin: 0 auto; }
-        .header { text-align: center; padding: 8px 0 12px; }
-        .header h1 { font-size: 20px; }
-        .header p { font-size: 12px; }
+        .header { text-align: center; padding: 6px 0 10px; }
+        .header h1 { font-size: 18px; }
+        .header p { font-size: 11px; }
         .btn {
-            width: 100%; padding: 14px; font-size: 15px; font-weight: 600;
-            border: none; border-radius: 12px; cursor: pointer; margin: 5px 0;
+            width: 100%; padding: 13px; font-size: 14px; font-weight: 600;
+            border: none; border-radius: 10px; cursor: pointer; margin: 4px 0;
             -webkit-tap-highlight-color: transparent;
         }
         .btn:active { opacity: 0.8; }
@@ -33,11 +32,11 @@
 
         /* FAB */
         .fab {
-            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+            position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
             background: var(--accent2); color: #fff;
-            padding: 14px 24px; border-radius: 16px;
-            font-weight: bold; font-size: 14px; cursor: pointer;
-            box-shadow: 0 8px 30px rgba(124, 58, 237, 0.5);
+            padding: 13px 22px; border-radius: 14px;
+            font-weight: bold; font-size: 13px; cursor: pointer;
+            box-shadow: 0 6px 24px rgba(124, 58, 237, 0.5);
             z-index: 50; transition: all 0.2s; border: none;
             display: none; white-space: nowrap;
         }
@@ -46,10 +45,10 @@
 
         /* TOAST */
         .toast {
-            position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+            position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
             background: var(--card); border: 1px solid var(--accent);
-            color: var(--text); padding: 10px 16px; border-radius: 12px;
-            font-size: 12px; z-index: 60; opacity: 0; transition: opacity 0.3s;
+            color: var(--text); padding: 8px 14px; border-radius: 10px;
+            font-size: 11px; z-index: 60; opacity: 0; transition: opacity 0.3s;
             pointer-events: none; max-width: 90%; text-align: center;
             box-shadow: 0 4px 16px rgba(0,0,0,0.3);
         }
@@ -60,62 +59,70 @@
         /* КАТЕГОРИИ */
         .cat-header {
             background: var(--card); border: 1px solid var(--border);
-            border-radius: 10px; padding: 10px 12px; margin: 6px 0 0;
+            border-radius: 8px; padding: 8px 10px; margin: 5px 0 0;
             display: flex; justify-content: space-between; align-items: center;
-            cursor: pointer; transition: all 0.2s; font-size: 13px;
+            cursor: pointer; transition: all 0.2s; font-size: 12px;
         }
-        .cat-header .title { font-weight: bold; color: var(--accent); font-size: 12px; text-transform: uppercase; }
-        .cat-header .count { font-size: 11px; padding: 3px 8px; border-radius: 6px; }
+        .cat-header .title { font-weight: bold; color: var(--accent); font-size: 11px; text-transform: uppercase; }
+        .cat-header .info { display: flex; gap: 8px; align-items: center; }
+        .cat-header .count { font-size: 10px; padding: 2px 7px; border-radius: 5px; }
         .count-full { background: var(--green); color: #fff; }
         .count-partial { background: rgba(226,160,63,0.2); color: var(--accent); }
-        .cat-header .arrow { font-size: 14px; transition: transform 0.3s; }
+        .cat-header .arrow { font-size: 12px; transition: transform 0.3s; }
         .cat-header .arrow.open { transform: rotate(180deg); }
 
         /* КАРТОЧКИ */
-        .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px 0 0; }
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 3px; padding: 3px 0 0;
+        }
         .cards-grid.collapsed { display: none; }
 
         .card-cell {
             background: var(--card); border: 2px solid var(--border);
-            border-radius: 8px; overflow: hidden; cursor: pointer;
-            transition: all 0.2s; aspect-ratio: 3/4; position: relative;
+            border-radius: 6px; overflow: hidden; cursor: pointer;
+            transition: all 0.2s; position: relative;
+            max-width: 130px; margin: 0 auto;
+            aspect-ratio: 2.5/3.5;
         }
         .card-cell.owned { border-color: var(--green); cursor: default; }
-        .card-cell.missing { opacity: 0.45; filter: grayscale(0.5); }
+        .card-cell.missing { opacity: 0.4; filter: grayscale(0.5); }
         .card-cell.missing:active { opacity: 0.8; filter: grayscale(0.2); border-color: var(--accent2); }
         .card-cell.selected {
             border-color: var(--accent2) !important;
-            box-shadow: 0 0 16px rgba(124, 58, 237, 0.6);
-            opacity: 1 !important; filter: none !important; transform: scale(1.02);
+            box-shadow: 0 0 14px rgba(124, 58, 237, 0.6);
+            opacity: 1 !important; filter: none !important; transform: scale(1.03);
         }
         .card-cell.selected::after {
-            content: '✅'; position: absolute; top: 4px; right: 4px;
-            font-size: 14px; z-index: 5; background: var(--accent2);
-            border-radius: 50%; width: 22px; height: 22px;
+            content: '✅'; position: absolute; top: 3px; right: 3px;
+            font-size: 11px; z-index: 5; background: var(--accent2);
+            border-radius: 50%; width: 18px; height: 18px;
             display: flex; align-items: center; justify-content: center;
         }
         .card-cell img { width: 100%; height: 100%; object-fit: cover; }
         .card-cell .label {
             position: absolute; bottom: 0; left: 0; right: 0;
-            background: rgba(0,0,0,0.75); padding: 2px 4px;
-            font-size: 9px; text-align: center; color: #fff;
+            background: rgba(0,0,0,0.8); padding: 1px 2px;
+            font-size: 7px; text-align: center; color: #fff;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
         .hidden { display: none !important; }
-        .score-item { background: var(--card); border-radius: 10px; padding: 10px; margin: 6px 0; display: flex; justify-content: space-between; font-size: 13px; }
+        .score-item { background: var(--card); border-radius: 8px; padding: 8px; margin: 5px 0; display: flex; justify-content: space-between; font-size: 12px; }
 
-        /* ИСТОРИЯ (снизу) */
+        /* ИСТОРИЯ */
         .history-bar {
-            position: fixed; bottom: 60px; left: 4px; right: 4px;
-            height: 60px; overflow-x: auto; overflow-y: hidden;
+            position: fixed; bottom: 55px; left: 4px; right: 4px;
+            height: 45px; overflow-x: auto; overflow-y: hidden;
             white-space: nowrap; z-index: 30;
-            display: flex; gap: 4px; padding: 4px 0; align-items: center;
+            display: flex; gap: 3px; padding: 2px 0; align-items: center;
         }
         .history-item {
-            flex-shrink: 0; background: var(--card); border-radius: 8px;
-            padding: 5px 8px; font-size: 10px; display: flex; align-items: center; gap: 4px;
+            flex-shrink: 0; background: var(--card); border-radius: 6px;
+            padding: 3px 6px; font-size: 9px; display: flex; align-items: center; gap: 3px;
         }
-        .history-item .icon { font-size: 12px; }
+        .history-item .icon { font-size: 10px; }
         .history-item .text { color: var(--text2); }
         .history-item .text b { color: var(--accent); }
         .history-item.success { border-bottom: 2px solid var(--green); }
@@ -141,9 +148,9 @@
             <button class="btn btn-secondary" onclick="showMainMenu()">← Назад</button>
         </div>
         <div id="game-screen" class="hidden">
-            <div class="header"><h2 id="game-status" style="color:var(--accent)"></h2><p style="color:var(--text2);font-size:12px;" id="turn-info"></p></div>
+            <div class="header"><h2 id="game-status" style="color:var(--accent);font-size:16px;"></h2><p style="color:var(--text2);font-size:11px;" id="turn-info"></p></div>
             <div id="play-area"></div>
-            <button class="btn btn-danger hidden" id="end-btn" onclick="endTurn()" style="margin-bottom:80px;">✅ Закончить ход</button>
+            <button class="btn btn-danger hidden" id="end-btn" onclick="endTurn()" style="margin-bottom:70px;">✅ Закончить ход</button>
         </div>
         <div id="win-screen" class="hidden">
             <div class="header"><h1>🏆 Игра окончена!</h1><div class="scoreboard" id="scoreboard"></div><button class="btn btn-primary" onclick="showMainMenu()">В меню</button></div>
