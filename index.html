@@ -154,7 +154,7 @@
         const tg = window.Telegram.WebApp;
         if (tg) { tg.expand(); tg.ready(); tg.setHeaderColor('#f5f0e8'); tg.setBackgroundColor('#f5f0e8'); }
         
-        const API = 'https://YOUR_RENDER_URL.onrender.com';
+        const API = 'https://bible-quartet-server.onrender.com';
         let state = null, playerId = null, roomCode = null, selectedCard = null, moveHistory = [];
         let playerName = tg?.initDataUnsafe?.user?.first_name || 'Игрок';
         let pollTimer = null;
