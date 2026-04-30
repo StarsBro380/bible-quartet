@@ -59,6 +59,7 @@ def create_room():
     }
     
     rooms[code] = room
+    print(f"[CREATE] Комната {code}, игрок 0: {player_name}")
     return jsonify({'ok': True, 'code': code, 'playerId': 0})
 
 @app.route('/start', methods=['POST'])
@@ -86,6 +87,7 @@ def start_game():
         'type': 'system'
     })
     
+    print(f"[START] Игра в комнате {code} началась! Игроков: {len(room['players'])}")
     return jsonify({'ok': True})
 
 @app.route('/join', methods=['POST'])
@@ -122,6 +124,7 @@ def join_room():
         'type': 'system'
     })
     
+    print(f"[JOIN] Комната {code}, новый игрок {player_id}: {player_name}")
     return jsonify({'ok': True, 'playerId': int(player_id)})
 
 @app.route('/state/<code>/<int:player_id>', methods=['GET'])
@@ -131,10 +134,15 @@ def get_state(code, player_id):
     
     room = rooms[code]
     
-    if player_id >= len(room['players']):
-        return jsonify({'ok': False, 'error': 'Игрок не найден'}), 404
+    # Ищем игрока по ID
+    player = None
+    for p in room['players']:
+        if p['id'] == player_id:
+            player = p
+            break
     
-    player = room['players'][player_id]
+    if not player:
+        return jsonify({'ok': False, 'error': f'Игрок {player_id} не найден. Всего игроков: {len(room["players"])}'}), 404
     
     players_info = []
     for p in room['players']:
@@ -144,6 +152,7 @@ def get_state(code, player_id):
             'quartets': p['quartets'],
             'handCount': int(len(p['hand']))
         }
+        # Показываем руку только самому игроку
         if p['id'] == player_id:
             info['hand'] = p['hand']
         players_info.append(info)
@@ -175,14 +184,22 @@ def request_card():
     
     room = rooms[code]
     
+    # Проверяем, что ходящий игрок существует
+    if from_player >= len(room['players']) or from_player < 0:
+        return jsonify({'ok': False, 'error': 'Игрок не найден'}), 400
+    
     # Проверяем currentPlayer
     if int(room['currentPlayer']) != from_player:
-        return jsonify({'ok': False, 'error': 'Не ваш ход'}), 400
+        return jsonify({'ok': False, 'error': f'Не ваш ход. Сейчас ходит игрок {room["currentPlayer"]}'}), 400
     
     requester = room['players'][from_player]
     has_category = any(c['category'] == category for c in requester['hand'])
     if not has_category:
         return jsonify({'ok': False, 'error': 'У вас нет карт этой категории'}), 400
+    
+    # Проверяем, что целевой игрок существует
+    if to_player >= len(room['players']) or to_player < 0:
+        return jsonify({'ok': False, 'error': 'Целевой игрок не найден'}), 400
     
     target = room['players'][to_player]
     card_index = None
@@ -195,7 +212,6 @@ def request_card():
     to_name = target['name']
     
     if card_index is not None:
-        # Забираем карту
         card = target['hand'].pop(card_index)
         requester['hand'].append(card)
         
@@ -208,7 +224,8 @@ def request_card():
             'type': 'ok'
         })
         
-        # Ход остаётся у того же игрока
+        print(f"[REQUEST] {from_name} -> {to_name}: {card_name} ({category}) — УГАДАЛ")
+        
         return jsonify({
             'ok': True, 'found': True, 'card': card,
             'nextPlayer': int(from_player)
@@ -220,7 +237,6 @@ def request_card():
             requester['hand'].append(drawn)
             check_quartets(room, from_player)
         
-        # Передаём ход следующему
         next_player = (from_player + 1) % len(room['players'])
         room['currentPlayer'] = int(next_player)
         
@@ -236,6 +252,8 @@ def request_card():
                 'text': f'{from_name} спросил(а) у {to_name}: «{card_name}» ({category}) — ❌ Нет. Запас пуст.',
                 'type': 'no'
             })
+        
+        print(f"[REQUEST] {from_name} -> {to_name}: {card_name} ({category}) — НЕ УГАДАЛ. Ход переходит к {next_player}")
         
         return jsonify({
             'ok': True, 'found': False, 'drawn': drawn,
@@ -259,6 +277,7 @@ def check_quartets(room, player_id):
                 'text': f'🏆 {p["name"]} собрал(а) квартет «{cat}»!',
                 'type': 'ok'
             })
+            print(f"[QUARTET] {p['name']} собрал(а) квартет «{cat}»!")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
