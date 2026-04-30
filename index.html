@@ -295,7 +295,7 @@
                 <button class="btn btn-secondary btn-full" onclick="clearInterval(pollTimer);showMenu();">← Отмена</button>`;
         }
 
-        function startPolling(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}fetchState();pollTimer=setInterval(fetchState,2000);}
+        function startPolling(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}fetchState();pollTimer=setInterval(fetchState,1000);}
 
         async function fetchState(){
             if(!roomCode||playerId===null)return;
