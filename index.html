@@ -57,11 +57,6 @@
         }
         .info-bar .turn { color: var(--accent); font-weight: bold; font-size: 15px; }
         .info-bar .score { color: var(--text2); font-size: 13px; }
-        .debug-bar {
-            background: #ffeaa7; padding: 6px 10px; border-radius: 6px;
-            font-size: 10px; margin-bottom: 4px; text-align: center;
-            font-family: monospace; color: #000;
-        }
         .cat-section { margin: 6px 0; }
         .cat-header {
             background: var(--accent); color: #fff;
@@ -282,7 +277,7 @@
                         if(d.status==='playing'){fetchState();}
                     }
                 } catch(e){}
-            },2000);
+            },1000);
             document.getElementById('app').innerHTML=`
                 <div class="code-display" onclick="copyCode()">
                     <p style="color:var(--text2);">Код комнаты (нажмите, чтобы скопировать):</p>
@@ -312,11 +307,10 @@
             const me=state.players.find(p=>p.id===playerId);
             if(!me)return;
             const isMyTurn = Number(state.currentPlayer) === Number(playerId);
-            const curName=state.players[Number(state.currentPlayer)]?.name||'Неизвестно';
+            const currentPlayerObj = state.players.find(p => Number(p.id) === Number(state.currentPlayer));
+            const curName = currentPlayerObj ? currentPlayerObj.name : 'Неизвестно';
             
-            // ОТЛАДКА
-            let html=`<div class="debug-bar">🪲 Я:#${playerId} (${typeof playerId}) | Ход:#${state.currentPlayer} (${typeof state.currentPlayer}) | Совпадают:${Number(state.currentPlayer)===Number(playerId)?'ДА':'НЕТ'}</div>`;
-            html+=`<div class="info-bar"><span class="turn">${isMyTurn?'🎯 Ваш ход':'⏳ Ход: '+curName}</span><span class="score">🏆 ${me.quartets.length} | Запас: ${state.bankCount}</span></div>`;
+            let html=`<div class="info-bar"><span class="turn">${isMyTurn?'🎯 Ваш ход':'⏳ Ход: '+curName}</span><span class="score">🏆 ${me.quartets.length} | Запас: ${state.bankCount}</span></div>`;
             
             html+='<div class="player-list">';
             for(const p of state.players){
