@@ -285,7 +285,11 @@
             document.getElementById('app').innerHTML=html;renderHistory(state.history);renderActions();checkWin();
         }
         function toggleCat(id){document.getElementById('row-'+id).classList.toggle('collapsed');document.getElementById('arrow-'+id).classList.toggle('open');}
-        function selectPlayer(pid){selectedPlayerId=pid;toast(`Выбран: ${state.players[pid].name}`,'');}
+        function selectPlayer(pid){
+            selectedPlayerId = parseInt(pid);
+            const p = state.players.find(p => parseInt(p.id) === parseInt(pid));
+            if (p) toast(`Выбран: ${p.name}`,'');
+        }
         function selectCard(cat,name){if(parseInt(state.currentPlayer)!==parseInt(playerId))return;selectedCard=(selectedCard&&selectedCard.category===cat&&selectedCard.cardName===name)?null:{category:cat,cardName:name};renderGame();}
         async function requestCard(){
             if(!selectedCard){toast('⚠️ Выберите карточку!','error');return;}
