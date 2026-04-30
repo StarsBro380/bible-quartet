@@ -188,12 +188,21 @@
             if (!history || !history.length) { list.innerHTML = '<div class="history-item system"><span class="h-text">История пуста</span></div>'; return; }
             list.innerHTML = history.slice().reverse().map(h => `<div class="history-item ${h.type||'system'}"><span class="h-time">${h.time}</span><span class="h-text">${h.text}</span></div>`).join('');
         }
-        function renderActions() {
-            const row = document.getElementById('action-row');
-            if (!state || state.currentPlayer !== playerId) { row.innerHTML = '<span style="color:var(--text2);font-size:12px;">⏳ Ожидание хода другого игрока...</span>'; return; }
-            if (selectedCard) { row.innerHTML = `<button class="btn btn-primary" onclick="requestCard()">❓ Просить "${selectedCard.cardName}"</button>`; }
-            else { row.innerHTML = '<span style="color:var(--text2);font-size:12px;">👆 Выберите карточку и игрока</span>'; }
-        }
+       function renderActions() {
+    const row = document.getElementById('action-row');
+    const cp = parseInt(state.currentPlayer);
+    const pid = parseInt(playerId);
+    
+    if (!state || cp !== pid) {
+        row.innerHTML = '<span style="color:var(--text2);font-size:12px;">⏳ Ожидание хода другого игрока... (вы #'+pid+', ходит #'+cp+')</span>';
+        return;
+    }
+    if (selectedCard) {
+        row.innerHTML = `<button class="btn btn-primary" onclick="requestCard()">❓ Просить "${selectedCard.cardName}"</button>`;
+    } else {
+        row.innerHTML = '<span style="color:var(--text2);font-size:12px;">👆 Выберите карточку и игрока</span>';
+    }
+}
         function showMenu() {
             clearInterval(pollTimer); document.getElementById('bottom-panel').classList.add('hidden');
             document.getElementById('app').innerHTML = `<div class="header"><h1>📖 Библейский квартет</h1></div><div class="name-section"><label>Ваше имя</label><input class="input input-name" id="player-name" value="${playerName}" maxlength="20"></div><button class="btn btn-primary btn-full" onclick="saveNameAndCreate()">🎮 Создать игру</button><button class="btn btn-secondary btn-full" onclick="saveNameAndJoin()">🔗 Присоединиться</button>`;
