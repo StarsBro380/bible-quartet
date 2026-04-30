@@ -200,7 +200,7 @@
 
         function renderActions() {
             const row = document.getElementById('action-row');
-            if (!state || Number(state.currentPlayer) !== Number(playerId)) {
+            if (!state || state.currentPlayer !== playerId) {
                 row.innerHTML = '<span style="color:var(--text2);font-size:12px;">⏳ Ожидание хода другого игрока...</span>';
                 return;
             }
@@ -242,7 +242,7 @@
             try {
                 const r = await fetch(API+'/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:playerName,cards:n})});
                 const d = await r.json();
-                if(d.ok){roomCode=d.code;playerId=Number(d.playerId);showLobby();} else toast(d.error,'error');
+                if(d.ok){roomCode=d.code;playerId=parseInt(d.playerId);showLobby();} else toast(d.error,'error');
             } catch(e){toast('Ошибка соединения','error');}
         }
         async function joinGame() {
@@ -251,7 +251,7 @@
             try {
                 const r=await fetch(API+'/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,name:playerName})});
                 const d=await r.json();
-                if(d.ok){roomCode=code;playerId=Number(d.playerId);startPolling();} else toast(d.error,'error');
+                if(d.ok){roomCode=code;playerId=parseInt(d.playerId);startPolling();} else toast(d.error,'error');
             } catch(e){toast('Ошибка соединения','error');}
         }
         async function startGame() {
@@ -297,7 +297,21 @@
             try {
                 const r=await fetch(`${API}/state/${roomCode}/${playerId}`);
                 const d=await r.json();
-                if(d.ok){state=d;renderGame();}
+                if(d.ok){
+                    // ПРИНУДИТЕЛЬНОЕ ПРЕОБРАЗОВАНИЕ В ЧИСЛА
+                    d.currentPlayer = parseInt(d.currentPlayer);
+                    d.playerId = parseInt(d.playerId);
+                    d.bankCount = parseInt(d.bankCount);
+                    d.ownerId = parseInt(d.ownerId);
+                    if (d.players) {
+                        d.players.forEach(p => {
+                            p.id = parseInt(p.id);
+                            p.handCount = parseInt(p.handCount);
+                        });
+                    }
+                    state = d;
+                    renderGame();
+                }
             } catch(e){}
         }
 
@@ -306,8 +320,8 @@
             document.getElementById('bottom-panel').classList.remove('hidden');
             const me=state.players.find(p=>p.id===playerId);
             if(!me)return;
-            const isMyTurn = Number(state.currentPlayer) === Number(playerId);
-            const currentPlayerObj = state.players.find(p => Number(p.id) === Number(state.currentPlayer));
+            const isMyTurn = state.currentPlayer === playerId;
+            const currentPlayerObj = state.players.find(p => p.id === state.currentPlayer);
             const curName = currentPlayerObj ? currentPlayerObj.name : 'Неизвестно';
             
             let html=`<div class="info-bar"><span class="turn">${isMyTurn?'🎯 Ваш ход':'⏳ Ход: '+curName}</span><span class="score">🏆 ${me.quartets.length} | Запас: ${state.bankCount}</span></div>`;
@@ -315,7 +329,7 @@
             html+='<div class="player-list">';
             for(const p of state.players){
                 if(p.id===playerId)continue;
-                html+=`<div class="player-card ${Number(state.currentPlayer)===p.id?'current':''}" onclick="selectPlayer(${p.id})"><div class="p-name">${p.name}</div><div class="p-info">🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов</div></div>`;
+                html+=`<div class="player-card ${state.currentPlayer===p.id?'current':''}" onclick="selectPlayer(${p.id})"><div class="p-name">${p.name}</div><div class="p-info">🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов</div></div>`;
             }
             html+='</div>';
             
@@ -346,16 +360,16 @@
         function toggleCat(id){document.getElementById('row-'+id).classList.toggle('collapsed');document.getElementById('arrow-'+id).classList.toggle('open');}
         function selectPlayer(pid){selectedPlayerId=pid;toast(`Выбран: ${state.players[pid].name}`,'');}
         function selectCard(cat,name){
-            if(Number(state.currentPlayer)!==Number(playerId))return;
+            if(state.currentPlayer!==playerId)return;
             selectedCard=(selectedCard&&selectedCard.category===cat&&selectedCard.cardName===name)?null:{category:cat,cardName:name};
             renderGame();
         }
         async function requestCard(){
             if(!selectedCard){toast('⚠️ Выберите карточку!','error');return;}
-            const toPlayer=selectedPlayerId!==null?selectedPlayerId:state.players.find(p=>Number(p.id)!==Number(playerId))?.id;
+            const toPlayer=selectedPlayerId!==null?selectedPlayerId:state.players.find(p=>p.id!==playerId)?.id;
             if(toPlayer===undefined){toast('⚠️ Выберите игрока!','error');return;}
             try {
-                const r=await fetch(API+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,fromPlayer:Number(playerId),toPlayer:Number(toPlayer),category:selectedCard.category,cardName:selectedCard.cardName})});
+                const r=await fetch(API+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,fromPlayer:playerId,toPlayer:toPlayer,category:selectedCard.category,cardName:selectedCard.cardName})});
                 const d=await r.json();
                 if(d.ok){
                     if(d.found){toast(`✅ Получили "${d.card.cardName}"!`,'success');}
