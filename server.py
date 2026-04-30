@@ -32,7 +32,7 @@ def home():
 def create_room():
     data = request.get_json()
     player_name = data.get('name', 'Игрок')
-    cards_count = data.get('cards', 10)
+    cards_count = int(data.get('cards', 10))
     
     code = generate_code()
     while code in rooms:
@@ -65,7 +65,7 @@ def create_room():
 def start_game():
     data = request.get_json()
     code = data.get('code', '').upper()
-    player_id = data.get('playerId')
+    player_id = int(data.get('playerId', -1))
     
     if code not in rooms:
         return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
@@ -79,6 +79,7 @@ def start_game():
         return jsonify({'ok': False, 'error': 'Нужно минимум 2 игрока'}), 400
     
     room['status'] = 'playing'
+    room['currentPlayer'] = 0
     room['history'].append({
         'time': datetime.now().strftime('%H:%M'),
         'text': '🎮 Игра началась!',
@@ -121,7 +122,7 @@ def join_room():
         'type': 'system'
     })
     
-    return jsonify({'ok': True, 'playerId': player_id})
+    return jsonify({'ok': True, 'playerId': int(player_id)})
 
 @app.route('/state/<code>/<int:player_id>', methods=['GET'])
 def get_state(code, player_id):
@@ -130,7 +131,6 @@ def get_state(code, player_id):
     
     room = rooms[code]
     
-    # Проверяем, что игрок есть в комнате
     if player_id >= len(room['players']):
         return jsonify({'ok': False, 'error': 'Игрок не найден'}), 404
     
@@ -139,10 +139,10 @@ def get_state(code, player_id):
     players_info = []
     for p in room['players']:
         info = {
-            'id': p['id'],
+            'id': int(p['id']),
             'name': p['name'],
             'quartets': p['quartets'],
-            'handCount': len(p['hand'])
+            'handCount': int(len(p['hand']))
         }
         if p['id'] == player_id:
             info['hand'] = p['hand']
@@ -151,32 +151,32 @@ def get_state(code, player_id):
     return jsonify({
         'ok': True,
         'code': code,
-        'playerId': player_id,
+        'playerId': int(player_id),
         'players': players_info,
-        'bankCount': len(room['deck']),
-        'currentPlayer': room['currentPlayer'],
+        'bankCount': int(len(room['deck'])),
+        'currentPlayer': int(room['currentPlayer']),
         'status': room['status'],
         'categories': room['categories'],
         'history': room['history'][-30:],
-        'ownerId': room['ownerId']
+        'ownerId': int(room['ownerId'])
     })
 
 @app.route('/request', methods=['POST'])
 def request_card():
     data = request.get_json()
     code = data.get('code', '').upper()
-    from_player = data.get('fromPlayer')
-    to_player = data.get('toPlayer')
-    category = data.get('category')
-    card_name = data.get('cardName')
+    from_player = int(data.get('fromPlayer', -1))
+    to_player = int(data.get('toPlayer', -1))
+    category = data.get('category', '')
+    card_name = data.get('cardName', '')
     
     if code not in rooms:
         return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
     
     room = rooms[code]
     
-    # ВАЖНО: проверяем currentPlayer
-    if room['currentPlayer'] != from_player:
+    # Проверяем currentPlayer
+    if int(room['currentPlayer']) != from_player:
         return jsonify({'ok': False, 'error': 'Не ваш ход'}), 400
     
     requester = room['players'][from_player]
@@ -209,11 +209,9 @@ def request_card():
         })
         
         # Ход остаётся у того же игрока
-        # НЕ МЕНЯЕМ currentPlayer
-        
         return jsonify({
             'ok': True, 'found': True, 'card': card,
-            'nextPlayer': from_player
+            'nextPlayer': int(from_player)
         })
     else:
         drawn = None
@@ -224,7 +222,7 @@ def request_card():
         
         # Передаём ход следующему
         next_player = (from_player + 1) % len(room['players'])
-        room['currentPlayer'] = next_player
+        room['currentPlayer'] = int(next_player)
         
         if drawn:
             room['history'].append({
@@ -241,7 +239,7 @@ def request_card():
         
         return jsonify({
             'ok': True, 'found': False, 'drawn': drawn,
-            'nextPlayer': next_player
+            'nextPlayer': int(next_player)
         })
 
 def check_quartets(room, player_id):
