@@ -9,6 +9,12 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
+# Для отключения кэширования на Render.com
+@app.after_request
+def after_request(response):
+    response.headers.add('Cache-Control', 'no-cache, no-store, must-revalidate')
+    return response
+
 rooms = {}
 
 def generate_code():
@@ -125,6 +131,7 @@ def join_room():
     })
     
     print(f"[JOIN] Комната {code}, новый игрок {player_id}: {player_name}")
+    print(f"[JOIN] Текущие игроки в комнате: {[p['id'] for p in room['players']]}")
     return jsonify({'ok': True, 'playerId': int(player_id)})
 
 @app.route('/state/<code>/<int:player_id>', methods=['GET'])
@@ -141,7 +148,7 @@ def get_state(code, player_id):
             break
     
     if not player:
-        return jsonify({'ok': False, 'error': f'Игрок {player_id} не найден'}), 404
+        return jsonify({'ok': False, 'error': f'Игрок {player_id} не найден. Всего игроков: {len(room["players"])} с ID: {[p["id"] for p in room["players"]]}'}), 404
     
     players_info = []
     for p in room['players']:
@@ -154,6 +161,9 @@ def get_state(code, player_id):
         if p['id'] == player_id:
             info['hand'] = p['hand']
         players_info.append(info)
+    
+    # Логирование для отладки
+    print(f"[STATE] Комната {code}, запрос от игрока {player_id}, currentPlayer={room['currentPlayer']}, игроки: {[p['id'] for p in room['players']]}")
     
     return jsonify({
         'ok': True,
@@ -182,6 +192,8 @@ def request_card():
     
     room = rooms[code]
     
+    print(f"[REQUEST] from={from_player}, to={to_player}, category={category}, card={card_name}, currentPlayer before={room['currentPlayer']}")
+    
     if from_player >= len(room['players']) or from_player < 0:
         return jsonify({'ok': False, 'error': 'Игрок не найден'}), 400
     
@@ -207,6 +219,7 @@ def request_card():
     to_name = target['name']
     
     if card_index is not None:
+        # ✅ УГАДАЛ
         card = target['hand'].pop(card_index)
         requester['hand'].append(card)
         
@@ -222,13 +235,14 @@ def request_card():
             'type': 'ok'
         })
         
-        print(f"[REQUEST] {from_name} -> {to_name}: {card_name} ({category}) — УГАДАЛ")
+        print(f"[REQUEST] {from_name} -> {to_name}: {card_name} ({category}) — ✅ УГАДАЛ. Ход остаётся у {from_player}")
         
         return jsonify({
             'ok': True, 'found': True, 'card': card,
             'nextPlayer': int(from_player)
         })
     else:
+        # ❌ НЕ УГАДАЛ
         drawn = None
         if room['deck']:
             drawn = room['deck'].pop()
@@ -251,7 +265,7 @@ def request_card():
                 'type': 'no'
             })
         
-        print(f"[REQUEST] {from_name} -> {to_name}: {card_name} ({category}) — НЕ УГАДАЛ. Ход переходит к {next_player}")
+        print(f"[REQUEST] {from_name} -> {to_name}: {card_name} ({category}) — ❌ НЕ УГАДАЛ. Ход переходит к {next_player}")
         
         return jsonify({
             'ok': True, 'found': False, 'drawn': drawn,
