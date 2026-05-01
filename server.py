@@ -9,7 +9,7 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-# Для отключения кэширования на Render.com
+# Отключаем кэширование (важно для Render.com)
 @app.after_request
 def after_request(response):
     response.headers.add('Cache-Control', 'no-cache, no-store, must-revalidate')
