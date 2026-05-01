@@ -134,7 +134,6 @@ def get_state(code, player_id):
     
     room = rooms[code]
     
-    # Ищем игрока по ID
     player = None
     for p in room['players']:
         if p['id'] == player_id:
@@ -142,7 +141,7 @@ def get_state(code, player_id):
             break
     
     if not player:
-        return jsonify({'ok': False, 'error': f'Игрок {player_id} не найден. Всего игроков: {len(room["players"])}'}), 404
+        return jsonify({'ok': False, 'error': f'Игрок {player_id} не найден'}), 404
     
     players_info = []
     for p in room['players']:
@@ -152,7 +151,6 @@ def get_state(code, player_id):
             'quartets': p['quartets'],
             'handCount': int(len(p['hand']))
         }
-        # Показываем руку только самому игроку
         if p['id'] == player_id:
             info['hand'] = p['hand']
         players_info.append(info)
@@ -184,11 +182,9 @@ def request_card():
     
     room = rooms[code]
     
-    # Проверяем, что ходящий игрок существует
     if from_player >= len(room['players']) or from_player < 0:
         return jsonify({'ok': False, 'error': 'Игрок не найден'}), 400
     
-    # Проверяем currentPlayer
     if int(room['currentPlayer']) != from_player:
         return jsonify({'ok': False, 'error': f'Не ваш ход. Сейчас ходит игрок {room["currentPlayer"]}'}), 400
     
@@ -197,7 +193,6 @@ def request_card():
     if not has_category:
         return jsonify({'ok': False, 'error': 'У вас нет карт этой категории'}), 400
     
-    # Проверяем, что целевой игрок существует
     if to_player >= len(room['players']) or to_player < 0:
         return jsonify({'ok': False, 'error': 'Целевой игрок не найден'}), 400
     
@@ -217,6 +212,9 @@ def request_card():
         
         check_quartets(room, from_player)
         check_quartets(room, to_player)
+        
+        # ✅ КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: ход остаётся у того же игрока
+        room['currentPlayer'] = int(from_player)
         
         room['history'].append({
             'time': datetime.now().strftime('%H:%M'),
