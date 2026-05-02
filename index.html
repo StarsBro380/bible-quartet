@@ -215,6 +215,7 @@
         let audioElements = {};
         let peerConnections = {};
         let isMicActive = false;
+        let micPermissionGranted = false;
 
         function toast(msg, type) {
             const t = document.getElementById('toast');
@@ -289,7 +290,6 @@
                     const r=await fetch(`${API}/state/${roomCode}/${playerId}`);
                     const d=await r.json();
                     if(d.ok){
-                        // Очищаем список игроков перед рендером
                         const container = document.getElementById('players-waiting');
                         if(container) {
                             container.innerHTML = '';
@@ -358,7 +358,6 @@
                     if(d.players)d.players.forEach(p=>{p.id=parseInt(p.id);p.handCount=parseInt(p.handCount);});
                     state=d;
                     renderGame();
-                    // Инициализируем Peer, если игра началась
                     if (state.status === 'playing' && !peer) {
                         initPeer().catch(err => {
                             console.warn('Peer инициализация отложена:', err);
@@ -480,25 +479,29 @@
             if (isMicActive) return;
             
             try {
-                // Сначала запрашиваем разрешение через Telegram API
-                if (tg) {
-                    try {
-                        await tg.requestMicrophonePermission();
-                    } catch (e) {
-                        console.warn('Telegram разрешение не получено:', e);
+                if (!micPermissionGranted) {
+                    if (tg) {
+                        try {
+                            await tg.requestMicrophonePermission();
+                        } catch (e) {
+                            console.warn('Telegram разрешение не получено:', e);
+                        }
                     }
+                    micPermissionGranted = true;
                 }
                 
-                // Затем обычный запрос
-                micStream = await navigator.mediaDevices.getUserMedia({
-                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-                });
+                if (!micStream) {
+                    micStream = await navigator.mediaDevices.getUserMedia({
+                        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                    });
+                } else {
+                    micStream.getTracks().forEach(track => track.enabled = true);
+                }
                 
                 if (!peer) {
                     await initPeer();
                 }
                 
-                // Звоним всем остальным игрокам в комнате
                 const otherPlayers = state.players.filter(p => p.id !== playerId);
                 for (const p of otherPlayers) {
                     const remoteId = `bq-${roomCode}-${p.id}`;
@@ -536,7 +539,6 @@
         function stopMic() {
             if (!isMicActive) return;
             
-            // Закрываем все соединения
             for (const remoteId in peerConnections) {
                 try { peerConnections[remoteId].close(); } catch (e) {}
                 if (audioElements[remoteId]) {
@@ -547,8 +549,7 @@
             }
             
             if (micStream) {
-                micStream.getTracks().forEach(track => track.stop());
-                micStream = null;
+                micStream.getTracks().forEach(track => track.enabled = false);
             }
             
             isMicActive = false;
@@ -559,6 +560,11 @@
         
         function cleanupPeer() {
             stopMic();
+            if (micStream) {
+                micStream.getTracks().forEach(track => track.stop());
+                micStream = null;
+            }
+            micPermissionGranted = false;
             if (peer) {
                 peer.destroy();
                 peer = null;
