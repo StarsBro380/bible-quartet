@@ -46,6 +46,11 @@ def create_room():
     
     deck, categories = create_deck()
     
+    # Рассчитываем максимальное количество игроков
+    max_players = 52 // cards_count
+    if max_players < 2:
+        max_players = 2
+    
     room = {
         'code': code,
         'players': [{
@@ -58,14 +63,14 @@ def create_room():
         'categories': categories,
         'currentPlayer': 0,
         'status': 'lobby',
-        'maxPlayers': 4,
+        'maxPlayers': max_players,
         'cardsPerPlayer': cards_count,
         'history': [],
         'ownerId': 0
     }
     
     rooms[code] = room
-    print(f"[CREATE] Комната {code}, игрок 0: {player_name}")
+    print(f"[CREATE] Комната {code}, игрок 0: {player_name}, макс. игроков: {max_players}")
     return jsonify({'ok': True, 'code': code, 'playerId': 0})
 
 @app.route('/start', methods=['POST'])
@@ -134,6 +139,27 @@ def join_room():
     print(f"[JOIN] Текущие игроки в комнате: {[p['id'] for p in room['players']]}")
     return jsonify({'ok': True, 'playerId': int(player_id)})
 
+@app.route('/rename', methods=['POST'])
+def rename_player():
+    data = request.get_json()
+    code = data.get('code', '').upper()
+    player_id = int(data.get('playerId', -1))
+    new_name = data.get('name', 'Игрок')
+    
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
+    
+    room = rooms[code]
+    if room['status'] != 'lobby':
+        return jsonify({'ok': False, 'error': 'Нельзя изменить имя после начала игры'}), 400
+    
+    for p in room['players']:
+        if p['id'] == player_id:
+            p['name'] = new_name
+            return jsonify({'ok': True})
+    
+    return jsonify({'ok': False, 'error': 'Игрок не найден'}), 404
+
 @app.route('/state/<code>/<int:player_id>', methods=['GET'])
 def get_state(code, player_id):
     if code not in rooms:
@@ -162,7 +188,6 @@ def get_state(code, player_id):
             info['hand'] = p['hand']
         players_info.append(info)
     
-    # Логирование для отладки
     print(f"[STATE] Комната {code}, запрос от игрока {player_id}, currentPlayer={room['currentPlayer']}, игроки: {[p['id'] for p in room['players']]}")
     
     return jsonify({
@@ -252,16 +277,18 @@ def request_card():
         next_player = (from_player + 1) % len(room['players'])
         room['currentPlayer'] = int(next_player)
         
+        next_name = room['players'][next_player]['name']
+        
         if drawn:
             room['history'].append({
                 'time': datetime.now().strftime('%H:%M'),
-                'text': f'{from_name} спросил(а) у {to_name}: «{card_name}» ({category}) — ❌ Нет. Взял из запаса.',
+                'text': f'{from_name} спросил(а) у {to_name}: «{card_name}» ({category}) — ❌ Нет. Ходит {next_name}',
                 'type': 'no'
             })
         else:
             room['history'].append({
                 'time': datetime.now().strftime('%H:%M'),
-                'text': f'{from_name} спросил(а) у {to_name}: «{card_name}» ({category}) — ❌ Нет. Запас пуст.',
+                'text': f'{from_name} спросил(а) у {to_name}: «{card_name}» ({category}) — ❌ Нет. Запас пуст. Ходит {next_name}',
                 'type': 'no'
             })
         
