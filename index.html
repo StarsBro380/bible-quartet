@@ -480,6 +480,16 @@
             if (isMicActive) return;
             
             try {
+                // Сначала запрашиваем разрешение через Telegram API
+                if (tg) {
+                    try {
+                        await tg.requestMicrophonePermission();
+                    } catch (e) {
+                        console.warn('Telegram разрешение не получено:', e);
+                    }
+                }
+                
+                // Затем обычный запрос
                 micStream = await navigator.mediaDevices.getUserMedia({
                     audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
                 });
@@ -519,7 +529,7 @@
                 toast('🎤 Микрофон включён (голосовой чат активен)', 'success');
             } catch (err) {
                 console.error('Ошибка микрофона:', err);
-                toast('Не удалось включить микрофон. Разрешите доступ в браузере.', 'error');
+                toast('Не удалось включить микрофон. Разрешите доступ в браузере и Telegram.', 'error');
             }
         }
         
