@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Библейский квартет</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <style>
         :root {
             --bg: #f5f0e8; --card: #fffef9; --accent: #7b4b2a; --accent2: #5b3ec9;
@@ -158,11 +159,27 @@
             display: flex; gap: 8px; align-items: center; margin-top: 4px;
             padding: 4px 8px; background: #f5f0e8; border-radius: 12px;
         }
-        .mic-btn {
-            background: none; border: none; font-size: 24px; cursor: pointer;
-            padding: 4px 12px; border-radius: 50%; transition: all 0.2s;
+        .mic-icon {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z'/%3E%3Cpath d='M19 10v2a7 7 0 0 1-14 0v-2'/%3E%3Cline x1='12' y1='19' x2='12' y2='23'/%3E%3Cline x1='8' y1='23' x2='16' y2='23'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            transition: all 0.2s;
         }
-        .mic-btn:active { background: var(--accent); color: #fff; }
+        .mic-icon.active {
+            filter: brightness(0) invert(1);
+        }
+        .mic-btn {
+            background: none; border: none; cursor: pointer;
+            padding: 8px; border-radius: 50%;
+            transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .mic-btn:active { background: var(--accent); border-radius: 50%; }
+        .mic-btn.active { background: var(--accent); border-radius: 50%; }
     </style>
 </head>
 <body>
@@ -175,7 +192,9 @@
         </div>
         <div class="action-row" id="action-row"></div>
         <div class="mic-section">
-            <button class="mic-btn" id="mic-btn" ontouchstart="startMic()" ontouchend="stopMic()" onmousedown="startMic()" onmouseup="stopMic()">🎤</button>
+            <button class="mic-btn" id="mic-btn" ontouchstart="startMic()" ontouchend="stopMic()" onmousedown="startMic()" onmouseup="stopMic()">
+                <span class="mic-icon" id="mic-icon"></span>
+            </button>
             <span style="font-size:11px;color:var(--text2);">Удерживайте для голосового чата</span>
         </div>
     </div>
@@ -188,7 +207,14 @@
         let state = null, playerId = null, roomCode = null, selectedCard = null, selectedPlayerId = null;
         let playerName = tg?.initDataUnsafe?.user?.first_name || '';
         let pollTimer = null, historyOpen = false;
-        let audioContext = null, micStream = null;
+        
+        // PeerJS переменные
+        let peer = null;
+        let peerId = null;
+        let micStream = null;
+        let audioElements = {};
+        let peerConnections = {};
+        let isMicActive = false;
 
         function toast(msg, type) {
             const t = document.getElementById('toast');
@@ -219,7 +245,9 @@
             else { row.innerHTML = '<span style="color:var(--text2);font-size:12px;">👆 Выберите карточку и игрока</span>'; }
         }
         function showMenu() {
-            clearInterval(pollTimer); document.getElementById('bottom-panel').classList.add('hidden');
+            clearInterval(pollTimer);
+            cleanupPeer();
+            document.getElementById('bottom-panel').classList.add('hidden');
             document.getElementById('app').innerHTML = `<div class="header"><h1>📖 Библейский квартет</h1></div><div class="name-section"><label>Ваше имя</label><input class="input input-name" id="player-name" value="${playerName}" maxlength="20"></div><button class="btn btn-primary btn-full" onclick="saveNameAndCreate()">🎮 Создать игру</button><button class="btn btn-secondary btn-full" onclick="saveNameAndJoin()">🔗 Присоединиться</button>`;
         }
         function saveNameAndCreate() { playerName = document.getElementById('player-name').value.trim()||'Игрок'; showCreate(); }
@@ -314,7 +342,11 @@
                 toast('Ошибка', 'error');
             }
         }
-        function startPolling(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}fetchState();pollTimer=setInterval(fetchState,1000);}
+        function startPolling(){
+            if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
+            fetchState();
+            pollTimer=setInterval(fetchState,1000);
+        }
         async function fetchState(){
             if(!roomCode||playerId===null)return;
             try {
@@ -326,6 +358,12 @@
                     if(d.players)d.players.forEach(p=>{p.id=parseInt(p.id);p.handCount=parseInt(p.handCount);});
                     state=d;
                     renderGame();
+                    // Инициализируем Peer, если игра началась
+                    if (state.status === 'playing' && !peer) {
+                        initPeer().catch(err => {
+                            console.warn('Peer инициализация отложена:', err);
+                        });
+                    }
                 }
             } catch(e){}
         }
@@ -385,29 +423,143 @@
             if(!state)return;
             const allCollected=state.players.reduce((s,p)=>s+p.quartets.length,0);
             if(allCollected>=state.categories.length||(state.bankCount===0&&state.players.every(p=>p.handCount===0))){
-                clearInterval(pollTimer);document.getElementById('bottom-panel').classList.add('hidden');
+                clearInterval(pollTimer);cleanupPeer();
+                document.getElementById('bottom-panel').classList.add('hidden');
                 const sorted=[...state.players].sort((a,b)=>b.quartets.length-a.quartets.length);
                 document.getElementById('app').innerHTML=`<div class="header"><h1>🏆 Игра окончена!</h1></div>`+sorted.map((p,i)=>`<div class="score-item ${i===0&&sorted[0].quartets.length>0?'winner':''}"><span>${i===0?'👑 ':''}${p.name}</span><span style="color:var(--accent);font-weight:bold;">${p.quartets.length} квартетов</span></div>`).join('')+'<button class="btn btn-primary btn-full" onclick="showMenu()">В меню</button>';
             }
         }
-        // Микрофон (упрощённо)
+        
+        // ------ PeerJS ГОЛОСОВОЙ ЧАТ ------
+        function initPeer() {
+            return new Promise((resolve, reject) => {
+                peerId = `bq-${roomCode}-${playerId}`;
+                peer = new Peer(peerId, { debug: 0 });
+                
+                peer.on('open', (id) => {
+                    console.log('Peer открыт:', id);
+                    resolve(id);
+                });
+                
+                peer.on('error', (err) => {
+                    console.error('Peer ошибка:', err);
+                    reject(err);
+                });
+                
+                peer.on('call', (incomingCall) => {
+                    if (!micStream) {
+                        incomingCall.close();
+                        return;
+                    }
+                    incomingCall.answer(micStream);
+                    handleIncomingCall(incomingCall);
+                });
+            });
+        }
+        
+        function handleIncomingCall(call) {
+            const remoteId = call.peer;
+            call.on('stream', (remoteStream) => {
+                if (!audioElements[remoteId]) {
+                    const audio = new Audio();
+                    audio.srcObject = remoteStream;
+                    audio.autoplay = true;
+                    audioElements[remoteId] = audio;
+                }
+            });
+            call.on('close', () => {
+                if (audioElements[remoteId]) {
+                    audioElements[remoteId].pause();
+                    delete audioElements[remoteId];
+                }
+            });
+            peerConnections[remoteId] = call;
+        }
+        
         async function startMic() {
-            if (!audioContext) {
-                try {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    micStream = await navigator.mediaDevices.getUserMedia({audio: true});
-                    toast('🎤 Микрофон включён', 'success');
-                } catch(e) { toast('Не удалось включить микрофон', 'error'); }
+            if (isMicActive) return;
+            
+            try {
+                micStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                });
+                
+                if (!peer) {
+                    await initPeer();
+                }
+                
+                // Звоним всем остальным игрокам в комнате
+                const otherPlayers = state.players.filter(p => p.id !== playerId);
+                for (const p of otherPlayers) {
+                    const remoteId = `bq-${roomCode}-${p.id}`;
+                    if (!peerConnections[remoteId]) {
+                        const call = peer.call(remoteId, micStream);
+                        call.on('stream', (remoteStream) => {
+                            if (!audioElements[remoteId]) {
+                                const audio = new Audio();
+                                audio.srcObject = remoteStream;
+                                audio.autoplay = true;
+                                audioElements[remoteId] = audio;
+                            }
+                        });
+                        call.on('close', () => {
+                            if (audioElements[remoteId]) {
+                                audioElements[remoteId].pause();
+                                delete audioElements[remoteId];
+                            }
+                            delete peerConnections[remoteId];
+                        });
+                        peerConnections[remoteId] = call;
+                    }
+                }
+                
+                isMicActive = true;
+                document.getElementById('mic-btn').classList.add('active');
+                document.getElementById('mic-icon').classList.add('active');
+                toast('🎤 Микрофон включён (голосовой чат активен)', 'success');
+            } catch (err) {
+                console.error('Ошибка микрофона:', err);
+                toast('Не удалось включить микрофон. Разрешите доступ в браузере.', 'error');
             }
         }
+        
         function stopMic() {
+            if (!isMicActive) return;
+            
+            // Закрываем все соединения
+            for (const remoteId in peerConnections) {
+                try { peerConnections[remoteId].close(); } catch (e) {}
+                if (audioElements[remoteId]) {
+                    audioElements[remoteId].pause();
+                    delete audioElements[remoteId];
+                }
+                delete peerConnections[remoteId];
+            }
+            
             if (micStream) {
                 micStream.getTracks().forEach(track => track.stop());
                 micStream = null;
-                audioContext = null;
-                toast('🎤 Микрофон выключен', '');
             }
+            
+            isMicActive = false;
+            document.getElementById('mic-btn').classList.remove('active');
+            document.getElementById('mic-icon').classList.remove('active');
+            toast('🎤 Микрофон выключен', '');
         }
+        
+        function cleanupPeer() {
+            stopMic();
+            if (peer) {
+                peer.destroy();
+                peer = null;
+            }
+            peerId = null;
+            audioElements = {};
+            peerConnections = {};
+            isMicActive = false;
+        }
+        // --------------------------------
+        
         showMenu();
     </script>
 </body>
