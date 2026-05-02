@@ -533,6 +533,21 @@
             } catch (err) {
                 console.error('Ошибка микрофона:', err);
                 toast('Не удалось включить микрофон. Разрешите доступ в браузере и Telegram.', 'error');
+                
+                // Показываем кнопку для открытия настроек
+                document.getElementById('app').innerHTML += `
+                    <div style="position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:999;">
+                        <button class="btn btn-primary" onclick="openSettings()">⚙️ Открыть настройки приложения</button>
+                    </div>
+                `;
+            }
+        }
+        
+        function openSettings() {
+            if (tg) {
+                tg.openSettings();
+            } else {
+                toast('Настройки доступны только в Telegram', 'error');
             }
         }
         
