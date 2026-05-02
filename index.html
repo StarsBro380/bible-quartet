@@ -10,6 +10,7 @@
             --bg: #f5f0e8; --card: #fffef9; --accent: #7b4b2a; --accent2: #5b3ec9;
             --text: #1a0f08; --text2: #8a7568; --green: #27ae60; --red: #c0392b;
             --border: #e0d5c5; --shadow: 0 2px 10px rgba(0,0,0,0.05);
+            --history-bg: #a09080;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -40,12 +41,13 @@
         .input-code { text-align: center; letter-spacing: 4px; font-weight: bold; text-transform: uppercase; }
         .input-name { text-align: left; letter-spacing: 0; font-weight: normal; text-transform: none; }
         .toast {
-            position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: #fff; border: 2px solid var(--accent);
-            color: var(--text); padding: 12px 20px; border-radius: 12px;
-            font-size: 13px; z-index: 100; opacity: 0; transition: opacity 0.3s;
+            color: var(--text); padding: 16px 24px; border-radius: 16px;
+            font-size: 14px; z-index: 200; opacity: 0; transition: opacity 0.3s;
             pointer-events: none; max-width: 90%; text-align: center;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            font-weight: 500;
         }
         .toast.show { opacity: 1; }
         .toast.success { border-color: var(--green); }
@@ -103,6 +105,7 @@
         }
         .player-card:active { border-color: var(--accent2); background: #faf7ff; }
         .player-card.current { border-color: var(--accent); background: #fdf5ec; }
+        .player-card.selected-player { border: 3px solid #5b3ec9; background: #f0ebff; }
         .player-card .p-name { font-weight: bold; font-size: 14px; color: var(--accent); }
         .player-card .p-info { font-size: 11px; color: var(--text2); margin-top: 4px; }
         .score-item {
@@ -125,9 +128,9 @@
         .history-toggle {
             font-size: 12px; color: #fff; cursor: pointer;
             text-align: center; padding: 8px 0; user-select: none;
-            background: var(--accent); border-radius: 8px;
-            margin: 0 0 4px 0; font-weight: bold;
-            border: 2px solid #5a3518;
+            background: var(--history-bg); border-radius: 8px;
+            margin: 0 0 4px 0; font-weight: normal;
+            border: 1px solid #c0b5a5;
         }
         .history-item {
             font-size: 11px; padding: 5px 10px; margin: 2px 0;
@@ -151,6 +154,15 @@
         .players-waiting .pw-item { padding: 8px 12px; background: #fff; border-radius: 8px; margin: 4px 0; border: 1px solid var(--border); }
         .name-section { margin-bottom: 12px; }
         .name-section label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 4px; }
+        .mic-section {
+            display: flex; gap: 8px; align-items: center; margin-top: 4px;
+            padding: 4px 8px; background: #f5f0e8; border-radius: 12px;
+        }
+        .mic-btn {
+            background: none; border: none; font-size: 24px; cursor: pointer;
+            padding: 4px 12px; border-radius: 50%; transition: all 0.2s;
+        }
+        .mic-btn:active { background: var(--accent); color: #fff; }
     </style>
 </head>
 <body>
@@ -162,6 +174,10 @@
             <div id="history-list"></div>
         </div>
         <div class="action-row" id="action-row"></div>
+        <div class="mic-section">
+            <button class="mic-btn" id="mic-btn" ontouchstart="startMic()" ontouchend="stopMic()" onmousedown="startMic()" onmouseup="stopMic()">🎤</button>
+            <span style="font-size:11px;color:var(--text2);">Удерживайте для голосового чата</span>
+        </div>
     </div>
 
     <script>
@@ -172,11 +188,12 @@
         let state = null, playerId = null, roomCode = null, selectedCard = null, selectedPlayerId = null;
         let playerName = tg?.initDataUnsafe?.user?.first_name || '';
         let pollTimer = null, historyOpen = false;
+        let audioContext = null, micStream = null;
 
         function toast(msg, type) {
             const t = document.getElementById('toast');
             t.textContent = msg; t.className = 'toast ' + (type||'') + ' show';
-            clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2500);
+            clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 3000);
         }
         function toggleHistory() {
             historyOpen = !historyOpen;
@@ -244,12 +261,58 @@
                     const r=await fetch(`${API}/state/${roomCode}/${playerId}`);
                     const d=await r.json();
                     if(d.ok){
-                        document.getElementById('players-waiting').innerHTML=d.players.map(p=>`<div class="pw-item">👤 ${p.name} ${p.id===d.ownerId?'(Создатель)':''}</div>`).join('');
+                        // Очищаем список игроков перед рендером
+                        const container = document.getElementById('players-waiting');
+                        if(container) {
+                            container.innerHTML = '';
+                            d.players.forEach(p => {
+                                const div = document.createElement('div');
+                                div.className = 'pw-item';
+                                div.textContent = `👤 ${p.name} ${p.id === d.ownerId ? '(Создатель)' : ''}`;
+                                container.appendChild(div);
+                            });
+                        }
                         if(d.status==='playing'){fetchState();}
                     }
                 } catch(e){}
             },1000);
-            document.getElementById('app').innerHTML=`<div class="code-display" onclick="copyCode()"><p style="color:var(--text2);">Код комнаты (нажмите, чтобы скопировать):</p><div class="code">${roomCode}</div><p class="copy-hint">📋 Нажмите, чтобы скопировать код</p><p class="waiting">Поделитесь кодом с другими игроками</p></div><div class="players-waiting" id="players-waiting"><div class="pw-item">👤 ${playerName} (Создатель)</div></div><button class="btn btn-primary btn-full" onclick="startGame()">🎮 Начать игру</button><button class="btn btn-secondary btn-full" onclick="clearInterval(pollTimer);showMenu();">← Отмена</button>`;
+            document.getElementById('app').innerHTML=`
+                <div class="code-display" onclick="copyCode()">
+                    <div class="code">${roomCode}</div>
+                    <p class="copy-hint">📋 Нажмите, чтобы скопировать код</p>
+                    <p class="waiting">Поделитесь кодом с другими игроками</p>
+                </div>
+                <div class="name-section">
+                    <label>Ваше имя</label>
+                    <input class="input input-name" id="lobby-name" value="${playerName}" maxlength="20">
+                    <button class="btn btn-secondary btn-full" onclick="updateName()">Обновить имя</button>
+                </div>
+                <div class="players-waiting" id="players-waiting">
+                    <div class="pw-item">👤 ${playerName} (Создатель)</div>
+                </div>
+                <button class="btn btn-primary btn-full" onclick="startGame()">🎮 Начать игру</button>
+                <button class="btn btn-secondary btn-full" onclick="clearInterval(pollTimer);showMenu();">← Отмена</button>
+            `;
+        }
+        async function updateName() {
+            const newName = document.getElementById('lobby-name').value.trim() || 'Игрок';
+            try {
+                const r = await fetch(API+'/rename', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({code: roomCode, playerId: playerId, name: newName})
+                });
+                const d = await r.json();
+                if(d.ok) {
+                    playerName = newName;
+                    toast('Имя обновлено!', 'success');
+                    fetchState();
+                } else {
+                    toast(d.error, 'error');
+                }
+            } catch(e) {
+                toast('Ошибка', 'error');
+            }
         }
         function startPolling(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}fetchState();pollTimer=setInterval(fetchState,1000);}
         async function fetchState(){
@@ -261,7 +324,8 @@
                     d.currentPlayer=parseInt(d.currentPlayer);d.playerId=parseInt(d.playerId);
                     d.bankCount=parseInt(d.bankCount);d.ownerId=parseInt(d.ownerId);
                     if(d.players)d.players.forEach(p=>{p.id=parseInt(p.id);p.handCount=parseInt(p.handCount);});
-                    state=d;renderGame();
+                    state=d;
+                    renderGame();
                 }
             } catch(e){}
         }
@@ -275,7 +339,11 @@
             const curName = curObj ? curObj.name : 'Неизвестно';
             let html=`<div class="info-bar"><span class="turn">${isMyTurn?'🎯 Ваш ход':'⏳ Ход: '+curName}</span><span class="score">🏆 ${me.quartets.length} | Запас: ${state.bankCount}</span></div>`;
             html+='<div class="player-list">';
-            for(const p of state.players){if(parseInt(p.id)===parseInt(playerId))continue;html+=`<div class="player-card ${parseInt(state.currentPlayer)===parseInt(p.id)?'current':''}" onclick="selectPlayer(${p.id})"><div class="p-name">${p.name}</div><div class="p-info">🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов</div></div>`;}
+            for(const p of state.players){
+                if(parseInt(p.id)===parseInt(playerId))continue;
+                const isSelected = selectedPlayerId === parseInt(p.id);
+                html+=`<div class="player-card ${parseInt(state.currentPlayer)===parseInt(p.id)?'current':''} ${isSelected?'selected-player':''}" onclick="selectPlayer(${p.id})"><div class="p-name">${p.name}</div><div class="p-info">🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов</div></div>`;
+            }
             html+='</div>';
             const grouped={};if(me.hand)me.hand.forEach(c=>{if(!grouped[c.category])grouped[c.category]=[];grouped[c.category].push(c);});
             const allCats={};state.categories.forEach(q=>{allCats[q.name]=q.cards.map(c=>({name:c.name,category:q.name,owned:me.hand?me.hand.some(h=>h.category===q.name&&h.cardName===c.name):false}));});
@@ -289,16 +357,28 @@
             selectedPlayerId = parseInt(pid);
             const p = state.players.find(p => parseInt(p.id) === parseInt(pid));
             if (p) toast(`Выбран: ${p.name}`,'');
+            renderGame();
         }
         function selectCard(cat,name){if(parseInt(state.currentPlayer)!==parseInt(playerId))return;selectedCard=(selectedCard&&selectedCard.category===cat&&selectedCard.cardName===name)?null:{category:cat,cardName:name};renderGame();}
         async function requestCard(){
             if(!selectedCard){toast('⚠️ Выберите карточку!','error');return;}
             const toPlayer=selectedPlayerId!==null?selectedPlayerId:state.players.find(p=>parseInt(p.id)!==parseInt(playerId))?.id;
             if(toPlayer===undefined){toast('⚠️ Выберите игрока!','error');return;}
+            const fromName = state.players.find(p => parseInt(p.id) === parseInt(playerId))?.name || 'Игрок';
+            const toName = state.players.find(p => parseInt(p.id) === parseInt(toPlayer))?.name || 'Игрок';
             try {
                 const r=await fetch(API+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,fromPlayer:parseInt(playerId),toPlayer:parseInt(toPlayer),category:selectedCard.category,cardName:selectedCard.cardName})});
                 const d=await r.json();
-                if(d.ok){if(d.found){toast(`✅ Получили "${d.card.cardName}"!`,'success');}else{toast(d.drawn?'❌ Не угадали. Взяли из запаса.':'❌ Не угадали. Запас пуст.','error');}selectedCard=null;selectedPlayerId=null;fetchState();}else toast(d.error,'error');
+                if(d.ok){
+                    if(d.found){
+                        toast(`✅ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карта есть! Переходит к ${fromName}`, 'success');
+                    }else{
+                        const nextName = state.players.find(p => parseInt(p.id) === parseInt(d.nextPlayer))?.name || 'неизвестно';
+                        toast(`❌ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карты нет. Ходит ${nextName}`, 'error');
+                    }
+                    selectedCard=null;selectedPlayerId=null;
+                    setTimeout(fetchState, 300);
+                } else toast(d.error,'error');
             } catch(e){toast('Ошибка','error');}
         }
         function checkWin(){
@@ -308,6 +388,24 @@
                 clearInterval(pollTimer);document.getElementById('bottom-panel').classList.add('hidden');
                 const sorted=[...state.players].sort((a,b)=>b.quartets.length-a.quartets.length);
                 document.getElementById('app').innerHTML=`<div class="header"><h1>🏆 Игра окончена!</h1></div>`+sorted.map((p,i)=>`<div class="score-item ${i===0&&sorted[0].quartets.length>0?'winner':''}"><span>${i===0?'👑 ':''}${p.name}</span><span style="color:var(--accent);font-weight:bold;">${p.quartets.length} квартетов</span></div>`).join('')+'<button class="btn btn-primary btn-full" onclick="showMenu()">В меню</button>';
+            }
+        }
+        // Микрофон (упрощённо)
+        async function startMic() {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    micStream = await navigator.mediaDevices.getUserMedia({audio: true});
+                    toast('🎤 Микрофон включён', 'success');
+                } catch(e) { toast('Не удалось включить микрофон', 'error'); }
+            }
+        }
+        function stopMic() {
+            if (micStream) {
+                micStream.getTracks().forEach(track => track.stop());
+                micStream = null;
+                audioContext = null;
+                toast('🎤 Микрофон выключен', '');
             }
         }
         showMenu();
