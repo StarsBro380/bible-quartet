@@ -16,6 +16,7 @@
             --glass: rgba(255, 255, 255, 0.6);
             --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
             --shadow-xl: 0 12px 48px rgba(0,0,0,0.15);
+            --gold: linear-gradient(135deg, #8B5A2B 0%, #D4A76A 50%, #8B5A2B 100%);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -523,6 +524,99 @@
             text-transform: uppercase;
             margin-top: 1px;
         }
+
+        /* Улучшенный дизайн первой страницы */
+        .menu-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px 16px 30px;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.06);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 20%, rgba(123,75,42,0.03), transparent 70%);
+            animation: menu-shine 6s ease-in-out infinite alternate;
+            pointer-events: none;
+        }
+
+        @keyframes menu-shine {
+            0% { transform: translate(-10%, -10%); opacity: 0.5; }
+            100% { transform: translate(10%, 10%); opacity: 1; }
+        }
+
+        .menu-container .logo-container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .menu-container .name-section {
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+
+        .menu-container .btn {
+            width: 100%;
+            max-width: 300px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Декоративный элемент для первой страницы */
+        .menu-decoration {
+            position: absolute;
+            bottom: -40px;
+            right: -40px;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(123,75,42,0.05), transparent 70%);
+            pointer-events: none;
+        }
+
+        .menu-decoration-2 {
+            position: absolute;
+            top: -20px;
+            left: -20px;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(123,75,42,0.03), transparent 70%);
+            pointer-events: none;
+        }
+
+        /* Анимированные иконки для кнопок */
+        .btn-icon {
+            display: inline-block;
+            margin-right: 8px;
+            animation: icon-bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes icon-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-2px); }
+        }
+
+        .btn-icon.join-icon {
+            animation-delay: 0.3s;
+        }
     </style>
 </head>
 <body>
@@ -577,23 +671,27 @@
             clearInterval(pollTimer);
             document.getElementById('bottom-panel').classList.add('hidden');
             document.getElementById('app').innerHTML = `
-                <div style="display:flex;flex-direction:column;align-items:center;gap:12px;max-width:400px;margin:0 auto;padding-top:10px;">
-                    <div class="header" style="width:100%;">
-                        <div class="logo-container">
-                            <span class="logo-icon">📖</span>
-                            <div class="logo-text-group">
-                                <span class="logo-text-main">Библейский квартет</span>
-                                <span class="logo-text-sub">Bible Quartet</span>
-                            </div>
+                <div class="menu-container">
+                    <div class="menu-decoration"></div>
+                    <div class="menu-decoration-2"></div>
+                    <div class="logo-container" style="position:relative;z-index:1;">
+                        <span class="logo-icon">📖</span>
+                        <div class="logo-text-group">
+                            <span class="logo-text-main">Библейский квартет</span>
+                            <span class="logo-text-sub">Bible Quartet</span>
                         </div>
                     </div>
-                    <div class="name-section" style="width:100%;">
+                    <div class="name-section" style="width:100%;position:relative;z-index:1;">
                         <label style="text-align:center;display:block;font-size:13px;color:var(--text2);font-weight:500;">Ваше имя</label>
                         <input class="input input-name" id="player-name" value="${playerName}" maxlength="20" style="text-align:center;"
                                onblur="saveNameFromMenu()" onkeydown="if(event.key==='Enter') saveNameFromMenu()">
                     </div>
-                    <button class="btn btn-primary" style="width:100%;max-width:300px;" onclick="saveNameAndCreate()">🎮 Создать игру</button>
-                    <button class="btn btn-secondary" style="width:100%;max-width:300px;" onclick="saveNameAndJoin()">🔗 Присоединиться</button>
+                    <button class="btn btn-primary" style="position:relative;z-index:1;" onclick="saveNameAndCreate()">
+                        <span class="btn-icon">🎮</span> Создать игру
+                    </button>
+                    <button class="btn btn-secondary" style="position:relative;z-index:1;" onclick="saveNameAndJoin()">
+                        <span class="btn-icon join-icon">🔗</span> Присоединиться
+                    </button>
                 </div>
             `;
             window.saveNameFromMenu = function() {
