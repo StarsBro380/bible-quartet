@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Библейский квартет</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
         :root {
             --bg: #f5f0e8; --card: #fffef9; --accent: #7b4b2a; --accent2: #5b3ec9;
@@ -42,13 +41,12 @@
         .input-code { text-align: center; letter-spacing: 4px; font-weight: bold; text-transform: uppercase; }
         .input-name { text-align: left; letter-spacing: 0; font-weight: normal; text-transform: none; }
         .toast {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
             background: #fff; border: 2px solid var(--accent);
-            color: var(--text); padding: 16px 24px; border-radius: 16px;
-            font-size: 14px; z-index: 200; opacity: 0; transition: opacity 0.3s;
+            color: var(--text); padding: 12px 20px; border-radius: 12px;
+            font-size: 13px; z-index: 100; opacity: 0; transition: opacity 0.3s;
             pointer-events: none; max-width: 90%; text-align: center;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-            font-weight: 500;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
         }
         .toast.show { opacity: 1; }
         .toast.success { border-color: var(--green); }
@@ -155,38 +153,6 @@
         .players-waiting .pw-item { padding: 8px 12px; background: #fff; border-radius: 8px; margin: 4px 0; border: 1px solid var(--border); }
         .name-section { margin-bottom: 12px; }
         .name-section label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 4px; }
-        .mic-section {
-            display: flex; gap: 8px; align-items: center; margin-top: 4px;
-            padding: 4px 8px; background: #f5f0e8; border-radius: 12px;
-        }
-        .mic-icon {
-            display: inline-block;
-            width: 28px;
-            height: 28px;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z'/%3E%3Cpath d='M19 10v2a7 7 0 0 1-14 0v-2'/%3E%3Cline x1='12' y1='19' x2='12' y2='23'/%3E%3Cline x1='8' y1='23' x2='16' y2='23'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: contain;
-            transition: all 0.2s;
-        }
-        .mic-icon.active {
-            filter: brightness(0) invert(1);
-        }
-        .mic-btn {
-            background: none; border: none; cursor: pointer;
-            padding: 8px; border-radius: 50%;
-            transition: all 0.2s;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .mic-btn:active { background: var(--accent); border-radius: 50%; }
-        .mic-btn.active { background: var(--accent); border-radius: 50%; }
-        .voice-status {
-            font-size: 10px; padding: 2px 8px; border-radius: 4px;
-            margin-left: 8px; color: #fff;
-        }
-        .voice-status.connected { background: #27ae60; }
-        .voice-status.disconnected { background: #c0392b; }
-        .voice-status.waiting { background: #f39c12; }
     </style>
 </head>
 <body>
@@ -198,13 +164,6 @@
             <div id="history-list"></div>
         </div>
         <div class="action-row" id="action-row"></div>
-        <div class="mic-section">
-            <button class="mic-btn" id="mic-btn" ontouchstart="startMic()" ontouchend="stopMic()" onmousedown="startMic()" onmouseup="stopMic()">
-                <span class="mic-icon" id="mic-icon"></span>
-            </button>
-            <span style="font-size:11px;color:var(--text2);">Удерживайте для голосового чата</span>
-            <span id="voice-status" class="voice-status waiting">⚡ Подключение...</span>
-        </div>
     </div>
 
     <script>
@@ -215,19 +174,11 @@
         let state = null, playerId = null, roomCode = null, selectedCard = null, selectedPlayerId = null;
         let playerName = tg?.initDataUnsafe?.user?.first_name || '';
         let pollTimer = null, historyOpen = false;
-        
-        // SocketIO переменные
-        let socket = null;
-        let micStream = null;
-        let audioContext = null;
-        let isMicActive = false;
-        let micPermissionGranted = false;
-        let isVoiceConnected = false;
 
         function toast(msg, type) {
             const t = document.getElementById('toast');
             t.textContent = msg; t.className = 'toast ' + (type||'') + ' show';
-            clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 3000);
+            clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2500);
         }
         function toggleHistory() {
             historyOpen = !historyOpen;
@@ -254,7 +205,6 @@
         }
         function showMenu() {
             clearInterval(pollTimer);
-            cleanupVoice();
             document.getElementById('bottom-panel').classList.add('hidden');
             document.getElementById('app').innerHTML = `<div class="header"><h1>📖 Библейский квартет</h1></div><div class="name-section"><label>Ваше имя</label><input class="input input-name" id="player-name" value="${playerName}" maxlength="20"></div><button class="btn btn-primary btn-full" onclick="saveNameAndCreate()">🎮 Создать игру</button><button class="btn btn-secondary btn-full" onclick="saveNameAndJoin()">🔗 Присоединиться</button>`;
         }
@@ -328,8 +278,6 @@
                 <button class="btn btn-primary btn-full" onclick="startGame()">🎮 Начать игру</button>
                 <button class="btn btn-secondary btn-full" onclick="clearInterval(pollTimer);showMenu();">← Отмена</button>
             `;
-            // Подключаем голосовой чат при входе в лобби
-            initVoice();
         }
         async function updateName() {
             const newName = document.getElementById('lobby-name').value.trim() || 'Игрок';
@@ -405,17 +353,14 @@
             if(!selectedCard){toast('⚠️ Выберите карточку!','error');return;}
             const toPlayer=selectedPlayerId!==null?selectedPlayerId:state.players.find(p=>parseInt(p.id)!==parseInt(playerId))?.id;
             if(toPlayer===undefined){toast('⚠️ Выберите игрока!','error');return;}
-            const fromName = state.players.find(p => parseInt(p.id) === parseInt(playerId))?.name || 'Игрок';
-            const toName = state.players.find(p => parseInt(p.id) === parseInt(toPlayer))?.name || 'Игрок';
             try {
                 const r=await fetch(API+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,fromPlayer:parseInt(playerId),toPlayer:parseInt(toPlayer),category:selectedCard.category,cardName:selectedCard.cardName})});
                 const d=await r.json();
                 if(d.ok){
                     if(d.found){
-                        toast(`✅ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карта есть! Переходит к ${fromName}`, 'success');
+                        toast(`✅ Получили "${d.card.cardName}"!`,'success');
                     }else{
-                        const nextName = state.players.find(p => parseInt(p.id) === parseInt(d.nextPlayer))?.name || 'неизвестно';
-                        toast(`❌ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карты нет. Ходит ${nextName}`, 'error');
+                        toast(d.drawn?'❌ Не угадали. Взяли из запаса.':'❌ Не угадали. Запас пуст.','error');
                     }
                     selectedCard=null;selectedPlayerId=null;
                     setTimeout(fetchState, 300);
@@ -426,209 +371,12 @@
             if(!state)return;
             const allCollected=state.players.reduce((s,p)=>s+p.quartets.length,0);
             if(allCollected>=state.categories.length||(state.bankCount===0&&state.players.every(p=>p.handCount===0))){
-                clearInterval(pollTimer);cleanupVoice();
+                clearInterval(pollTimer);
                 document.getElementById('bottom-panel').classList.add('hidden');
                 const sorted=[...state.players].sort((a,b)=>b.quartets.length-a.quartets.length);
                 document.getElementById('app').innerHTML=`<div class="header"><h1>🏆 Игра окончена!</h1></div>`+sorted.map((p,i)=>`<div class="score-item ${i===0&&sorted[0].quartets.length>0?'winner':''}"><span>${i===0?'👑 ':''}${p.name}</span><span style="color:var(--accent);font-weight:bold;">${p.quartets.length} квартетов</span></div>`).join('')+'<button class="btn btn-primary btn-full" onclick="showMenu()">В меню</button>';
             }
         }
-        
-        // ------ SocketIO ГОЛОСОВОЙ ЧАТ ------
-        function initVoice() {
-            if (socket) return;
-            
-            socket = io(API, {
-                transports: ['websocket', 'polling'],
-                reconnection: true,
-                reconnectionAttempts: 5
-            });
-            
-            socket.on('connect', () => {
-                console.log('✅ SocketIO подключён');
-                updateVoiceStatus('connected');
-                isVoiceConnected = true;
-                // Подключаемся к голосовой комнате
-                socket.emit('join_voice', { code: roomCode, playerId: playerId });
-            });
-            
-            socket.on('disconnect', () => {
-                console.log('❌ SocketIO отключён');
-                updateVoiceStatus('disconnected');
-                isVoiceConnected = false;
-            });
-            
-            socket.on('connect_error', (err) => {
-                console.error('SocketIO ошибка:', err);
-                updateVoiceStatus('disconnected');
-            });
-            
-            // Получение аудио от других игроков
-            socket.on('audio_received', (data) => {
-                if (data.fromPlayer !== playerId) {
-                    playAudio(data.audio);
-                }
-            });
-            
-            // Переподключение
-            socket.on('reconnect', () => {
-                console.log('🔄 SocketIO переподключён');
-                socket.emit('join_voice', { code: roomCode, playerId: playerId });
-            });
-        }
-        
-        function updateVoiceStatus(status) {
-            const el = document.getElementById('voice-status');
-            if (el) {
-                el.className = 'voice-status ' + status;
-                el.textContent = status === 'connected' ? '🟢 Онлайн' : status === 'waiting' ? '⚡ Подключение...' : '🔴 Отключён';
-            }
-        }
-        
-        async function startMic() {
-            if (isMicActive) return;
-            
-            try {
-                if (!micPermissionGranted) {
-                    if (tg) {
-                        try {
-                            await tg.requestMicrophonePermission();
-                        } catch (e) {
-                            console.warn('Telegram разрешение не получено:', e);
-                        }
-                    }
-                    micPermissionGranted = true;
-                }
-                
-                if (!micStream) {
-                    micStream = await navigator.mediaDevices.getUserMedia({
-                        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-                    });
-                } else {
-                    micStream.getTracks().forEach(track => track.enabled = true);
-                }
-                
-                // Создаём аудио контекст и процессор
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const source = audioContext.createMediaStreamSource(micStream);
-                const processor = audioContext.createScriptProcessor(4096, 1, 1);
-                
-                source.connect(processor);
-                processor.connect(audioContext.destination);
-                
-                processor.onaudioprocess = (e) => {
-                    if (isMicActive && socket && socket.connected) {
-                        const audioData = e.inputBuffer.getChannelData(0);
-                        // Преобразуем в base64 (сжимаем для экономии)
-                        const buffer = new Float32Array(audioData);
-                        // Уменьшаем частоту дискретизации для экономии
-                        const downsampled = downsample(buffer, 2);
-                        const base64 = float32ArrayToBase64(downsampled);
-                        socket.emit('audio_data', {
-                            code: roomCode,
-                            fromPlayer: playerId,
-                            audio: base64
-                        });
-                    }
-                };
-                
-                isMicActive = true;
-                document.getElementById('mic-btn').classList.add('active');
-                document.getElementById('mic-icon').classList.add('active');
-                toast('🎤 Микрофон включён', 'success');
-            } catch (err) {
-                console.error('Ошибка микрофона:', err);
-                toast('Не удалось включить микрофон. Разрешите доступ в Telegram и браузере.', 'error');
-                
-                // Показываем кнопку настроек
-                document.getElementById('app').innerHTML += `
-                    <div style="position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:999;">
-                        <button class="btn btn-primary" onclick="openSettings()">⚙️ Открыть настройки</button>
-                    </div>
-                `;
-            }
-        }
-        
-        function stopMic() {
-            if (!isMicActive) return;
-            
-            isMicActive = false;
-            if (micStream) {
-                micStream.getTracks().forEach(track => track.enabled = false);
-            }
-            if (audioContext) {
-                audioContext.close();
-                audioContext = null;
-            }
-            
-            document.getElementById('mic-btn').classList.remove('active');
-            document.getElementById('mic-icon').classList.remove('active');
-            toast('🎤 Микрофон выключен', '');
-        }
-        
-        function openSettings() {
-            if (tg) {
-                tg.openSettings();
-            } else {
-                toast('Настройки доступны только в Telegram', 'error');
-            }
-        }
-        
-        function playAudio(base64Audio) {
-            try {
-                const float32Array = base64ToFloat32Array(base64Audio);
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const buffer = audioContext.createBuffer(1, float32Array.length, 8000);
-                buffer.copyToChannel(float32Array, 0);
-                const source = audioContext.createBufferSource();
-                source.buffer = buffer;
-                source.connect(audioContext.destination);
-                source.start();
-            } catch (e) {
-                console.warn('Ошибка воспроизведения аудио:', e);
-            }
-        }
-        
-        // Вспомогательные функции
-        function downsample(buffer, factor) {
-            const newLength = Math.floor(buffer.length / factor);
-            const result = new Float32Array(newLength);
-            for (let i = 0; i < newLength; i++) {
-                result[i] = buffer[i * factor];
-            }
-            return result;
-        }
-        
-        function float32ArrayToBase64(float32Array) {
-            const arrayBuffer = float32Array.buffer;
-            const bytes = new Uint8Array(arrayBuffer);
-            let binary = '';
-            for (let i = 0; i < bytes.length; i++) {
-                binary += String.fromCharCode(bytes[i]);
-            }
-            return btoa(binary);
-        }
-        
-        function base64ToFloat32Array(base64) {
-            const binary = atob(base64);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) {
-                bytes[i] = binary.charCodeAt(i);
-            }
-            return new Float32Array(bytes.buffer);
-        }
-        
-        function cleanupVoice() {
-            stopMic();
-            if (socket) {
-                socket.emit('leave_voice', { code: roomCode });
-                socket.disconnect();
-                socket = null;
-            }
-            isVoiceConnected = false;
-            updateVoiceStatus('disconnected');
-        }
-        // --------------------------------
-        
         showMenu();
     </script>
 </body>
