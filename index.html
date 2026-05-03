@@ -856,6 +856,12 @@
         function showMenu() {
             clearInterval(pollTimer);
             document.getElementById('bottom-panel').classList.add('hidden');
+            
+            // ✅ Загружаем ID из Telegram при открытии
+            if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                playerId = parseInt(tg.initDataUnsafe.user.id);
+            }
+            
             const isAdmin = ADMIN_IDS.includes(parseInt(playerId));
             document.getElementById('app').innerHTML = `
                 <div class="menu-container">
