@@ -200,7 +200,7 @@
                 row.innerHTML = '<span style="color:var(--text2);font-size:12px;">⏳ Ожидание хода другого игрока... (вы #'+pid+', ходит #'+cp+')</span>';
                 return;
             }
-            if (selectedCard) { row.innerHTML = `<button class="btn btn-primary" onclick="requestCard()">❓ Просить "${selectedCard.cardName}"</button>`; }
+            if (selectedCard) { row.innerHTML = `<button class="btn btn-primary" onclick="">❓ Просить "${selectedCard.cardName}"</button>`; }
             else { row.innerHTML = '<span style="color:var(--text2);font-size:12px;">👆 Выберите карточку и игрока</span>'; }
         }
         function showMenu() {
@@ -348,25 +348,30 @@
             if (p) toast(`Выбран: ${p.name}`,'');
             renderGame();
         }
-        function selectCard(cat,name){if(parseInt(state.currentPlayer)!==parseInt(playerId))return;selectedCard=(selectedCard&&selectedCard.category===cat&&selectedCard.cardName===name)?null:{category:cat,cardName:name};renderGame();}
-        async function requestCard(){
-            if(!selectedCard){toast('⚠️ Выберите карточку!','error');return;}
-            const toPlayer=selectedPlayerId!==null?selectedPlayerId:state.players.find(p=>parseInt(p.id)!==parseInt(playerId))?.id;
-            if(toPlayer===undefined){toast('⚠️ Выберите игрока!','error');return;}
-            try {
-                const r=await fetch(API+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,fromPlayer:parseInt(playerId),toPlayer:parseInt(toPlayer),category:selectedCard.category,cardName:selectedCard.cardName})});
-                const d=await r.json();
-                if(d.ok){
-                    if(d.found){
-                        toast(`✅ Получили "${d.card.cardName}"!`,'success');
-                    }else{
-                        toast(d.drawn?'❌ Не угадали. Взяли из запаса.':'❌ Не угадали. Запас пуст.','error');
-                    }
-                    selectedCard=null;selectedPlayerId=null;
-                    setTimeout(fetchState, 300);
-                } else toast(d.error,'error');
-            } catch(e){toast('Ошибка','error');}
-        }
+       async function requestCard(){
+    if(!selectedCard){toast('⚠️ Выберите карточку!','error');return;}
+    const toPlayer=selectedPlayerId!==null?selectedPlayerId:state.players.find(p=>parseInt(p.id)!==parseInt(playerId))?.id;
+    if(toPlayer===undefined){toast('⚠️ Выберите игрока!','error');return;}
+    
+    // Получаем имена для уведомления
+    const fromName = state.players.find(p => parseInt(p.id) === parseInt(playerId))?.name || 'Игрок';
+    const toName = state.players.find(p => parseInt(p.id) === parseInt(toPlayer))?.name || 'Игрок';
+    
+    try {
+        const r=await fetch(API+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,fromPlayer:parseInt(playerId),toPlayer:parseInt(toPlayer),category:selectedCard.category,cardName:selectedCard.cardName})});
+        const d=await r.json();
+        if(d.ok){
+            if(d.found){
+                toast(`✅ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карта есть! Переходит к ${fromName}`, 'success');
+            }else{
+                const nextName = state.players.find(p => parseInt(p.id) === parseInt(d.nextPlayer))?.name || 'неизвестно';
+                toast(`❌ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карты нет. Ходит ${nextName}`, 'error');
+            }
+            selectedCard=null;selectedPlayerId=null;
+            setTimeout(fetchState, 300);
+        } else toast(d.error,'error');
+    } catch(e){toast('Ошибка','error');}
+}
         function checkWin(){
             if(!state)return;
             const allCollected=state.players.reduce((s,p)=>s+p.quartets.length,0);
