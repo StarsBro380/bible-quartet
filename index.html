@@ -1,1484 +1,566 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Библейский квартет</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #f5f0e8; --card: #fffef9; --accent: #7b4b2a; --accent2: #5b3ec9;
-            --text: #1a0f08; --text2: #8a7568; --green: #27ae60; --red: #c0392b;
-            --border: #e0d5c5; --shadow: 0 2px 10px rgba(0,0,0,0.05);
-            --history-bg: #a09080;
-            --gradient: linear-gradient(135deg, #f5f0e8 0%, #e8ddd0 100%);
-            --glass: rgba(255, 255, 255, 0.6);
-            --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
-            --shadow-xl: 0 12px 48px rgba(0,0,0,0.15);
-            --gold: linear-gradient(135deg, #8B5A2B 0%, #D4A76A 50%, #8B5A2B 100%);
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            background: var(--gradient);
-            color: var(--text);
-            min-height: 100vh; padding: 12px; padding-bottom: 160px;
-            -webkit-tap-highlight-color: transparent; user-select: none;
-            font-size: 14px; line-height: 1.5;
-        }
-        .container { max-width: 100%; margin: 0 auto; }
-        .header { text-align: center; padding: 6px 0 4px; }
-        .btn {
-            display: inline-block; padding: 12px 20px; font-size: 15px; font-weight: 600;
-            border: none; border-radius: 12px; cursor: pointer; margin: 4px;
-            font-family: 'Inter', sans-serif;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-            transform: scale(1);
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        }
-        .btn:hover {
-            transform: scale(1.03);
-            box-shadow: 0 8px 24px rgba(123, 75, 42, 0.2);
-        }
-        .btn:active {
-            transform: scale(0.96) !important;
-            transition-duration: 0.1s !important;
-        }
-        .btn::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.15);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-        .btn:active::after {
-            width: 300px;
-            height: 300px;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #8B5A2B 0%, #6B3A1B 100%);
-            color: #fff;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #9A6A3B 0%, #7B4A2B 100%);
-            box-shadow: 0 8px 24px rgba(123, 75, 42, 0.3);
-        }
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            color: var(--text);
-            border: 2px solid #d5c8b5;
-        }
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.95);
-            border-color: #7b4b2a;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-        }
-        .btn-full { width: 100%; display: block; }
-        .input {
-            width: 100%; padding: 10px 14px; font-size: 15px;
-            border: 2px solid #d5c8b5; border-radius: 10px; 
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            font-family: 'Inter', sans-serif;
-            color: var(--accent);
-            transition: all 0.3s;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-        .input:focus { 
-            outline: none; 
-            border-color: var(--accent); 
-            box-shadow: 0 0 0 4px rgba(123,75,42,0.1);
-            background: rgba(255, 255, 255, 0.9);
-        }
-        .input-code { text-align: center; letter-spacing: 4px; font-weight: bold; text-transform: uppercase; }
-        .input-name { text-align: left; letter-spacing: 0; font-weight: normal; text-transform: none; }
-        .toast {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 2px solid var(--accent);
-            color: var(--text); padding: 14px 24px; border-radius: 14px;
-            font-size: 14px; z-index: 100; opacity: 0; transition: opacity 0.3s, transform 0.3s;
-            pointer-events: none; max-width: 90%; text-align: center;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-            font-weight: 500;
-            transform: translateX(-50%) translateY(-20px);
-        }
-        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-        .toast.success { border-color: var(--green); }
-        .toast.error { border-color: var(--red); }
-        .info-bar {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px 16px; background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 14px;
-            margin: 8px 0; font-size: 14px; border: 2px solid #d5c8b5; 
-            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-        }
-        .info-bar .turn { 
-            color: var(--accent); 
-            font-weight: 700; 
-            font-size: 15px; 
-            letter-spacing: 0.5px;
-        }
-        .info-bar .score { 
-            color: var(--text2); 
-            font-size: 13px; 
-            background: rgba(123,75,42,0.05);
-            padding: 4px 12px;
-            border-radius: 20px;
-        }
-        .cat-section { margin: 6px 0; }
-        .cat-header {
-            background: linear-gradient(135deg, #7b4b2a 0%, #8a5530 100%);
-            color: #fff;
-            border: none; border-radius: 12px 12px 0 0;
-            padding: 10px 16px; cursor: pointer;
-            display: flex; justify-content: space-between; align-items: center;
-            font-size: 14px; box-shadow: 0 2px 8px rgba(123,75,42,0.2);
-        }
-        .cat-header .title { 
-            font-weight: 700; 
-            color: #fff; 
-            font-size: 13px; 
-            letter-spacing: 1px; 
-            text-transform: uppercase; 
-        }
-        .cat-header .badge { 
-            font-size: 12px; 
-            padding: 4px 14px; 
-            border-radius: 20px; 
-            font-weight: 700; 
-        }
-        .badge-full { 
-            background: rgba(255,255,255,0.2); 
-            color: #fff; 
-            backdrop-filter: blur(4px); 
-        }
-        .badge-partial { 
-            background: rgba(255,255,255,0.1); 
-            color: #fff; 
-            backdrop-filter: blur(4px); 
-        }
-        .cat-header .arrow { font-size: 12px; transition: transform 0.3s; }
-        .cat-header .arrow.open { transform: rotate(180deg); }
-        .cards-row {
-            display: flex; flex-wrap: wrap; gap: 6px; padding: 10px;
-            background: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-            border: 2px solid #d5c8b5; border-top: none;
-            border-radius: 0 0 12px 12px;
-        }
-        .cards-row.collapsed { display: none; }
-        .card-chip {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-            border: 2px solid #d5c8b5;
-            border-radius: 10px; padding: 10px 10px; cursor: pointer;
-            font-size: 13px; text-align: center;
-            flex: 1 1 calc(50% - 6px); min-width: 80px; max-width: calc(50% - 6px);
-            position: relative; color: var(--text);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .card-chip.owned { 
-            border-color: #27ae60; 
-            background: rgba(39, 174, 96, 0.08); 
-            cursor: default; 
-            border-width: 2px;
-        }
-        .card-chip.missing { 
-            opacity: 0.7; 
-            border-style: dashed; 
-            background: rgba(250, 250, 250, 0.5); 
-        }
-        .card-chip.missing:hover {
-            transform: scale(1.05);
-            box-shadow: 0 8px 20px rgba(91, 62, 201, 0.12);
-            opacity: 1;
-        }
-        .card-chip.selected {
-            border-color: #5b3ec9 !important; 
-            background: rgba(91, 62, 201, 0.08) !important;
-            box-shadow: 0 0 24px rgba(91,62,201,0.15);
-            opacity: 1 !important; 
-            transform: scale(1.08) !important;
-            animation: pulse 0.5s ease-in-out;
-        }
-        .card-chip .chip-name { font-size: 12px; line-height: 1.4; font-weight: 500; }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1.08); }
-            50% { transform: scale(1.12); }
-        }
-        .hidden { display: none !important; }
-        .player-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-        .player-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-            border: 2px solid #d5c8b5; border-radius: 12px;
-            padding: 10px; flex: 1 1 calc(50% - 6px); min-width: 100px;
-            text-align: center; cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-        .player-card:hover {
-            transform: scale(1.03);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.06);
-        }
-        .player-card:active { border-color: var(--accent2); background: rgba(91,62,201,0.05); }
-        .player-card.current {
-            border-color: var(--accent);
-            background: rgba(123, 75, 42, 0.06);
-            animation: glow 2s ease-in-out infinite alternate;
-        }
-        @keyframes glow {
-            from { box-shadow: 0 0 6px rgba(123, 75, 42, 0.1); }
-            to { box-shadow: 0 0 20px rgba(123, 75, 42, 0.2); }
-        }
-        .player-card.selected-player { border: 3px solid #5b3ec9; background: rgba(91,62,201,0.08); }
-        .player-card .p-name { 
-            font-weight: 700; 
-            font-size: 14px; 
-            color: var(--accent); 
-            font-family: 'Playfair Display', serif; 
-        }
-        .player-card .p-info { font-size: 11px; color: var(--text2); margin-top: 3px; }
-        .score-item {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-            border-radius: 12px; padding: 12px 16px;
-            margin: 6px 0; display: flex; justify-content: space-between;
-            font-size: 15px; border: 2px solid #d5c8b5; box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-        }
-        .winner { 
-            border-color: var(--accent); 
-            background: rgba(123,75,42,0.05); 
-            border-width: 2px;
-        }
-        .bottom-panel {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-top: 2px solid #d5c8b5;
-            z-index: 50; padding: 8px 10px;
-            padding-bottom: max(8px, env(safe-area-inset-bottom));
-            box-shadow: 0 -4px 32px rgba(0,0,0,0.06);
-        }
-        .history-container {
-            max-height: 0; overflow: hidden; transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .history-container.open { max-height: 250px; overflow-y: auto; }
-        .history-toggle {
-            font-size: 12px; color: #fff; cursor: pointer;
-            text-align: center; padding: 8px 0; user-select: none;
-            background: linear-gradient(135deg, #7b4b2a 0%, #8a5530 100%);
-            border-radius: 10px;
-            margin: 0 0 4px 0; font-weight: 600;
-            border: 1px solid #5a3518;
-            box-shadow: 0 2px 8px rgba(123,75,42,0.2);
-        }
-        .history-item {
-            font-size: 11px; padding: 6px 12px; margin: 2px 0;
-            border-radius: 8px; display: flex; gap: 8px; align-items: flex-start;
-        }
-        .history-item.ok { background: rgba(39, 174, 96, 0.08); border-left: 3px solid var(--green); }
-        .history-item.no { background: rgba(192, 57, 43, 0.08); border-left: 3px solid var(--red); }
-        .history-item.system { background: rgba(123, 75, 42, 0.08); border-left: 3px solid var(--accent); }
-        .history-item .h-time { color: var(--text2); white-space: nowrap; font-size: 10px; }
-        .history-item .h-text { flex: 1; }
-        .action-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
-        .action-row .btn { flex: 1; min-width: 80px; padding: 10px; font-size: 13px; }
-        .code-display {
-            text-align: center; padding: 12px; margin: 6px 0;
-            position: relative;
-            border-radius: 14px;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-        }
-        .code-display:hover {
-            transform: scale(1.01);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
-        }
-        .code-display .code { 
-            font-family: 'Playfair Display', serif; 
-            font-size: 32px; 
-            font-weight: 700; 
-            color: var(--accent); 
-            letter-spacing: 8px; 
-        }
-        .code-display .copy-hint { color: var(--text2); font-size: 11px; margin-top: 6px; }
-        .code-display .waiting { color: var(--text2); font-size: 11px; margin-top: 4px; }
-        .players-waiting { margin: 6px 0; }
-        .players-waiting .pw-item { 
-            padding: 8px 14px; 
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(4px); 
-            -webkit-backdrop-filter: blur(4px);
-            border-radius: 10px; 
-            margin: 3px 0; 
-            border: 1px solid #d5c8b5;
-            font-size: 14px; 
-        }
-        .name-section { margin-bottom: 4px; }
-        .name-section label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 3px; font-weight: 500; }
-        .container > * {
-            animation: fadeIn 0.5s ease-out forwards;
-        }
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(15px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .decor-line {
-            width: 50px;
-            height: 3px;
-            background: linear-gradient(90deg, #7b4b2a, #8a5530);
-            margin: 6px auto;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: var(--bg); }
-        ::-webkit-scrollbar-thumb { 
-            background: linear-gradient(180deg, #7b4b2a, #8a5530); 
-            border-radius: 2px; 
-        }
+import os
+import json
+import random
+import string
+from datetime import datetime
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 
-        /* Бегущая пунктирная рамка — чистая */
-        .running-border {
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            border-radius: 14px;
-            border: 2px dashed var(--accent);
-            pointer-events: none;
-            animation: dash-move 2s linear infinite;
-            opacity: 0.8;
-        }
+app = Flask(__name__)
+CORS(app)
 
-        .code-display:hover .running-border {
-            animation-direction: reverse;
-            opacity: 1;
-        }
+# Отключаем кэширование
+@app.after_request
+def after_request(response):
+    response.headers.add('Cache-Control', 'no-cache, no-store, must-revalidate')
+    return response
 
-        @keyframes dash-move {
-            0% {
-                background-position: 0% 0%;
-            }
-            100% {
-                background-position: 100% 100%;
-            }
-        }
+rooms = {}
+ADMIN_IDS = [39444699]
 
-        /* Панель игрока */
-        .player-panel {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 12px 18px;
-            background: linear-gradient(135deg, rgba(123,75,42,0.08), rgba(123,75,42,0.02));
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-            border-radius: 14px;
-            border: 2px solid #d5c8b5;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-            margin: 3px 0;
-            width: 100%;
-            transition: all 0.3s;
-        }
+FEEDBACK_FILE = 'feedback.json'
 
-        .player-panel:hover {
-            transform: scale(1.02);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-        }
+def load_feedback():
+    if os.path.exists(FEEDBACK_FILE):
+        try:
+            with open(FEEDBACK_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            return []
+    return []
 
-        .player-panel:first-child {
-            background: linear-gradient(135deg, rgba(123,75,42,0.15), rgba(123,75,42,0.05));
-            border-color: var(--accent);
-            border-width: 2px;
-        }
+def save_feedback(feedback_list):
+    with open(FEEDBACK_FILE, 'w', encoding='utf-8') as f:
+        json.dump(feedback_list, f, ensure_ascii=False, indent=2)
 
-        .player-avatar {
-            font-size: 28px;
-            width: 48px;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #f5f0e8, #e8ddd0);
-            border-radius: 50%;
-            border: 2px solid #d5c8b5;
-            flex-shrink: 0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        }
+all_feedback = load_feedback()
 
-        .player-avatar.creator {
-            background: linear-gradient(135deg, #7b4b2a, #8a5530);
-            color: #fff;
-            border-color: #7b4b2a;
-        }
+def generate_code():
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
-        .player-info {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-        }
+def create_deck():
+    with open('data.json', 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    deck = []
+    for q in data:
+        for c in q['cards']:
+            deck.append({'category': q['name'], 'cardName': c['name']})
+    random.shuffle(deck)
+    return deck, data
 
-        .player-name {
-            font-weight: 700;
-            font-size: 16px;
-            color: var(--accent);
-            font-family: 'Playfair Display', serif;
-        }
+@app.route('/')
+def home():
+    return 'OK'
 
-        .player-role {
-            font-size: 12px;
-            color: var(--text2);
-            margin-top: 2px;
-            font-weight: 500;
-        }
+@app.route('/create', methods=['POST'])
+def create_room():
+    data = request.get_json()
+    player_name = data.get('name', 'Игрок')
+    cards_count = int(data.get('cards', 10))
+    player_id = int(data.get('playerId', -1))
+    
+    code = generate_code()
+    while code in rooms:
+        code = generate_code()
+    
+    deck, categories = create_deck()
+    
+    room = {
+        'code': code,
+        'players': [{
+            'id': 0,
+            'name': player_name,
+            'hand': deck[:cards_count],
+            'quartets': [],
+            'missed_turns': 0
+        }],
+        'deck': deck[cards_count:],
+        'categories': categories,
+        'currentPlayer': 0,
+        'status': 'lobby',
+        'maxPlayers': 4,
+        'cardsPerPlayer': cards_count,
+        'history': [],
+        'ownerId': 0,
+        'observers': [],
+        'last_move_time': datetime.now().timestamp()
+    }
+    
+    rooms[code] = room
+    print(f"[CREATE] Комната {code}, игрок 0: {player_name}")
+    return jsonify({'ok': True, 'code': code, 'playerId': 0})
 
-        .player-role.creator-role {
-            color: #7b4b2a;
-            font-weight: 600;
-        }
+@app.route('/start', methods=['POST'])
+def start_game():
+    data = request.get_json()
+    code = data.get('code', '').upper()
+    player_id = int(data.get('playerId', -1))
+    
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
+    
+    room = rooms[code]
+    
+    if room['ownerId'] != player_id:
+        return jsonify({'ok': False, 'error': 'Только создатель может начать игру'}), 400
+    
+    if len(room['players']) < 2:
+        return jsonify({'ok': False, 'error': 'Нужно минимум 2 игрока'}), 400
+    
+    room['status'] = 'playing'
+    room['currentPlayer'] = 0
+    room['last_move_time'] = datetime.now().timestamp()
+    room['history'].append({
+        'time': datetime.now().strftime('%H:%M'),
+        'text': '🎮 Игра началась!',
+        'type': 'system'
+    })
+    
+    print(f"[START] Игра в комнате {code} началась! Игроков: {len(room['players'])}")
+    return jsonify({'ok': True})
 
-        /* Игроки, присоединившиеся позже */
-        .player-panel:not(:first-child) {
-            background: rgba(255, 255, 255, 0.6);
-            border-style: dashed;
-        }
+@app.route('/join', methods=['POST'])
+def join_room():
+    data = request.get_json()
+    code = data.get('code', '').upper()
+    player_name = data.get('name', 'Игрок')
+    player_id = int(data.get('playerId', -1))
+    
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
+    
+    room = rooms[code]
+    
+    if room['status'] != 'lobby':
+        return jsonify({'ok': False, 'error': 'Игра уже началась'}), 400
+    
+    if len(room['players']) >= room['maxPlayers']:
+        return jsonify({'ok': False, 'error': 'Комната заполнена'}), 400
+    
+    new_id = len(room['players'])
+    cards = room['deck'][:room['cardsPerPlayer']]
+    room['deck'] = room['deck'][room['cardsPerPlayer']:]
+    
+    room['players'].append({
+        'id': new_id,
+        'name': player_name,
+        'hand': cards,
+        'quartets': [],
+        'missed_turns': 0
+    })
+    
+    room['history'].append({
+        'time': datetime.now().strftime('%H:%M'),
+        'text': f'👤 {player_name} присоединился к игре',
+        'type': 'system'
+    })
+    
+    print(f"[JOIN] Комната {code}, новый игрок {new_id}: {player_name}")
+    return jsonify({'ok': True, 'playerId': int(new_id)})
 
-        .player-panel:not(:first-child) .player-avatar {
-            background: linear-gradient(135deg, #e8ddd0, #d5c8b5);
+@app.route('/state/<code>/<int:player_id>', methods=['GET'])
+def get_state(code, player_id):
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
+    
+    room = rooms[code]
+    
+    is_observer = player_id in room.get('observers', [])
+    
+    player = None
+    for p in room['players']:
+        if p['id'] == player_id:
+            player = p
+            break
+    
+    if not player and not is_observer:
+        return jsonify({'ok': False, 'error': f'Игрок {player_id} не найден'}), 404
+    
+    players_info = []
+    for p in room['players']:
+        info = {
+            'id': int(p['id']),
+            'name': p['name'],
+            'quartets': p['quartets'],
+            'handCount': int(len(p['hand']))
         }
+        if p['id'] == player_id or is_observer:
+            info['hand'] = p['hand']
+        players_info.append(info)
+    
+    return jsonify({
+        'ok': True,
+        'code': code,
+        'playerId': int(player_id),
+        'players': players_info,
+        'bankCount': int(len(room['deck'])),
+        'currentPlayer': int(room['currentPlayer']),
+        'status': room['status'],
+        'categories': room['categories'],
+        'history': room['history'][-30:],
+        'ownerId': int(room['ownerId']),
+        'is_observer': is_observer
+    })
 
-        /* Логотип — современный минимализм */
-        .logo-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            padding: 4px 0;
-            margin: 0 auto;
-        }
+@app.route('/rename', methods=['POST'])
+def rename_player():
+    data = request.get_json()
+    code = data.get('code', '').upper()
+    player_id = int(data.get('playerId', -1))
+    new_name = data.get('name', 'Игрок').strip()
+    
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
+    
+    room = rooms[code]
+    for p in room['players']:
+        if p['id'] == player_id:
+            old_name = p['name']
+            p['name'] = new_name
+            room['history'].append({
+                'time': datetime.now().strftime('%H:%M'),
+                'text': f'✏️ {old_name} сменил имя на "{new_name}"',
+                'type': 'system'
+            })
+            print(f"[RENAME] Игрок {player_id} в комнате {code}: {old_name} -> {new_name}")
+            return jsonify({'ok': True})
+    
+    return jsonify({'ok': False, 'error': 'Игрок не найден'}), 404
 
-        .logo-icon {
-            font-size: 32px;
-            color: var(--accent);
-            filter: drop-shadow(0 2px 4px rgba(123,75,42,0.2));
-        }
-
-        .logo-text-group {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            line-height: 1.1;
-        }
-
-        .logo-text-main {
-            font-family: 'Inter', sans-serif;
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--accent);
-            letter-spacing: 1px;
-        }
-
-        .logo-text-sub {
-            font-family: 'Inter', sans-serif;
-            font-size: 9px;
-            font-weight: 400;
-            color: var(--text2);
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            margin-top: 1px;
-        }
-
-        /* Улучшенный дизайн первой страницы */
-        .menu-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 14px;
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 20px 16px 30px;
-            background: rgba(255, 255, 255, 0.4);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.06);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .menu-container::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at 30% 20%, rgba(123,75,42,0.03), transparent 70%);
-            animation: menu-shine 6s ease-in-out infinite alternate;
-            pointer-events: none;
-        }
-
-        @keyframes menu-shine {
-            0% { transform: translate(-10%, -10%); opacity: 0.5; }
-            100% { transform: translate(10%, 10%); opacity: 1; }
-        }
-
-        .menu-container .logo-container {
-            position: relative;
-            z-index: 1;
-        }
-
-        .menu-container .name-section {
-            width: 100%;
-            position: relative;
-            z-index: 1;
-        }
-
-        .menu-container .btn {
-            width: 100%;
-            max-width: 300px;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* Декоративный элемент для первой страницы */
-        .menu-decoration {
-            position: absolute;
-            bottom: -40px;
-            right: -40px;
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(123,75,42,0.05), transparent 70%);
-            pointer-events: none;
-        }
-
-        .menu-decoration-2 {
-            position: absolute;
-            top: -20px;
-            left: -20px;
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(123,75,42,0.03), transparent 70%);
-            pointer-events: none;
-        }
-
-        /* Анимированные иконки для кнопок */
-        .btn-icon {
-            display: inline-block;
-            margin-right: 8px;
-            animation: icon-bounce 2s ease-in-out infinite;
-        }
-
-        @keyframes icon-bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-2px); }
-        }
-
-        .btn-icon.join-icon {
-            animation-delay: 0.3s;
-        }
-
-        /* Модальное окно обратной связи */
-        #feedback-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(8px);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.3s ease-out;
-        }
-        #feedback-modal .modal-content {
-            background: #fff;
-            border-radius: 16px;
-            padding: 24px;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.2);
-        }
-        #feedback-modal .modal-content h3 {
-            font-family: 'Inter', sans-serif;
-            color: var(--accent);
-            font-size: 18px;
-            margin-bottom: 12px;
-        }
-        #feedback-modal .modal-content p {
-            font-size: 13px;
-            color: var(--text2);
-            margin-bottom: 12px;
-        }
-        #feedback-modal .modal-content textarea {
-            width: 100%;
-            height: 100px;
-            padding: 10px;
-            border: 2px solid #d5c8b5;
-            border-radius: 8px;
-            font-family: 'Inter', sans-serif;
-            font-size: 14px;
-            resize: none;
-        }
-        #feedback-modal .modal-content textarea:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-        #feedback-modal .modal-content .btn-group {
-            display: flex;
-            gap: 8px;
-            margin-top: 12px;
-        }
-        #feedback-modal .modal-content .btn-group .btn {
-            flex: 1;
-        }
-
-        /* Модальное окно правил */
-        #rules-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(8px);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.3s ease-out;
-        }
-        #rules-modal .modal-content {
-            background: #fff;
-            border-radius: 16px;
-            padding: 24px;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.2);
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        #rules-modal .modal-content h3 {
-            font-family: 'Inter', sans-serif;
-            color: var(--accent);
-            font-size: 18px;
-            margin-bottom: 12px;
-        }
-        #rules-modal .modal-content .rules-text {
-            font-size: 13px;
-            color: var(--text);
-            line-height: 1.6;
-        }
-        #rules-modal .modal-content .rules-text ul {
-            padding-left: 20px;
-            margin: 8px 0;
-        }
-        #rules-modal .modal-content .rules-text ul li {
-            margin-bottom: 4px;
-        }
-        #rules-modal .modal-content .btn-group {
-            display: flex;
-            gap: 8px;
-            margin-top: 12px;
-        }
-        #rules-modal .modal-content .btn-group .btn {
-            flex: 1;
-        }
-
-        /* Панель администратора */
-        #admin-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(8px);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.3s ease-out;
-        }
-        #admin-modal .modal-content {
-            background: #fff;
-            border-radius: 16px;
-            padding: 24px;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.2);
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        #admin-modal .modal-content h3 {
-            font-family: 'Inter', sans-serif;
-            color: var(--accent);
-            font-size: 18px;
-            margin-bottom: 12px;
-        }
-        #admin-modal .modal-content .section-title {
-            font-weight: 600;
-            font-size: 14px;
-            color: var(--accent);
-            margin-top: 12px;
-            margin-bottom: 6px;
-        }
-        #admin-modal .modal-content .game-item {
-            padding: 8px 12px;
-            background: rgba(123,75,42,0.05);
-            border-radius: 8px;
-            margin-bottom: 4px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-        }
-        #admin-modal .modal-content .game-item .status-indicator {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-right: 6px;
-        }
-        #admin-modal .modal-content .game-item .status-indicator.active {
-            background: #27ae60;
-        }
-        #admin-modal .modal-content .game-item .status-indicator.finished {
-            background: #c0392b;
-        }
-        #admin-modal .modal-content .game-item .observe-btn {
-            padding: 4px 12px;
-            font-size: 11px;
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-        #admin-modal .modal-content .game-item .observe-btn:hover {
-            background: #8a5530;
-        }
-        #admin-modal .modal-content .game-item .reply-btn {
-            padding: 4px 12px;
-            font-size: 11px;
-            background: #27ae60;
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            margin-left: 4px;
-        }
-        #admin-modal .modal-content .game-item .reply-btn:hover {
-            background: #2ecc71;
-        }
-        #admin-modal .modal-content .feedback-item {
-            padding: 6px 10px;
-            background: rgba(123,75,42,0.05);
-            border-radius: 6px;
-            margin-bottom: 4px;
-            font-size: 12px;
-        }
-        #admin-modal .modal-content .feedback-item .feedback-header {
-            display: flex;
-            justify-content: space-between;
-        }
-        #admin-modal .modal-content .feedback-item .feedback-header .name {
-            font-weight: 600;
-            color: var(--accent);
-        }
-        #admin-modal .modal-content .feedback-item .feedback-header .time {
-            font-size: 10px;
-            color: var(--text2);
-        }
-        #admin-modal .modal-content .feedback-item .feedback-header .room {
-            font-size: 10px;
-            color: var(--text2);
-        }
-        #admin-modal .modal-content .feedback-item .feedback-message {
-            margin-top: 2px;
-        }
-        #admin-modal .modal-content .feedback-item .reply-btn {
-            padding: 2px 10px;
-            font-size: 10px;
-            background: #27ae60;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 2px;
-        }
-        #admin-modal .modal-content .feedback-item .reply-btn:hover {
-            background: #2ecc71;
-        }
-    </style>
-</head>
-<body>
-    <div class="toast" id="toast"></div>
-    <div class="container" id="app"></div>
-    <div class="bottom-panel hidden" id="bottom-panel">
-        <div class="history-toggle" id="history-toggle" onclick="toggleHistory()">📜 История ▼</div>
-        <div class="history-container" id="history-container">
-            <div id="history-list"></div>
-        </div>
-        <div class="action-row" id="action-row"></div>
-    </div>
-
-    <script>
-        const tg = window.Telegram.WebApp;
-        if (tg) { tg.expand(); tg.ready(); tg.setHeaderColor('#f5f0e8'); tg.setBackgroundColor('#f5f0e8'); }
+@app.route('/request', methods=['POST'])
+def request_card():
+    data = request.get_json()
+    code = data.get('code', '').upper()
+    from_player = int(data.get('fromPlayer', -1))
+    to_player = int(data.get('toPlayer', -1))
+    category = data.get('category', '')
+    card_name = data.get('cardName', '')
+    
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
+    
+    room = rooms[code]
+    
+    if from_player in room.get('observers', []):
+        return jsonify({'ok': False, 'error': 'Наблюдатели не могут ходить'}), 400
+    
+    if from_player >= len(room['players']) or from_player < 0:
+        return jsonify({'ok': False, 'error': 'Игрок не найден'}), 400
+    
+    if int(room['currentPlayer']) != from_player:
+        return jsonify({'ok': False, 'error': f'Не ваш ход. Сейчас ходит игрок {room["currentPlayer"]}'}), 400
+    
+    requester = room['players'][from_player]
+    has_category = any(c['category'] == category for c in requester['hand'])
+    if not has_category:
+        return jsonify({'ok': False, 'error': 'У вас нет карт этой категории'}), 400
+    
+    if to_player >= len(room['players']) or to_player < 0:
+        return jsonify({'ok': False, 'error': 'Целевой игрок не найден'}), 400
+    
+    target = room['players'][to_player]
+    card_index = None
+    for i, c in enumerate(target['hand']):
+        if c['category'] == category and c['cardName'] == card_name:
+            card_index = i
+            break
+    
+    from_name = requester['name']
+    to_name = target['name']
+    
+    for p in room['players']:
+        if p['id'] == from_player:
+            p['missed_turns'] = 0
+    
+    if card_index is not None:
+        card = target['hand'].pop(card_index)
+        requester['hand'].append(card)
         
-        const API = 'https://bible-quartet-server.onrender.com';
-        const ADMIN_IDS = [39444699];
-        let state = null, playerId = null, roomCode = null, selectedCard = null, selectedPlayerId = null;
-        let playerName = tg?.initDataUnsafe?.user?.first_name || '';
-        let pollTimer = null, historyOpen = false;
-        let feedbackOpen = false, rulesOpen = false, adminOpen = false;
-        let isObserver = false;
+        check_quartets(room, from_player)
+        check_quartets(room, to_player)
+        
+        room['currentPlayer'] = int(from_player)
+        room['last_move_time'] = datetime.now().timestamp()
+        
+        room['history'].append({
+            'time': datetime.now().strftime('%H:%M'),
+            'text': f'{from_name} спросил(а) у {to_name}: «{card_name}» ({category}) — ✅ Есть!',
+            'type': 'ok'
+        })
+        
+        print(f"[REQUEST] {from_name} -> {to_name}: {card_name} ({category}) — УГАДАЛ")
+        
+        return jsonify({
+            'ok': True, 'found': True, 'card': card,
+            'nextPlayer': int(from_player)
+        })
+    else:
+        drawn = None
+        if room['deck']:
+            drawn = room['deck'].pop()
+            requester['hand'].append(drawn)
+            check_quartets(room, from_player)
+        
+        next_player = (from_player + 1) % len(room['players'])
+        room['currentPlayer'] = int(next_player)
+        room['last_move_time'] = datetime.now().timestamp()
+        
+        if drawn:
+            room['history'].append({
+                'time': datetime.now().strftime('%H:%M'),
+                'text': f'{from_name} спросил(а) у {to_name}: «{card_name}» ({category}) — ❌ Нет. Взял из запаса.',
+                'type': 'no'
+            })
+        else:
+            room['history'].append({
+                'time': datetime.now().strftime('%H:%M'),
+                'text': f'{from_name} спросил(а) у {to_name}: «{card_name}» ({category}) — ❌ Нет. Запас пуст.',
+                'type': 'no'
+            })
+        
+        print(f"[REQUEST] {from_name} -> {to_name}: {card_name} ({category}) — НЕ УГАДАЛ")
+        
+        return jsonify({
+            'ok': True, 'found': False, 'drawn': drawn,
+            'nextPlayer': int(next_player)
+        })
 
-        function toast(msg, type) {
-            const t = document.getElementById('toast');
-            t.textContent = msg; t.className = 'toast ' + (type||'') + ' show';
-            clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2500);
-        }
-        function toggleHistory() {
-            historyOpen = !historyOpen;
-            const c = document.getElementById('history-container');
-            const t = document.getElementById('history-toggle');
-            if (historyOpen) { c.classList.add('open'); t.textContent = '📜 Свернуть ▲'; }
-            else { c.classList.remove('open'); t.textContent = '📜 История ▼'; }
-        }
-        function renderHistory(history) {
-            const list = document.getElementById('history-list');
-            if (!history || !history.length) { list.innerHTML = '<div class="history-item system"><span class="h-text">История пуста</span></div>'; return; }
-            list.innerHTML = history.slice().reverse().map(h => `<div class="history-item ${h.type||'system'}"><span class="h-time">${h.time}</span><span class="h-text">${h.text}</span></div>`).join('');
-        }
-        function renderActions() {
-            const row = document.getElementById('action-row');
-            const cp = parseInt(state?.currentPlayer);
-            const pid = parseInt(playerId);
-            if (!state || cp !== pid || isObserver) {
-                row.innerHTML = '<span style="color:var(--text2);font-size:12px;">⏳ Ожидание хода другого игрока... (вы #'+pid+', ходит #'+cp+')</span>';
-                return;
-            }
-            if (selectedCard) { row.innerHTML = `<button class="btn btn-primary" onclick="requestCard()">❓ Просить "${selectedCard.cardName}"</button>`; }
-            else { row.innerHTML = '<span style="color:var(--text2);font-size:12px;">👆 Выберите карточку и игрока</span>'; }
-        }
-        function showMenu() {
-            clearInterval(pollTimer);
-            document.getElementById('bottom-panel').classList.add('hidden');
-            
-            // ✅ Загружаем ID из Telegram при открытии
-            if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                playerId = parseInt(tg.initDataUnsafe.user.id);
-            }
-            
-            // ✅ Показываем уведомление при открытии
-            setTimeout(() => {
-                toast('📩 Ответ на ваш запрос', '');
-            }, 500);
-            
-            const isAdmin = ADMIN_IDS.includes(parseInt(playerId));
-            document.getElementById('app').innerHTML = `
-                <div class="menu-container">
-                    <div class="menu-decoration"></div>
-                    <div class="menu-decoration-2"></div>
-                    <div class="logo-container" style="position:relative;z-index:1;">
-                        <span class="logo-icon">📖</span>
-                        <div class="logo-text-group">
-                            <span class="logo-text-main">Библейский квартет</span>
-                            <span class="logo-text-sub">Bible Quartet</span>
-                        </div>
-                    </div>
-                    <div style="text-align:center;color:var(--text2);font-size:12px;line-height:1.5;max-width:300px;margin:0 auto;position:relative;z-index:1;">
-                        <p>Здесь вы можете играть в Библейский квартет онлайн с другими людьми.</p>
-                        <p style="margin-top:4px;opacity:0.7;">Если вы заметили ошибки или хотите что-то добавить, напишите в поддержку.</p>
-                    </div>
-                    <div class="name-section" style="width:100%;position:relative;z-index:1;">
-                        <label style="text-align:center;display:block;font-size:13px;color:var(--text2);font-weight:500;">Ваше имя</label>
-                        <input class="input input-name" id="player-name" value="${playerName}" maxlength="20" style="text-align:center;"
-                               onblur="saveNameFromMenu()" onkeydown="if(event.key==='Enter') saveNameFromMenu()">
-                    </div>
-                    <button class="btn btn-primary" style="position:relative;z-index:1;" onclick="saveNameAndCreate()">
-                        <span class="btn-icon">🎮</span> Создать игру
-                    </button>
-                    <button class="btn btn-secondary" style="position:relative;z-index:1;" onclick="saveNameAndJoin()">
-                        <span class="btn-icon join-icon">🔗</span> Присоединиться
-                    </button>
-                    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1;margin-top:8px;">
-                        <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;" onclick="openFeedback()">
-                            <span style="display:block;">💬 Написать в<br>поддержку</span>
-                        </button>
-                        <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;" onclick="openRules()">
-                            <span style="display:block;">📜 Правила</span>
-                        </button>
-                        ${isAdmin ? `
-                        <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;background:rgba(123,75,42,0.15);border-color:var(--accent);" onclick="openAdminPanel()">
-                            <span style="display:block;">🛠 Админская<br>часть</span>
-                        </button>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-            window.saveNameFromMenu = function() {
-                const newName = document.getElementById('player-name').value.trim() || 'Игрок';
-                playerName = newName;
-            };
-        }
-        function saveNameAndCreate() { showCreate(); }
-        function saveNameAndJoin() { showJoin(); }
-        function showCreate() {
-            document.getElementById('app').innerHTML = `
-                <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:400px;margin:0 auto;padding-top:10px;">
-                    <div class="header" style="width:100%;">
-                        <h2 style="text-align:center;color:var(--accent);font-family:'Inter',sans-serif;font-weight:700;font-size:18px;">Создание игры</h2>
-                        <div class="decor-line"></div>
-                    </div>
-                    <div style="width:100%;display:flex;flex-direction:column;gap:8px;">
-                        <button class="btn btn-primary btn-full" onclick="createGame(7)" style="width:100%;border-radius:12px;">
-                            <div style="display:flex;flex-direction:column;align-items:center;">
-                                <span style="font-size:15px;font-weight:700;">🃏 7 карт</span>
-                                <span style="font-size:11px;opacity:0.8;margin-top:2px;">👥 3–21 игрок</span>
-                            </div>
-                        </button>
-                        <button class="btn btn-primary btn-full" onclick="createGame(10)" style="width:100%;border-radius:12px;">
-                            <div style="display:flex;flex-direction:column;align-items:center;">
-                                <span style="font-size:15px;font-weight:700;">🃏 10 карт</span>
-                                <span style="font-size:11px;opacity:0.8;margin-top:2px;">👥 3–14 игроков</span>
-                            </div>
-                        </button>
-                        <button class="btn btn-primary btn-full" onclick="createGame(15)" style="width:100%;border-radius:12px;">
-                            <div style="display:flex;flex-direction:column;align-items:center;">
-                                <span style="font-size:15px;font-weight:700;">🃏 15 карт</span>
-                                <span style="font-size:11px;opacity:0.8;margin-top:2px;">👥 3–9 игроков</span>
-                            </div>
-                        </button>
-                        <button class="btn btn-secondary btn-full" onclick="showMenu()" style="width:100%;border-radius:12px;">← Назад</button>
-                    </div>
-                </div>
-            `;
-        }
-        function showJoin() {
-            document.getElementById('app').innerHTML = `
-                <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:400px;margin:0 auto;padding-top:10px;">
-                    <div class="header" style="width:100%;">
-                        <h2 style="text-align:center;color:var(--accent);font-family:'Inter',sans-serif;font-weight:700;font-size:18px;">Подключение</h2>
-                        <div class="decor-line"></div>
-                    </div>
-                    <input class="input input-code" id="join-code" placeholder="ABC123" maxlength="6" style="width:100%;max-width:300px;text-align:center;">
-                    <button class="btn btn-primary btn-full" onclick="joinGame()" style="width:100%;max-width:300px;">🔗 Присоединиться</button>
-                    <button class="btn btn-secondary btn-full" onclick="showMenu()" style="width:100%;max-width:300px;">← Назад</button>
-                </div>
-            `;
-        }
-        async function createGame(n) {
-            try {
-                const r = await fetch(API+'/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:playerName,cards:n,playerId:parseInt(playerId)})});
-                const d = await r.json();
-                if(d.ok){roomCode=d.code;playerId=parseInt(d.playerId);showLobby();} else toast(d.error,'error');
-            } catch(e){toast('Ошибка соединения','error');}
-        }
-        async function joinGame() {
-            const code=document.getElementById('join-code').value.trim().toUpperCase();
-            if(!code){toast('Введите код','error');return;}
-            try {
-                const r=await fetch(API+'/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,name:playerName,playerId:parseInt(playerId)})});
-                const d=await r.json();
-                if(d.ok){roomCode=code;playerId=parseInt(d.playerId);startPolling();} else toast(d.error,'error');
-            } catch(e){toast('Ошибка соединения','error');}
-        }
-        async function startGame() {
-            try {
-                const r=await fetch(API+'/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,playerId})});
-                const d=await r.json();
-                if(d.ok){startPolling();} else toast(d.error,'error');
-            } catch(e){toast('Ошибка соединения','error');}
-        }
-        function copyCode(){if(!roomCode)return;navigator.clipboard.writeText(roomCode).then(()=>toast('📋 Код скопирован!','success')).catch(()=>toast('Не удалось скопировать','error'));}
-        function showLobby() {
-            clearInterval(pollTimer);
-            document.getElementById('app').innerHTML = `
-                <div style="display:flex;flex-direction:column;align-items:center;gap:8px;max-width:400px;margin:0 auto;">
-                    <div class="header" style="width:100%;padding:6px 0 4px;">
-                        <div class="logo-container">
-                            <span class="logo-icon" style="font-size:28px;">📖</span>
-                            <div class="logo-text-group">
-                                <span class="logo-text-main" style="font-size:18px;">Библейский квартет</span>
-                                <span class="logo-text-sub" style="font-size:8px;">Bible Quartet</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="name-section" style="width:100%;margin-bottom:4px;">
-                        <label style="text-align:center;display:block;font-size:13px;color:var(--text2);font-weight:500;">Ваше имя</label>
-                        <input class="input input-name" id="lobby-name" value="${playerName}" maxlength="20" 
-                               style="text-align:center;padding:10px 14px;font-size:15px;border-radius:10px;"
-                               onblur="autoUpdateName()" onkeydown="if(event.key==='Enter') autoUpdateName()">
-                    </div>
-                    <div class="code-display" onclick="copyCode()" style="width:100%;padding:12px;margin:4px 0;">
-                        <div class="running-border"></div>
-                        <div class="code" style="font-size:32px;letter-spacing:8px;font-family:'Playfair Display',serif;color:var(--accent);font-weight:700;">${roomCode}</div>
-                        <p class="copy-hint" style="font-size:11px;color:var(--text2);margin-top:6px;">📋 Нажмите, чтобы скопировать</p>
-                        <p class="waiting" style="font-size:11px;color:var(--text2);margin-top:4px;">Поделитесь кодом с другими игроками</p>
-                    </div>
-                    <div class="players-waiting" id="players-waiting" style="width:100%;margin:4px 0;">
-                        <div class="player-panel">
-                            <div class="player-avatar creator">👤</div>
-                            <div class="player-info">
-                                <span class="player-name">${playerName}</span>
-                                <span class="player-role creator-role">👑 Создатель</span>
-                            </div>
-                        </div>
-                    </div>
-                    <button class="btn btn-primary btn-full" onclick="startGame()" style="width:100%;max-width:300px;padding:12px;font-size:15px;border-radius:12px;">🎮 Начать игру</button>
-                    <button class="btn btn-secondary btn-full" onclick="clearInterval(pollTimer);showMenu();" style="width:100%;max-width:300px;padding:12px;font-size:15px;border-radius:12px;">← Отмена</button>
-                </div>
-            `;
-            window.autoUpdateName = async function() {
-                const newName = document.getElementById('lobby-name').value.trim() || 'Игрок';
-                if (newName !== playerName) {
-                    try {
-                        const r = await fetch(API+'/rename', {
-                            method: 'POST',
-                            headers: {'Content-Type':'application/json'},
-                            body: JSON.stringify({code: roomCode, playerId: playerId, name: newName})
-                        });
-                        const d = await r.json();
-                        if(d.ok) {
-                            playerName = newName;
-                            toast('✅ Имя обновлено!', 'success');
-                        } else {
-                            toast(d.error, 'error');
-                        }
-                    } catch(e) {
-                        toast('Ошибка при обновлении имени', 'error');
-                    }
-                }
-            };
-            pollTimer = setInterval(async () => {
-                try {
-                    const r = await fetch(`${API}/state/${roomCode}/${playerId}`);
-                    const d = await r.json();
-                    if (d.ok) {
-                        const container = document.getElementById('players-waiting');
-                        if (container) {
-                            while (container.children.length > 1) {
-                                container.removeChild(container.lastChild);
-                            }
-                            d.players.forEach(p => {
-                                if (p.id === d.ownerId) return;
-                                const div = document.createElement('div');
-                                div.className = 'player-panel';
-                                div.style.marginTop = '4px';
-                                div.innerHTML = `
-                                    <div class="player-avatar">👤</div>
-                                    <div class="player-info">
-                                        <span class="player-name">${p.name}</span>
-                                        <span class="player-role">Игрок</span>
-                                    </div>
-                                `;
-                                container.appendChild(div);
-                            });
-                        }
-                        if (d.status === 'playing') {
-                            fetchState();
-                        }
-                    }
-                } catch (e) {}
-            }, 1000);
-        }
-        function startPolling() {
-            if (pollTimer) {
-                clearTimeout(pollTimer);
-                pollTimer = null;
-            }
-            fetchState();
-            function poll() {
-                fetchState();
-                pollTimer = setTimeout(poll, 300);
-            }
-            pollTimer = setTimeout(poll, 300);
-        }
-        async function fetchState() {
-            if(!roomCode||playerId===null)return;
-            try {
-                const r=await fetch(`${API}/state/${roomCode}/${playerId}`);
-                const d=await r.json();
-                if(d.ok){
-                    d.currentPlayer=parseInt(d.currentPlayer);d.playerId=parseInt(d.playerId);
-                    d.bankCount=parseInt(d.bankCount);d.ownerId=parseInt(d.ownerId);
-                    if(d.players)d.players.forEach(p=>{p.id=parseInt(p.id);p.handCount=parseInt(p.handCount);});
-                    state=d;
-                    isObserver = d.is_observer || false;
-                    renderGame();
-                }
-            } catch(e){}
-        }
-        function renderGame() {
-            if(!state||state.status==='lobby'){showLobby();return;}
-            document.getElementById('bottom-panel').classList.remove('hidden');
-            
-            // Если это наблюдатель, показываем специальную панель
-            if (isObserver) {
-                document.getElementById('app').innerHTML = `
-                    <div style="text-align:center;padding:20px;color:var(--text2);">
-                        <span style="font-size:24px;">👁</span>
-                        <p style="margin-top:8px;font-size:14px;">Вы наблюдаете за игрой как администратор</p>
-                        <button class="btn btn-secondary" onclick="leaveGame()" style="margin-top:12px;">🚪 Выйти из наблюдения</button>
-                    </div>
-                `;
-                return;
-            }
-            
-            const me=state.players.find(p=>parseInt(p.id)===parseInt(playerId));
-            if(!me)return;
-            const isMyTurn = parseInt(state.currentPlayer) === parseInt(playerId);
-            const curObj = state.players.find(p => parseInt(p.id) === parseInt(state.currentPlayer));
-            const curName = curObj ? curObj.name : 'Неизвестно';
-            let html=`<div class="info-bar"><span class="turn">${isMyTurn?'🎯 Ваш ход':'⏳ Ход: '+curName}</span><span class="score">🏆 ${me.quartets.length} | Запас: ${state.bankCount}</span></div>`;
-            html+='<div class="player-list">';
-            for(const p of state.players){
-                if(parseInt(p.id)===parseInt(playerId))continue;
-                const isSelected = selectedPlayerId === parseInt(p.id);
-                html+=`<div class="player-card ${parseInt(state.currentPlayer)===parseInt(p.id)?'current':''} ${isSelected?'selected-player':''}" onclick="selectPlayer(${p.id})"><div class="p-name">${p.name}</div><div class="p-info">🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов</div></div>`;
-            }
-            html+='</div>';
-            const grouped={};if(me.hand)me.hand.forEach(c=>{if(!grouped[c.category])grouped[c.category]=[];grouped[c.category].push(c);});
-            const allCats={};state.categories.forEach(q=>{allCats[q.name]=q.cards.map(c=>({name:c.name,category:q.name,owned:me.hand?me.hand.some(h=>h.category===q.name&&h.cardName===c.name):false}));});
-            const active=Object.keys(grouped).sort();
-            if(!active.length)html+='<p style="text-align:center;padding:40px;color:var(--text2);font-size:14px;">У вас нет карт</p>';
-            else {html+=active.map(cat=>{const cards=allCats[cat]||[],cnt=grouped[cat].length,done=cnt===4;const catId=cat.replace(/[^a-zA-Zа-яА-Я0-9]/g,'_');return `<div class="cat-section"><div class="cat-header" onclick="toggleCat('${catId}')"><span class="title">${cat}</span><span class="badge ${done?'badge-full':'badge-partial'}">${cnt}/4${done?' ✅':''}</span><span class="arrow" id="arrow-${catId}">▼</span></div><div class="cards-row" id="row-${catId}">${cards.map(c=>{const o=c.owned;const s=selectedCard&&selectedCard.category===cat&&selectedCard.cardName===c.name;return o?`<div class="card-chip owned"><div class="chip-name">✅ ${c.name}</div></div>`:`<div class="card-chip missing ${s?'selected':''}" onclick="selectCard('${cat.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')"><div class="chip-name">🃏 ${c.name}</div></div>`;}).join('')}</div></div>`;}).join('');}
-            document.getElementById('app').innerHTML=html;renderHistory(state.history);renderActions();checkWin();
-            
-            // Добавляем кнопки выхода и завершения игры
-            const bottom = document.getElementById('bottom-panel');
-            const exitBtn = document.createElement('div');
-            exitBtn.style.cssText = 'display:flex;gap:8px;padding:4px 10px;justify-content:center;';
-            exitBtn.innerHTML = `
-                <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;" onclick="leaveGame()">🚪 Покинуть игру</button>
-                ${parseInt(state.ownerId) === parseInt(playerId) ? `
-                <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;background:var(--red);color:#fff;border-color:var(--red);" onclick="endGame()">🚫 Завершить игру</button>
-                ` : ''}
-            `;
-            bottom.appendChild(exitBtn);
-        }
-        function toggleCat(id){document.getElementById('row-'+id).classList.toggle('collapsed');document.getElementById('arrow-'+id).classList.toggle('open');}
-        function selectPlayer(pid){
-            selectedPlayerId = parseInt(pid);
-            const p = state.players.find(p => parseInt(p.id) === parseInt(pid));
-            if (p) toast(`Выбран: ${p.name}`,'');
-            renderGame();
-        }
-        function selectCard(cat,name){if(parseInt(state.currentPlayer)!==parseInt(playerId))return;selectedCard=(selectedCard&&selectedCard.category===cat&&selectedCard.cardName===name)?null:{category:cat,cardName:name};renderGame();}
-        async function requestCard() {
-            if(!selectedCard){toast('⚠️ Выберите карточку!','error');return;}
-            const toPlayer=selectedPlayerId!==null?selectedPlayerId:state.players.find(p=>parseInt(p.id)!==parseInt(playerId))?.id;
-            if(toPlayer===undefined){toast('⚠️ Выберите игрока!','error');return;}
-            const fromName = state.players.find(p => parseInt(p.id) === parseInt(playerId))?.name || 'Игрок';
-            const toName = state.players.find(p => parseInt(p.id) === parseInt(toPlayer))?.name || 'Игрок';
-            try {
-                const r=await fetch(API+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,fromPlayer:parseInt(playerId),toPlayer:parseInt(toPlayer),category:selectedCard.category,cardName:selectedCard.cardName})});
-                const d=await r.json();
-                if(d.ok){
-                    if(d.found){
-                        toast(`✅ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карта есть! Переходит к ${fromName}`, 'success');
-                    }else{
-                        const nextName = state.players.find(p => parseInt(p.id) === parseInt(d.nextPlayer))?.name || 'неизвестно';
-                        toast(`❌ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карты нет. Ходит ${nextName}`, 'error');
-                    }
-                    selectedCard=null;selectedPlayerId=null;
-                    fetchState();
-                } else toast(d.error,'error');
-            } catch(e){toast('Ошибка','error');}
-        }
-        function checkWin() {
-            if(!state)return;
-            const allCollected=state.players.reduce((s,p)=>s+p.quartets.length,0);
-            if(allCollected>=state.categories.length||(state.bankCount===0&&state.players.every(p=>p.handCount===0))){
-                clearInterval(pollTimer);
-                document.getElementById('bottom-panel').classList.add('hidden');
-                const sorted=[...state.players].sort((a,b)=>b.quartets.length-a.quartets.length);
-                document.getElementById('app').innerHTML=`<div class="header"><h1 style="font-family:'Inter',sans-serif;font-size:24px;font-weight:700;color:var(--accent);">🏆 Игра окончена!</h1><div class="decor-line"></div></div>`+sorted.map((p,i)=>`<div class="score-item ${i===0&&sorted[0].quartets.length>0?'winner':''}"><span>${i===0?'👑 ':''}${p.name}</span><span style="color:var(--accent);font-weight:700;">${p.quartets.length} квартетов</span></div>`).join('')+'<button class="btn btn-primary btn-full" onclick="showMenu()">В меню</button>';
-            }
-        }
-        async function leaveGame() {
-            try {
-                const r=await fetch(API+'/leave',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,playerId:parseInt(playerId)})});
-                const d=await r.json();
-                if(d.ok){
-                    toast('🚪 Вы покинули игру', '');
-                    clearInterval(pollTimer);
-                    document.getElementById('bottom-panel').classList.add('hidden');
-                    showMenu();
-                } else toast(d.error,'error');
-            } catch(e){toast('Ошибка','error');}
-        }
-        async function endGame() {
-            if (!confirm('Вы уверены, что хотите завершить игру?')) return;
-            try {
-                const r=await fetch(API+'/end_game',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,playerId:parseInt(playerId)})});
-                const d=await r.json();
-                if(d.ok){
-                    toast('🚫 Игра завершена', '');
-                    clearInterval(pollTimer);
-                    await fetchState();
-                } else toast(d.error,'error');
-            } catch(e){toast('Ошибка','error');}
-        }
-        showMenu();
+def check_quartets(room, player_id):
+    p = room['players'][player_id]
+    groups = {}
+    for c in p['hand']:
+        if c['category'] not in groups:
+            groups[c['category']] = []
+        groups[c['category']].append(c)
+    
+    for cat, cards in groups.items():
+        if len(cards) == 4:
+            p['quartets'].append(cat)
+            p['hand'] = [c for c in p['hand'] if c['category'] != cat]
+            room['history'].append({
+                'time': datetime.now().strftime('%H:%M'),
+                'text': f'🏆 {p["name"]} собрал(а) квартет «{cat}»!',
+                'type': 'ok'
+            })
+            print(f"[QUARTET] {p['name']} собрал(а) квартет «{cat}»!")
 
-        // ----- Обратная связь -----
-        function openFeedback() {
-            if (feedbackOpen) return;
-            feedbackOpen = true;
-            const modal = document.createElement('div');
-            modal.id = 'feedback-modal';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <h3>💬 Обратная связь</h3>
-                    <p>Напишите, что хотите сообщить: ошибки, идеи, предложения.</p>
-                    <textarea id="feedback-message" placeholder="Ваше сообщение..."></textarea>
-                    <div class="btn-group">
-                        <button class="btn btn-primary" onclick="sendFeedback()">📤 Отправить</button>
-                        <button class="btn btn-secondary" onclick="closeFeedback()">← Назад</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
-        function closeFeedback() {
-            feedbackOpen = false;
-            const modal = document.getElementById('feedback-modal');
-            if (modal) modal.remove();
-        }
-        function sendFeedback() {
-            const message = document.getElementById('feedback-message').value.trim();
-            if (!message) {
-                toast('Напишите сообщение', 'error');
-                return;
-            }
-            fetch(API + '/feedback', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    code: roomCode || 'menu',
-                    playerId: playerId,
-                    name: playerName,
-                    message: message
+@app.route('/leave', methods=['POST'])
+def leave_room():
+    data = request.get_json()
+    code = data.get('code', '').upper()
+    player_id = int(data.get('playerId', -1))
+    
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
+    
+    room = rooms[code]
+    
+    if player_id in room.get('observers', []):
+        room['observers'].remove(player_id)
+        return jsonify({'ok': True})
+    
+    player = None
+    for p in room['players']:
+        if p['id'] == player_id:
+            player = p
+            break
+    
+    if not player:
+        return jsonify({'ok': False, 'error': 'Игрок не найден'}), 404
+    
+    player_name = player['name']
+    
+    room['players'] = [p for p in room['players'] if p['id'] != player_id]
+    
+    if len(room['players']) == 0:
+        del rooms[code]
+        return jsonify({'ok': True})
+    
+    if room['ownerId'] == player_id:
+        if len(room['players']) > 0:
+            new_owner = random.choice(room['players'])
+            room['ownerId'] = new_owner['id']
+            room['history'].append({
+                'time': datetime.now().strftime('%H:%M'),
+                'text': f'👑 Владение перешло к {new_owner["name"]}',
+                'type': 'system'
+            })
+    
+    if room['currentPlayer'] == player_id:
+        if len(room['players']) > 0:
+            next_player = room['currentPlayer'] % len(room['players'])
+            room['currentPlayer'] = int(next_player)
+            room['last_move_time'] = datetime.now().timestamp()
+    
+    room['history'].append({
+        'time': datetime.now().strftime('%H:%M'),
+        'text': f'🚪 {player_name} покинул игру',
+        'type': 'system'
+    })
+    
+    print(f"[LEAVE] {player_name} покинул комнату {code}")
+    return jsonify({'ok': True})
+
+@app.route('/end_game', methods=['POST'])
+def end_game():
+    data = request.get_json()
+    code = data.get('code', '').upper()
+    player_id = int(data.get('playerId', -1))
+    
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
+    
+    room = rooms[code]
+    
+    if room['ownerId'] != player_id:
+        return jsonify({'ok': False, 'error': 'Только создатель может завершить игру'}), 400
+    
+    room['status'] = 'finished'
+    room['history'].append({
+        'time': datetime.now().strftime('%H:%M'),
+        'text': '🚫 Игра завершена создателем',
+        'type': 'system'
+    })
+    
+    print(f"[END] Игра в комнате {code} завершена создателем")
+    return jsonify({'ok': True})
+
+@app.route('/feedback', methods=['POST'])
+def feedback():
+    data = request.get_json()
+    code = data.get('code', '')
+    player_id = data.get('playerId', -1)
+    message = data.get('message', '').strip()
+    player_name = data.get('name', 'Игрок')
+    
+    if not message:
+        return jsonify({'ok': False, 'error': 'Сообщение не может быть пустым'}), 400
+    
+    global all_feedback
+    feedback_entry = {
+        'id': len(all_feedback) + 1,
+        'time': datetime.now().strftime('%H:%M %d.%m'),
+        'name': player_name,
+        'playerId': player_id,
+        'room': code,
+        'message': message,
+        'read': False
+    }
+    all_feedback.append(feedback_entry)
+    save_feedback(all_feedback)
+    
+    print(f"[FEEDBACK] От {player_name} (ID: {player_id}, комната: {code}): {message}")
+    return jsonify({'ok': True, 'message': 'Сообщение отправлено в поддержку'})
+
+@app.route('/feedback/list/<int:player_id>', methods=['GET'])
+def get_feedback_list(player_id):
+    if player_id not in ADMIN_IDS:
+        return jsonify({'ok': False, 'error': 'Доступ запрещён'}), 403
+    
+    feedback_list = sorted(all_feedback, key=lambda x: x['id'], reverse=True)
+    return jsonify({'ok': True, 'feedback': feedback_list})
+
+@app.route('/feedback/mark_read/<int:feedback_id>', methods=['POST'])
+def mark_feedback_read(feedback_id):
+    global all_feedback
+    for entry in all_feedback:
+        if entry['id'] == feedback_id:
+            entry['read'] = True
+            save_feedback(all_feedback)
+            return jsonify({'ok': True})
+    return jsonify({'ok': False, 'error': 'Сообщение не найдено'}), 404
+
+@app.route('/admin/games/<int:player_id>', methods=['GET'])
+def admin_games(player_id):
+    if player_id not in ADMIN_IDS:
+        return jsonify({'ok': False, 'error': 'Доступ запрещён'}), 403
+    
+    games_list = []
+    for code, room in rooms.items():
+        players_info = [{'id': p['id'], 'name': p['name']} for p in room['players']]
+        games_list.append({
+            'code': code,
+            'status': room['status'],
+            'players': players_info,
+            'ownerId': room['ownerId'],
+            'created': room['history'][0]['time'] if room['history'] else 'неизвестно'
+        })
+    
+    return jsonify({'ok': True, 'games': games_list})
+
+@app.route('/observe/<code>/<int:player_id>', methods=['POST'])
+def observe_game(code, player_id):
+    if player_id not in ADMIN_IDS:
+        return jsonify({'ok': False, 'error': 'Доступ запрещён'}), 403
+    
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
+    
+    room = rooms[code]
+    
+    if player_id not in room.get('observers', []):
+        room.setdefault('observers', []).append(player_id)
+    
+    return jsonify({'ok': True, 'roomCode': code, 'playerId': player_id})
+
+@app.route('/check_timeouts/<code>', methods=['POST'])
+def check_timeouts(code):
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
+    
+    room = rooms[code]
+    if room['status'] != 'playing':
+        return jsonify({'ok': False, 'error': 'Игра не активна'}), 400
+    
+    current_time = datetime.now().timestamp()
+    time_diff = current_time - room['last_move_time']
+    
+    if time_diff > 60:
+        current_player_id = room['currentPlayer']
+        current_player = None
+        for p in room['players']:
+            if p['id'] == current_player_id:
+                current_player = p
+                break
+        
+        if current_player:
+            current_player['missed_turns'] = current_player.get('missed_turns', 0) + 1
+            print(f"[TIMEOUT] {current_player['name']} пропустил ход ({current_player['missed_turns']} раз)")
+            
+            if current_player['missed_turns'] >= 2:
+                player_name = current_player['name']
+                room['players'] = [p for p in room['players'] if p['id'] != current_player_id]
+                room['history'].append({
+                    'time': datetime.now().strftime('%H:%M'),
+                    'text': f'⏰ {player_name} исключён за бездействие',
+                    'type': 'system'
                 })
-            })
-            .then(res => res.json())
-            .then(d => {
-                if (d.ok) {
-                    toast('✅ Сообщение отправлено в поддержку!', 'success');
-                    closeFeedback();
-                } else {
-                    toast('❌ ' + d.error, 'error');
-                }
-            })
-            .catch(() => toast('Ошибка отправки', 'error'));
-        }
+                print(f"[KICK] {player_name} исключён из комнаты {code} за бездействие")
+                
+                if len(room['players']) == 0:
+                    del rooms[code]
+                    return jsonify({'ok': True, 'kicked': True})
+                
+                if room['ownerId'] == current_player_id:
+                    if len(room['players']) > 0:
+                        new_owner = random.choice(room['players'])
+                        room['ownerId'] = new_owner['id']
+                        room['history'].append({
+                            'time': datetime.now().strftime('%H:%M'),
+                            'text': f'👑 Владение перешло к {new_owner["name"]}',
+                            'type': 'system'
+                        })
+            else:
+                next_player = (current_player_id + 1) % len(room['players'])
+                room['currentPlayer'] = int(next_player)
+                room['last_move_time'] = datetime.now().timestamp()
+                room['history'].append({
+                    'time': datetime.now().strftime('%H:%M'),
+                    'text': f'⏰ Ход передан {room["players"][next_player]["name"]} (бездействие)',
+                    'type': 'system'
+                })
+    
+    return jsonify({'ok': True})
 
-        // ----- Правила -----
-        function openRules() {
-            if (rulesOpen) return;
-            rulesOpen = true;
-            const modal = document.createElement('div');
-            modal.id = 'rules-modal';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <h3>📜 Правила игры</h3>
-                    <div class="rules-text">
-                        <p><strong>Цель игры:</strong> Собрать как можно больше квартетов (4 карты одной категории).</p>
-                        <ul>
-                            <li>В игре 37 квартетов, всего 148 карт.</li>
-                            <li>Каждому игроку раздаётся одинаковое количество карт (7, 10 или 15).</li>
-                            <li>Остальные карты образуют «запас» (банк).</li>
-                            <li>Игроки ходят по очереди. В свой ход можно <strong>попросить</strong> у любого другого игрока конкретную карту из категории, которая уже есть у вас в руке.</li>
-                            <li>Если у соперника есть эта карта — он отдаёт её вам, и вы ходите снова.</li>
-                            <li>Если у соперника нет этой карты — вы берёте одну карту из запаса, и ход переходит к следующему игроку.</li>
-                            <li>Если вы собрали 4 карты одной категории — они выкладываются на стол (квартет), и вы получаете 1 очко.</li>
-                            <li>Игра заканчивается, когда все квартеты собраны или когда запас пуст, и у всех игроков нет карт.</li>
-                        </ul>
-                        <p><strong>Дополнительно:</strong></p>
-                        <ul>
-                            <li>Если игрок не ходит более 1 минуты — ход переходит к следующему.</li>
-                            <li>Если игрок пропускает ход дважды — он автоматически покидает игру.</li>
-                            <li>Создатель комнаты может завершить игру досрочно.</li>
-                            <li>Игрок может покинуть игру в любой момент (кнопка «Покинуть игру»).</li>
-                        </ul>
-                    </div>
-                    <div class="btn-group">
-                        <button class="btn btn-secondary" onclick="closeRules()">← Закрыть</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
-        function closeRules() {
-            rulesOpen = false;
-            const modal = document.getElementById('rules-modal');
-            if (modal) modal.remove();
-        }
-
-        // ----- Панель администратора -----
-        function openAdminPanel() {
-            if (adminOpen) return;
-            if (!ADMIN_IDS.includes(parseInt(playerId))) {
-                toast('Доступ только для администраторов', 'error');
-                return;
-            }
-            adminOpen = true;
-            
-            fetch(API + '/feedback/list/' + playerId)
-                .then(res => res.json())
-                .then(d => {
-                    if (!d.ok) {
-                        toast('Ошибка загрузки: ' + d.error, 'error');
-                        adminOpen = false;
-                        return;
-                    }
-                    
-                    fetch(API + '/admin/games/' + playerId)
-                        .then(res => res.json())
-                        .then(g => {
-                            if (!g.ok) {
-                                toast('Ошибка загрузки игр: ' + g.error, 'error');
-                                adminOpen = false;
-                                return;
-                            }
-                            
-                            const modal = document.createElement('div');
-                            modal.id = 'admin-modal';
-                            let feedbackHtml = '';
-                            if (d.feedback && d.feedback.length > 0) {
-                                feedbackHtml = d.feedback.map(f => `
-                                    <div class="feedback-item" style="${f.read ? 'opacity:0.6;' : ''}">
-                                        <div class="feedback-header">
-                                            <span class="name">${f.name}</span>
-                                            <span class="time">${f.time}</span>
-                                            <span class="room">${f.room ? '#'+f.room : 'меню'}</span>
-                                        </div>
-                                        <div class="feedback-message">${f.message}</div>
-                                        <button class="reply-btn" onclick="replyToFeedback(${f.id})">Ответить</button>
-                                    </div>
-                                `).join('');
-                            } else {
-                                feedbackHtml = '<p style="font-size:13px;color:var(--text2);">Сообщений пока нет</p>';
-                            }
-                            
-                            let gamesHtml = '';
-                            if (g.games && g.games.length > 0) {
-                                gamesHtml = g.games.map(game => `
-                                    <div class="game-item">
-                                        <div>
-                                            <span class="status-indicator ${game.status === 'playing' ? 'active' : 'finished'}"></span>
-                                            <strong>${game.code}</strong>
-                                            <span style="font-size:11px;color:var(--text2);margin-left:6px;">${game.status === 'playing' ? '🟢' : '🔴'}</span>
-                                            <span style="font-size:11px;color:var(--text2);margin-left:6px;">👤 ${game.players.map(p => p.name).join(', ')}</span>
-                                        </div>
-                                        ${game.status === 'playing' ? `
-                                        <button class="observe-btn" onclick="observeGame('${game.code}')">👁 Наблюдать</button>
-                                        ` : '<span style="font-size:11px;color:var(--text2);">Завершена</span>'}
-                                    </div>
-                                `).join('');
-                            } else {
-                                gamesHtml = '<p style="font-size:13px;color:var(--text2);">Активных игр нет</p>';
-                            }
-                            
-                            modal.innerHTML = `
-                                <div class="modal-content">
-                                    <h3>📊 Панель администратора</h3>
-                                    <div class="section-title">📩 Сообщения</div>
-                                    ${feedbackHtml}
-                                    <div class="section-title">🎮 Игры</div>
-                                    ${gamesHtml}
-                                    <div class="btn-group" style="margin-top:12px;">
-                                        <button class="btn btn-secondary" onclick="closeAdminPanel()">← Закрыть</button>
-                                    </div>
-                                </div>
-                            `;
-                            document.body.appendChild(modal);
-                        });
-                });
-        }
-        function closeAdminPanel() {
-            adminOpen = false;
-            const modal = document.getElementById('admin-modal');
-            if (modal) modal.remove();
-        }
-        function observeGame(code) {
-            closeAdminPanel();
-            if (!ADMIN_IDS.includes(parseInt(playerId))) {
-                toast('Доступ только для администраторов', 'error');
-                return;
-            }
-            fetch(API + '/observe/' + code + '/' + playerId, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({})
-            })
-            .then(res => res.json())
-            .then(d => {
-                if (d.ok) {
-                    roomCode = d.roomCode;
-                    playerId = d.playerId;
-                    isObserver = true;
-                    startPolling();
-                    toast('👁 Вы вошли в игру как наблюдатель', 'success');
-                } else {
-                    toast('Ошибка: ' + d.error, 'error');
-                }
-            })
-            .catch(() => toast('Ошибка подключения', 'error'));
-        }
-        function replyToFeedback(feedbackId) {
-            closeAdminPanel();
-            const reply = prompt('Введите ответ для этого сообщения:');
-            if (!reply) return;
-            // Здесь можно добавить отправку ответа через API
-            toast('✅ Ответ отправлен (в разработке)', 'success');
-        }
-    </script>
-</body>
-</html>
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
