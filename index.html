@@ -767,9 +767,16 @@
             }, 1000);
         }
         function startPolling() {
-            if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
+            if (pollTimer) {
+                clearTimeout(pollTimer);
+                pollTimer = null;
+            }
             fetchState();
-            pollTimer=setInterval(fetchState,1000);
+            function poll() {
+                fetchState();
+                pollTimer = setTimeout(poll, 300);
+            }
+            pollTimer = setTimeout(poll, 300);
         }
         async function fetchState() {
             if(!roomCode||playerId===null)return;
