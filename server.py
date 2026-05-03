@@ -242,14 +242,12 @@ def request_card():
     to_name = target['name']
     
     if card_index is not None:
-        # ✅ УГАДАЛ
         card = target['hand'].pop(card_index)
         requester['hand'].append(card)
         
         check_quartets(room, from_player)
         check_quartets(room, to_player)
         
-        # ✅ КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: ход остаётся у того же игрока
         room['currentPlayer'] = int(from_player)
         
         room['history'].append({
@@ -265,7 +263,6 @@ def request_card():
             'nextPlayer': int(from_player)
         })
     else:
-        # ❌ НЕ УГАДАЛ
         drawn = None
         if room['deck']:
             drawn = room['deck'].pop()
@@ -313,6 +310,27 @@ def check_quartets(room, player_id):
                 'type': 'ok'
             })
             print(f"[QUARTET] {p['name']} собрал(а) квартет «{cat}»!")
+
+# ----- Эндпоинт для обратной связи -----
+@app.route('/feedback', methods=['POST'])
+def feedback():
+    data = request.get_json()
+    code = data.get('code', '')
+    player_id = data.get('playerId', -1)
+    message = data.get('message', '').strip()
+    player_name = data.get('name', 'Игрок')
+    
+    if not message:
+        return jsonify({'ok': False, 'error': 'Сообщение не может быть пустым'}), 400
+    
+    print(f"[FEEDBACK] От {player_name} (ID: {player_id}, комната: {code}): {message}")
+    
+    # Здесь можно добавить отправку в Telegram
+    # from telegram import Bot
+    # bot = Bot(token='YOUR_BOT_TOKEN')
+    # bot.send_message(chat_id='YOUR_CHAT_ID', text=f"📩 Сообщение от {player_name} (ID: {player_id}):\n{message}")
+    
+    return jsonify({'ok': True, 'message': 'Сообщение отправлено в поддержку'})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
