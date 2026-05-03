@@ -674,6 +674,132 @@
         #feedback-modal .modal-content .btn-group .btn {
             flex: 1;
         }
+
+        /* Модальное окно правил */
+        #rules-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+        #rules-modal .modal-content {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        #rules-modal .modal-content h3 {
+            font-family: 'Playfair Display', serif;
+            color: var(--accent);
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+        #rules-modal .modal-content .rules-text {
+            font-size: 13px;
+            color: var(--text);
+            line-height: 1.6;
+        }
+        #rules-modal .modal-content .rules-text ul {
+            padding-left: 20px;
+            margin: 8px 0;
+        }
+        #rules-modal .modal-content .rules-text ul li {
+            margin-bottom: 4px;
+        }
+        #rules-modal .modal-content .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        #rules-modal .modal-content .btn-group .btn {
+            flex: 1;
+        }
+
+        /* Панель администратора */
+        #admin-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+        #admin-modal .modal-content {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        #admin-modal .modal-content h3 {
+            font-family: 'Playfair Display', serif;
+            color: var(--accent);
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+        #admin-modal .modal-content .section-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--accent);
+            margin-top: 12px;
+            margin-bottom: 6px;
+        }
+        #admin-modal .modal-content .game-item {
+            padding: 8px 12px;
+            background: rgba(123,75,42,0.05);
+            border-radius: 8px;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+        #admin-modal .modal-content .game-item .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        #admin-modal .modal-content .game-item .status-indicator.active {
+            background: #27ae60;
+        }
+        #admin-modal .modal-content .game-item .status-indicator.finished {
+            background: #c0392b;
+        }
+        #admin-modal .modal-content .game-item .observe-btn {
+            padding: 4px 12px;
+            font-size: 11px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        #admin-modal .modal-content .game-item .observe-btn:hover {
+            background: #8a5530;
+        }
     </style>
 </head>
 <body>
@@ -692,10 +818,12 @@
         if (tg) { tg.expand(); tg.ready(); tg.setHeaderColor('#f5f0e8'); tg.setBackgroundColor('#f5f0e8'); }
         
         const API = 'https://bible-quartet-server.onrender.com';
+        const ADMIN_IDS = [39444699, 26156823];
         let state = null, playerId = null, roomCode = null, selectedCard = null, selectedPlayerId = null;
         let playerName = tg?.initDataUnsafe?.user?.first_name || '';
         let pollTimer = null, historyOpen = false;
-        let feedbackOpen = false;
+        let feedbackOpen = false, rulesOpen = false, adminOpen = false;
+        let isObserver = false;
 
         function toast(msg, type) {
             const t = document.getElementById('toast');
@@ -718,7 +846,7 @@
             const row = document.getElementById('action-row');
             const cp = parseInt(state?.currentPlayer);
             const pid = parseInt(playerId);
-            if (!state || cp !== pid) {
+            if (!state || cp !== pid || isObserver) {
                 row.innerHTML = '<span style="color:var(--text2);font-size:12px;">⏳ Ожидание хода другого игрока... (вы #'+pid+', ходит #'+cp+')</span>';
                 return;
             }
@@ -728,6 +856,7 @@
         function showMenu() {
             clearInterval(pollTimer);
             document.getElementById('bottom-panel').classList.add('hidden');
+            const isAdmin = ADMIN_IDS.includes(parseInt(playerId));
             document.getElementById('app').innerHTML = `
                 <div class="menu-container">
                     <div class="menu-decoration"></div>
@@ -754,10 +883,18 @@
                     <button class="btn btn-secondary" style="position:relative;z-index:1;" onclick="saveNameAndJoin()">
                         <span class="btn-icon join-icon">🔗</span> Присоединиться
                     </button>
-                    <div style="margin-top:8px;text-align:center;position:relative;z-index:1;">
-                        <button class="btn btn-secondary" style="max-width:300px;padding:8px 16px;font-size:12px;" onclick="openFeedback()">
+                    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1;margin-top:8px;">
+                        <button class="btn btn-secondary" style="max-width:300px;padding:8px 16px;font-size:12px;flex:1;" onclick="openFeedback()">
                             💬 Написать в поддержку
                         </button>
+                        <button class="btn btn-secondary" style="max-width:300px;padding:8px 16px;font-size:12px;flex:1;" onclick="openRules()">
+                            📜 Правила
+                        </button>
+                        ${isAdmin ? `
+                        <button class="btn btn-secondary" style="max-width:300px;padding:8px 16px;font-size:12px;flex:1;background:rgba(123,75,42,0.15);border-color:var(--accent);" onclick="openAdminPanel()">
+                            📊 Игры
+                        </button>
+                        ` : ''}
                     </div>
                 </div>
             `;
@@ -814,7 +951,7 @@
         }
         async function createGame(n) {
             try {
-                const r = await fetch(API+'/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:playerName,cards:n})});
+                const r = await fetch(API+'/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:playerName,cards:n,playerId:parseInt(playerId)})});
                 const d = await r.json();
                 if(d.ok){roomCode=d.code;playerId=parseInt(d.playerId);showLobby();} else toast(d.error,'error');
             } catch(e){toast('Ошибка соединения','error');}
@@ -823,7 +960,7 @@
             const code=document.getElementById('join-code').value.trim().toUpperCase();
             if(!code){toast('Введите код','error');return;}
             try {
-                const r=await fetch(API+'/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,name:playerName})});
+                const r=await fetch(API+'/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,name:playerName,playerId:parseInt(playerId)})});
                 const d=await r.json();
                 if(d.ok){roomCode=code;playerId=parseInt(d.playerId);startPolling();} else toast(d.error,'error');
             } catch(e){toast('Ошибка соединения','error');}
@@ -949,6 +1086,7 @@
                     d.bankCount=parseInt(d.bankCount);d.ownerId=parseInt(d.ownerId);
                     if(d.players)d.players.forEach(p=>{p.id=parseInt(p.id);p.handCount=parseInt(p.handCount);});
                     state=d;
+                    isObserver = d.is_observer || false;
                     renderGame();
                 }
             } catch(e){}
@@ -956,6 +1094,19 @@
         function renderGame() {
             if(!state||state.status==='lobby'){showLobby();return;}
             document.getElementById('bottom-panel').classList.remove('hidden');
+            
+            // Если это наблюдатель, показываем специальную панель
+            if (isObserver) {
+                document.getElementById('app').innerHTML = `
+                    <div style="text-align:center;padding:20px;color:var(--text2);">
+                        <span style="font-size:24px;">👁</span>
+                        <p style="margin-top:8px;font-size:14px;">Вы наблюдаете за игрой как администратор</p>
+                        <button class="btn btn-secondary" onclick="leaveGame()" style="margin-top:12px;">🚪 Выйти из наблюдения</button>
+                    </div>
+                `;
+                return;
+            }
+            
             const me=state.players.find(p=>parseInt(p.id)===parseInt(playerId));
             if(!me)return;
             const isMyTurn = parseInt(state.currentPlayer) === parseInt(playerId);
@@ -975,6 +1126,18 @@
             if(!active.length)html+='<p style="text-align:center;padding:40px;color:var(--text2);font-size:14px;">У вас нет карт</p>';
             else {html+=active.map(cat=>{const cards=allCats[cat]||[],cnt=grouped[cat].length,done=cnt===4;const catId=cat.replace(/[^a-zA-Zа-яА-Я0-9]/g,'_');return `<div class="cat-section"><div class="cat-header" onclick="toggleCat('${catId}')"><span class="title">${cat}</span><span class="badge ${done?'badge-full':'badge-partial'}">${cnt}/4${done?' ✅':''}</span><span class="arrow" id="arrow-${catId}">▼</span></div><div class="cards-row" id="row-${catId}">${cards.map(c=>{const o=c.owned;const s=selectedCard&&selectedCard.category===cat&&selectedCard.cardName===c.name;return o?`<div class="card-chip owned"><div class="chip-name">✅ ${c.name}</div></div>`:`<div class="card-chip missing ${s?'selected':''}" onclick="selectCard('${cat.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')"><div class="chip-name">🃏 ${c.name}</div></div>`;}).join('')}</div></div>`;}).join('');}
             document.getElementById('app').innerHTML=html;renderHistory(state.history);renderActions();checkWin();
+            
+            // Добавляем кнопки выхода и завершения игры
+            const bottom = document.getElementById('bottom-panel');
+            const exitBtn = document.createElement('div');
+            exitBtn.style.cssText = 'display:flex;gap:8px;padding:4px 10px;justify-content:center;';
+            exitBtn.innerHTML = `
+                <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;" onclick="leaveGame()">🚪 Покинуть игру</button>
+                ${parseInt(state.ownerId) === parseInt(playerId) ? `
+                <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;background:var(--red);color:#fff;border-color:var(--red);" onclick="endGame()">🚫 Завершить игру</button>
+                ` : ''}
+            `;
+            bottom.appendChild(exitBtn);
         }
         function toggleCat(id){document.getElementById('row-'+id).classList.toggle('collapsed');document.getElementById('arrow-'+id).classList.toggle('open');}
         function selectPlayer(pid){
@@ -1015,13 +1178,36 @@
                 document.getElementById('app').innerHTML=`<div class="header"><h1 style="font-family:'Inter',sans-serif;font-size:24px;font-weight:700;color:var(--accent);">🏆 Игра окончена!</h1><div class="decor-line"></div></div>`+sorted.map((p,i)=>`<div class="score-item ${i===0&&sorted[0].quartets.length>0?'winner':''}"><span>${i===0?'👑 ':''}${p.name}</span><span style="color:var(--accent);font-weight:700;">${p.quartets.length} квартетов</span></div>`).join('')+'<button class="btn btn-primary btn-full" onclick="showMenu()">В меню</button>';
             }
         }
+        async function leaveGame() {
+            try {
+                const r=await fetch(API+'/leave',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,playerId:parseInt(playerId)})});
+                const d=await r.json();
+                if(d.ok){
+                    toast('🚪 Вы покинули игру', '');
+                    clearInterval(pollTimer);
+                    document.getElementById('bottom-panel').classList.add('hidden');
+                    showMenu();
+                } else toast(d.error,'error');
+            } catch(e){toast('Ошибка','error');}
+        }
+        async function endGame() {
+            if (!confirm('Вы уверены, что хотите завершить игру?')) return;
+            try {
+                const r=await fetch(API+'/end_game',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,playerId:parseInt(playerId)})});
+                const d=await r.json();
+                if(d.ok){
+                    toast('🚫 Игра завершена', '');
+                    clearInterval(pollTimer);
+                    await fetchState();
+                } else toast(d.error,'error');
+            } catch(e){toast('Ошибка','error');}
+        }
         showMenu();
 
         // ----- Обратная связь -----
         function openFeedback() {
             if (feedbackOpen) return;
             feedbackOpen = true;
-            
             const modal = document.createElement('div');
             modal.id = 'feedback-modal';
             modal.innerHTML = `
@@ -1037,20 +1223,17 @@
             `;
             document.body.appendChild(modal);
         }
-
         function closeFeedback() {
             feedbackOpen = false;
             const modal = document.getElementById('feedback-modal');
             if (modal) modal.remove();
         }
-
         function sendFeedback() {
             const message = document.getElementById('feedback-message').value.trim();
             if (!message) {
                 toast('Напишите сообщение', 'error');
                 return;
             }
-            
             fetch(API + '/feedback', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -1071,6 +1254,158 @@
                 }
             })
             .catch(() => toast('Ошибка отправки', 'error'));
+        }
+
+        // ----- Правила -----
+        function openRules() {
+            if (rulesOpen) return;
+            rulesOpen = true;
+            const modal = document.createElement('div');
+            modal.id = 'rules-modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3>📜 Правила игры</h3>
+                    <div class="rules-text">
+                        <p><strong>Цель игры:</strong> Собрать как можно больше квартетов (4 карты одной категории).</p>
+                        <ul>
+                            <li>В игре 37 квартетов, всего 148 карт.</li>
+                            <li>Каждому игроку раздаётся одинаковое количество карт (7, 10 или 15).</li>
+                            <li>Остальные карты образуют «запас» (банк).</li>
+                            <li>Игроки ходят по очереди. В свой ход можно <strong>попросить</strong> у любого другого игрока конкретную карту из категории, которая уже есть у вас в руке.</li>
+                            <li>Если у соперника есть эта карта — он отдаёт её вам, и вы ходите снова.</li>
+                            <li>Если у соперника нет этой карты — вы берёте одну карту из запаса, и ход переходит к следующему игроку.</li>
+                            <li>Если вы собрали 4 карты одной категории — они выкладываются на стол (квартет), и вы получаете 1 очко.</li>
+                            <li>Игра заканчивается, когда все квартеты собраны или когда запас пуст, и у всех игроков нет карт.</li>
+                        </ul>
+                        <p><strong>Дополнительно:</strong></p>
+                        <ul>
+                            <li>Если игрок не ходит более 1 минуты — ход переходит к следующему.</li>
+                            <li>Если игрок пропускает ход дважды — он автоматически покидает игру.</li>
+                            <li>Создатель комнаты может завершить игру досрочно.</li>
+                            <li>Игрок может покинуть игру в любой момент (кнопка «Покинуть игру»).</li>
+                        </ul>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" onclick="closeRules()">← Закрыть</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        function closeRules() {
+            rulesOpen = false;
+            const modal = document.getElementById('rules-modal');
+            if (modal) modal.remove();
+        }
+
+        // ----- Панель администратора -----
+        function openAdminPanel() {
+            if (adminOpen) return;
+            if (!ADMIN_IDS.includes(parseInt(playerId))) {
+                toast('Доступ только для администраторов', 'error');
+                return;
+            }
+            adminOpen = true;
+            
+            fetch(API + '/feedback/list/' + playerId)
+                .then(res => res.json())
+                .then(d => {
+                    if (!d.ok) {
+                        toast('Ошибка загрузки: ' + d.error, 'error');
+                        adminOpen = false;
+                        return;
+                    }
+                    
+                    fetch(API + '/admin/games/' + playerId)
+                        .then(res => res.json())
+                        .then(g => {
+                            if (!g.ok) {
+                                toast('Ошибка загрузки игр: ' + g.error, 'error');
+                                adminOpen = false;
+                                return;
+                            }
+                            
+                            const modal = document.createElement('div');
+                            modal.id = 'admin-modal';
+                            let feedbackHtml = '';
+                            if (d.feedback && d.feedback.length > 0) {
+                                feedbackHtml = d.feedback.map(f => `
+                                    <div style="padding:6px 10px;background:rgba(123,75,42,0.05);border-radius:6px;margin-bottom:4px;font-size:12px;${f.read ? 'opacity:0.6;' : ''}">
+                                        <div style="display:flex;justify-content:space-between;">
+                                            <span><strong>${f.name}</strong> (${f.time})</span>
+                                            <span style="font-size:10px;color:var(--text2);">${f.room ? '#'+f.room : 'меню'}</span>
+                                        </div>
+                                        <div style="margin-top:2px;">${f.message}</div>
+                                    </div>
+                                `).join('');
+                            } else {
+                                feedbackHtml = '<p style="font-size:13px;color:var(--text2);">Сообщений пока нет</p>';
+                            }
+                            
+                            let gamesHtml = '';
+                            if (g.games && g.games.length > 0) {
+                                gamesHtml = g.games.map(game => `
+                                    <div class="game-item">
+                                        <div>
+                                            <span class="status-indicator ${game.status === 'playing' ? 'active' : 'finished'}"></span>
+                                            <strong>${game.code}</strong>
+                                            <span style="font-size:11px;color:var(--text2);margin-left:6px;">${game.status === 'playing' ? '🟢' : '🔴'}</span>
+                                            <span style="font-size:11px;color:var(--text2);margin-left:6px;">👤 ${game.players.map(p => p.name).join(', ')}</span>
+                                        </div>
+                                        ${game.status === 'playing' ? `
+                                        <button class="observe-btn" onclick="observeGame('${game.code}')">👁 Наблюдать</button>
+                                        ` : '<span style="font-size:11px;color:var(--text2);">Завершена</span>'}
+                                    </div>
+                                `).join('');
+                            } else {
+                                gamesHtml = '<p style="font-size:13px;color:var(--text2);">Активных игр нет</p>';
+                            }
+                            
+                            modal.innerHTML = `
+                                <div class="modal-content">
+                                    <h3>📊 Панель администратора</h3>
+                                    <div class="section-title">📩 Сообщения</div>
+                                    ${feedbackHtml}
+                                    <div class="section-title">🎮 Игры</div>
+                                    ${gamesHtml}
+                                    <div class="btn-group" style="margin-top:12px;">
+                                        <button class="btn btn-secondary" onclick="closeAdminPanel()">← Закрыть</button>
+                                    </div>
+                                </div>
+                            `;
+                            document.body.appendChild(modal);
+                        });
+                });
+        }
+        function closeAdminPanel() {
+            adminOpen = false;
+            const modal = document.getElementById('admin-modal');
+            if (modal) modal.remove();
+        }
+        function observeGame(code) {
+            closeAdminPanel();
+            if (!ADMIN_IDS.includes(parseInt(playerId))) {
+                toast('Доступ только для администраторов', 'error');
+                return;
+            }
+            fetch(API + '/observe/' + code + '/' + playerId, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({})
+            })
+            .then(res => res.json())
+            .then(d => {
+                if (d.ok) {
+                    roomCode = d.roomCode;
+                    playerId = d.playerId;
+                    isObserver = true;
+                    startPolling();
+                    toast('👁 Вы вошли в игру как наблюдатель', 'success');
+                } else {
+                    toast('Ошибка: ' + d.error, 'error');
+                }
+            })
+            .catch(() => toast('Ошибка подключения', 'error'));
         }
     </script>
 </body>
