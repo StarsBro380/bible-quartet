@@ -5,13 +5,11 @@ import string
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from flask_socketio import SocketIO, emit, join_room, leave_room
 
 app = Flask(__name__)
 CORS(app)
-app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, cors_allowed_origins='*')
 
+# Отключаем кэширование (важно для Render.com)
 @app.after_request
 def after_request(response):
     response.headers.add('Cache-Control', 'no-cache, no-store, must-revalidate')
@@ -133,7 +131,6 @@ def join_room():
     })
     
     print(f"[JOIN] Комната {code}, новый игрок {player_id}: {player_name}")
-    print(f"[JOIN] Текущие игроки в комнате: {[p['id'] for p in room['players']]}")
     return jsonify({'ok': True, 'playerId': int(player_id)})
 
 @app.route('/state/<code>/<int:player_id>', methods=['GET'])
@@ -245,12 +242,14 @@ def request_card():
     to_name = target['name']
     
     if card_index is not None:
+        # ✅ УГАДАЛ
         card = target['hand'].pop(card_index)
         requester['hand'].append(card)
         
         check_quartets(room, from_player)
         check_quartets(room, to_player)
         
+        # ✅ КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: ход остаётся у того же игрока
         room['currentPlayer'] = int(from_player)
         
         room['history'].append({
@@ -266,6 +265,7 @@ def request_card():
             'nextPlayer': int(from_player)
         })
     else:
+        # ❌ НЕ УГАДАЛ
         drawn = None
         if room['deck']:
             drawn = room['deck'].pop()
@@ -314,40 +314,5 @@ def check_quartets(room, player_id):
             })
             print(f"[QUARTET] {p['name']} собрал(а) квартет «{cat}»!")
 
-# ----- SocketIO для голосового чата -----
-@socketio.on('join_voice')
-def handle_join_voice(data):
-    code = data.get('code')
-    player_id = data.get('playerId')
-    if code and player_id is not None:
-        join_room(code)
-        print(f"[VOICE] Игрок {player_id} подключился к голосовой комнате {code}")
-        emit('player_joined_voice', {'playerId': player_id}, room=code, include_self=False)
-
-@socketio.on('audio_data')
-def handle_audio_data(data):
-    code = data.get('code')
-    from_player = data.get('fromPlayer')
-    audio = data.get('audio')
-    if code and from_player is not None and audio:
-        emit('audio_received', {
-            'fromPlayer': from_player,
-            'audio': audio
-        }, room=code, include_self=False)
-
-@socketio.on('leave_voice')
-def handle_leave_voice(data):
-    code = data.get('code')
-    player_id = data.get('playerId')
-    if code:
-        leave_room(code)
-        print(f"[VOICE] Игрок {player_id} покинул голосовую комнату {code}")
-        emit('player_left_voice', {'playerId': player_id}, room=code, include_self=False)
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    print(f"[VOICE] Клиент отключился")
-
-# ----- Запуск сервера -----
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
