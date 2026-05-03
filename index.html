@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Библейский квартет</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #f5f0e8; --card: #fffef9; --accent: #7b4b2a; --accent2: #5b3ec9;
@@ -16,7 +16,6 @@
             --glass: rgba(255, 255, 255, 0.6);
             --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
             --shadow-xl: 0 12px 48px rgba(0,0,0,0.15);
-            --gold: linear-gradient(135deg, #8B5A2B 0%, #D4A76A 40%, #8B5A2B 70%, #D4A76A 100%);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -484,57 +483,45 @@
             background: linear-gradient(135deg, #e8ddd0, #d5c8b5);
         }
 
-        /* Логотип — стильный, как старинная книга */
+        /* Логотип — современный минимализм */
         .logo-container {
-            position: relative;
-            display: inline-block;
-            padding: 4px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 4px 0;
             margin: 0 auto;
         }
 
-        .logo-container::before,
-        .logo-container::after {
-            content: '✦';
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 14px;
-            color: #7b4b2a;
-            opacity: 0.3;
+        .logo-icon {
+            font-size: 32px;
+            color: var(--accent);
+            filter: drop-shadow(0 2px 4px rgba(123,75,42,0.2));
         }
 
-        .logo-container::before { left: -6px; }
-        .logo-container::after { right: -6px; }
+        .logo-text-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            line-height: 1.1;
+        }
 
-        .logo-text {
-            font-family: 'Cinzel', 'Playfair Display', serif;
+        .logo-text-main {
+            font-family: 'Inter', sans-serif;
             font-size: 20px;
             font-weight: 700;
-            background: var(--gold);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-shadow: none;
-            letter-spacing: 6px;
-            position: relative;
-            padding: 0 4px;
+            color: var(--accent);
+            letter-spacing: 1px;
         }
 
-        .logo-subtitle {
-            font-family: 'Cinzel', serif;
-            font-size: 7px;
-            color: #8a7568;
-            letter-spacing: 10px;
+        .logo-text-sub {
+            font-family: 'Inter', sans-serif;
+            font-size: 9px;
+            font-weight: 400;
+            color: var(--text2);
+            letter-spacing: 4px;
             text-transform: uppercase;
-            margin-top: -2px;
-            display: block;
-        }
-
-        .logo-divider {
-            width: 50px;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, #8B5A2B, transparent);
-            margin: 3px auto 0;
+            margin-top: 1px;
         }
     </style>
 </head>
@@ -593,9 +580,11 @@
                 <div style="display:flex;flex-direction:column;align-items:center;gap:12px;max-width:400px;margin:0 auto;padding-top:10px;">
                     <div class="header" style="width:100%;">
                         <div class="logo-container">
-                            <span class="logo-text">Библейский квартет</span>
-                            <span class="logo-subtitle">Bible Quartet</span>
-                            <div class="logo-divider"></div>
+                            <span class="logo-icon">📖</span>
+                            <div class="logo-text-group">
+                                <span class="logo-text-main">Библейский квартет</span>
+                                <span class="logo-text-sub">Bible Quartet</span>
+                            </div>
                         </div>
                     </div>
                     <div class="name-section" style="width:100%;">
@@ -618,7 +607,7 @@
             document.getElementById('app').innerHTML = `
                 <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:400px;margin:0 auto;padding-top:10px;">
                     <div class="header" style="width:100%;">
-                        <h2 style="text-align:center;color:var(--accent);font-family:'Cinzel',serif;font-size:18px;font-weight:700;">Создание игры</h2>
+                        <h2 style="text-align:center;color:var(--accent);font-family:'Inter',sans-serif;font-weight:700;font-size:18px;">Создание игры</h2>
                         <div class="decor-line"></div>
                     </div>
                     <div style="width:100%;display:flex;flex-direction:column;gap:8px;">
@@ -649,7 +638,7 @@
             document.getElementById('app').innerHTML = `
                 <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:400px;margin:0 auto;padding-top:10px;">
                     <div class="header" style="width:100%;">
-                        <h2 style="text-align:center;color:var(--accent);font-family:'Cinzel',serif;">Подключение</h2>
+                        <h2 style="text-align:center;color:var(--accent);font-family:'Inter',sans-serif;font-weight:700;font-size:18px;">Подключение</h2>
                         <div class="decor-line"></div>
                     </div>
                     <input class="input input-code" id="join-code" placeholder="ABC123" maxlength="6" style="width:100%;max-width:300px;text-align:center;">
@@ -688,9 +677,11 @@
                 <div style="display:flex;flex-direction:column;align-items:center;gap:8px;max-width:400px;margin:0 auto;">
                     <div class="header" style="width:100%;padding:6px 0 4px;">
                         <div class="logo-container">
-                            <span class="logo-text" style="font-size:18px;">Библейский квартет</span>
-                            <span class="logo-subtitle" style="font-size:6px;">Bible Quartet</span>
-                            <div class="logo-divider"></div>
+                            <span class="logo-icon" style="font-size:28px;">📖</span>
+                            <div class="logo-text-group">
+                                <span class="logo-text-main" style="font-size:18px;">Библейский квартет</span>
+                                <span class="logo-text-sub" style="font-size:8px;">Bible Quartet</span>
+                            </div>
                         </div>
                     </div>
                     <div class="name-section" style="width:100%;margin-bottom:4px;">
@@ -853,7 +844,7 @@
                 clearInterval(pollTimer);
                 document.getElementById('bottom-panel').classList.add('hidden');
                 const sorted=[...state.players].sort((a,b)=>b.quartets.length-a.quartets.length);
-                document.getElementById('app').innerHTML=`<div class="header"><h1 style="font-family:'Cinzel',serif;font-size:24px;font-weight:700;background:var(--gold);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">🏆 Игра окончена!</h1><div class="decor-line"></div></div>`+sorted.map((p,i)=>`<div class="score-item ${i===0&&sorted[0].quartets.length>0?'winner':''}"><span>${i===0?'👑 ':''}${p.name}</span><span style="color:var(--accent);font-weight:700;">${p.quartets.length} квартетов</span></div>`).join('')+'<button class="btn btn-primary btn-full" onclick="showMenu()">В меню</button>';
+                document.getElementById('app').innerHTML=`<div class="header"><h1 style="font-family:'Inter',sans-serif;font-size:24px;font-weight:700;color:var(--accent);">🏆 Игра окончена!</h1><div class="decor-line"></div></div>`+sorted.map((p,i)=>`<div class="score-item ${i===0&&sorted[0].quartets.length>0?'winner':''}"><span>${i===0?'👑 ':''}${p.name}</span><span style="color:var(--accent);font-weight:700;">${p.quartets.length} квартетов</span></div>`).join('')+'<button class="btn btn-primary btn-full" onclick="showMenu()">В меню</button>';
             }
         }
         showMenu();
