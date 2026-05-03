@@ -947,15 +947,15 @@
                         <span class="btn-icon join-icon">🔗</span> Присоединиться
                     </button>
                     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1;margin-top:8px;">
-                        <button class="btn btn-secondary" style="max-width:300px;padding:8px 16px;font-size:12px;flex:1;" onclick="openFeedback()">
-                            💬 Написать в поддержку
+                        <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;" onclick="openFeedback()">
+                            <span style="display:block;">💬 Написать в<br>поддержку</span>
                         </button>
-                        <button class="btn btn-secondary" style="max-width:300px;padding:8px 16px;font-size:12px;flex:1;" onclick="openRules()">
-                            📜 Правила
+                        <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;" onclick="openRules()">
+                            <span style="display:block;">📜 Правила</span>
                         </button>
                         ${isAdmin ? `
-                        <button class="btn btn-secondary" style="max-width:300px;padding:8px 16px;font-size:12px;flex:1;background:rgba(123,75,42,0.15);border-color:var(--accent);" onclick="openAdminPanel()">
-                            🛠 Админская часть
+                        <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;background:rgba(123,75,42,0.15);border-color:var(--accent);" onclick="openAdminPanel()">
+                            <span style="display:block;">🛠 Админская<br>часть</span>
                         </button>
                         ` : ''}
                     </div>
