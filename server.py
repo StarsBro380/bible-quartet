@@ -9,13 +9,15 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-# Отключаем кэширование (важно для Render.com)
+# Отключаем кэширование
 @app.after_request
 def after_request(response):
     response.headers.add('Cache-Control', 'no-cache, no-store, must-revalidate')
     return response
 
 rooms = {}
+all_feedback = []
+ADMIN_IDS = [39444699, 26156823]
 
 def generate_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -39,6 +41,7 @@ def create_room():
     data = request.get_json()
     player_name = data.get('name', 'Игрок')
     cards_count = int(data.get('cards', 10))
+    player_id = int(data.get('playerId', -1))
     
     code = generate_code()
     while code in rooms:
@@ -52,7 +55,8 @@ def create_room():
             'id': 0,
             'name': player_name,
             'hand': deck[:cards_count],
-            'quartets': []
+            'quartets': [],
+            'missed_turns': 0
         }],
         'deck': deck[cards_count:],
         'categories': categories,
@@ -61,7 +65,9 @@ def create_room():
         'maxPlayers': 4,
         'cardsPerPlayer': cards_count,
         'history': [],
-        'ownerId': 0
+        'ownerId': 0,
+        'observers': [],
+        'last_move_time': datetime.now().timestamp()
     }
     
     rooms[code] = room
@@ -87,6 +93,7 @@ def start_game():
     
     room['status'] = 'playing'
     room['currentPlayer'] = 0
+    room['last_move_time'] = datetime.now().timestamp()
     room['history'].append({
         'time': datetime.now().strftime('%H:%M'),
         'text': '🎮 Игра началась!',
@@ -101,6 +108,7 @@ def join_room():
     data = request.get_json()
     code = data.get('code', '').upper()
     player_name = data.get('name', 'Игрок')
+    player_id = int(data.get('playerId', -1))
     
     if code not in rooms:
         return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
@@ -113,15 +121,16 @@ def join_room():
     if len(room['players']) >= room['maxPlayers']:
         return jsonify({'ok': False, 'error': 'Комната заполнена'}), 400
     
-    player_id = len(room['players'])
+    new_id = len(room['players'])
     cards = room['deck'][:room['cardsPerPlayer']]
     room['deck'] = room['deck'][room['cardsPerPlayer']:]
     
     room['players'].append({
-        'id': player_id,
+        'id': new_id,
         'name': player_name,
         'hand': cards,
-        'quartets': []
+        'quartets': [],
+        'missed_turns': 0
     })
     
     room['history'].append({
@@ -130,8 +139,8 @@ def join_room():
         'type': 'system'
     })
     
-    print(f"[JOIN] Комната {code}, новый игрок {player_id}: {player_name}")
-    return jsonify({'ok': True, 'playerId': int(player_id)})
+    print(f"[JOIN] Комната {code}, новый игрок {new_id}: {player_name}")
+    return jsonify({'ok': True, 'playerId': int(new_id)})
 
 @app.route('/state/<code>/<int:player_id>', methods=['GET'])
 def get_state(code, player_id):
@@ -140,14 +149,18 @@ def get_state(code, player_id):
     
     room = rooms[code]
     
+    # Проверяем, является ли пользователь наблюдателем
+    is_observer = player_id in room.get('observers', [])
+    
     player = None
     for p in room['players']:
         if p['id'] == player_id:
             player = p
             break
     
-    if not player:
-        return jsonify({'ok': False, 'error': f'Игрок {player_id} не найден. Всего игроков: {len(room["players"])} с ID: {[p["id"] for p in room["players"]]}'}), 404
+    # Если это не наблюдатель и не игрок, возвращаем ошибку
+    if not player and not is_observer:
+        return jsonify({'ok': False, 'error': f'Игрок {player_id} не найден'}), 404
     
     players_info = []
     for p in room['players']:
@@ -157,11 +170,10 @@ def get_state(code, player_id):
             'quartets': p['quartets'],
             'handCount': int(len(p['hand']))
         }
-        if p['id'] == player_id:
+        # Показываем руку только самому игроку или наблюдателю
+        if p['id'] == player_id or is_observer:
             info['hand'] = p['hand']
         players_info.append(info)
-    
-    print(f"[STATE] Комната {code}, запрос от игрока {player_id}, currentPlayer={room['currentPlayer']}, игроки: {[p['id'] for p in room['players']]}")
     
     return jsonify({
         'ok': True,
@@ -173,7 +185,8 @@ def get_state(code, player_id):
         'status': room['status'],
         'categories': room['categories'],
         'history': room['history'][-30:],
-        'ownerId': int(room['ownerId'])
+        'ownerId': int(room['ownerId']),
+        'is_observer': is_observer
     })
 
 @app.route('/rename', methods=['POST'])
@@ -215,7 +228,9 @@ def request_card():
     
     room = rooms[code]
     
-    print(f"[REQUEST] from={from_player}, to={to_player}, category={category}, card={card_name}, currentPlayer before={room['currentPlayer']}")
+    # Проверяем, является ли игрок наблюдателем
+    if from_player in room.get('observers', []):
+        return jsonify({'ok': False, 'error': 'Наблюдатели не могут ходить'}), 400
     
     if from_player >= len(room['players']) or from_player < 0:
         return jsonify({'ok': False, 'error': 'Игрок не найден'}), 400
@@ -241,6 +256,11 @@ def request_card():
     from_name = requester['name']
     to_name = target['name']
     
+    # Сбрасываем счётчик пропущенных ходов
+    for p in room['players']:
+        if p['id'] == from_player:
+            p['missed_turns'] = 0
+    
     if card_index is not None:
         card = target['hand'].pop(card_index)
         requester['hand'].append(card)
@@ -249,6 +269,7 @@ def request_card():
         check_quartets(room, to_player)
         
         room['currentPlayer'] = int(from_player)
+        room['last_move_time'] = datetime.now().timestamp()
         
         room['history'].append({
             'time': datetime.now().strftime('%H:%M'),
@@ -256,7 +277,7 @@ def request_card():
             'type': 'ok'
         })
         
-        print(f"[REQUEST] {from_name} -> {to_name}: {card_name} ({category}) — ✅ УГАДАЛ. Ход остаётся у {from_player}")
+        print(f"[REQUEST] {from_name} -> {to_name}: {card_name} ({category}) — УГАДАЛ")
         
         return jsonify({
             'ok': True, 'found': True, 'card': card,
@@ -271,6 +292,7 @@ def request_card():
         
         next_player = (from_player + 1) % len(room['players'])
         room['currentPlayer'] = int(next_player)
+        room['last_move_time'] = datetime.now().timestamp()
         
         if drawn:
             room['history'].append({
@@ -285,7 +307,7 @@ def request_card():
                 'type': 'no'
             })
         
-        print(f"[REQUEST] {from_name} -> {to_name}: {card_name} ({category}) — ❌ НЕ УГАДАЛ. Ход переходит к {next_player}")
+        print(f"[REQUEST] {from_name} -> {to_name}: {card_name} ({category}) — НЕ УГАДАЛ")
         
         return jsonify({
             'ok': True, 'found': False, 'drawn': drawn,
@@ -311,7 +333,93 @@ def check_quartets(room, player_id):
             })
             print(f"[QUARTET] {p['name']} собрал(а) квартет «{cat}»!")
 
-# ----- Эндпоинт для обратной связи -----
+@app.route('/leave', methods=['POST'])
+def leave_room():
+    data = request.get_json()
+    code = data.get('code', '').upper()
+    player_id = int(data.get('playerId', -1))
+    
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
+    
+    room = rooms[code]
+    
+    # Если это наблюдатель, просто удаляем его
+    if player_id in room.get('observers', []):
+        room['observers'].remove(player_id)
+        return jsonify({'ok': True})
+    
+    # Находим игрока
+    player = None
+    for p in room['players']:
+        if p['id'] == player_id:
+            player = p
+            break
+    
+    if not player:
+        return jsonify({'ok': False, 'error': 'Игрок не найден'}), 404
+    
+    player_name = player['name']
+    
+    # Удаляем игрока
+    room['players'] = [p for p in room['players'] if p['id'] != player_id]
+    
+    # Если игроков не осталось, удаляем комнату
+    if len(room['players']) == 0:
+        del rooms[code]
+        return jsonify({'ok': True})
+    
+    # Если вышел создатель, передаём владение
+    if room['ownerId'] == player_id:
+        if len(room['players']) > 0:
+            new_owner = random.choice(room['players'])
+            room['ownerId'] = new_owner['id']
+            room['history'].append({
+                'time': datetime.now().strftime('%H:%M'),
+                'text': f'👑 Владение перешло к {new_owner["name"]}',
+                'type': 'system'
+            })
+    
+    # Если текущий ход принадлежал вышедшему, переключаем
+    if room['currentPlayer'] == player_id:
+        if len(room['players']) > 0:
+            next_player = room['currentPlayer'] % len(room['players'])
+            room['currentPlayer'] = int(next_player)
+            room['last_move_time'] = datetime.now().timestamp()
+    
+    room['history'].append({
+        'time': datetime.now().strftime('%H:%M'),
+        'text': f'🚪 {player_name} покинул игру',
+        'type': 'system'
+    })
+    
+    print(f"[LEAVE] {player_name} покинул комнату {code}")
+    return jsonify({'ok': True})
+
+@app.route('/end_game', methods=['POST'])
+def end_game():
+    data = request.get_json()
+    code = data.get('code', '').upper()
+    player_id = int(data.get('playerId', -1))
+    
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
+    
+    room = rooms[code]
+    
+    if room['ownerId'] != player_id:
+        return jsonify({'ok': False, 'error': 'Только создатель может завершить игру'}), 400
+    
+    room['status'] = 'finished'
+    room['history'].append({
+        'time': datetime.now().strftime('%H:%M'),
+        'text': '🚫 Игра завершена создателем',
+        'type': 'system'
+    })
+    
+    print(f"[END] Игра в комнате {code} завершена создателем")
+    return jsonify({'ok': True})
+
 @app.route('/feedback', methods=['POST'])
 def feedback():
     data = request.get_json()
@@ -323,14 +431,132 @@ def feedback():
     if not message:
         return jsonify({'ok': False, 'error': 'Сообщение не может быть пустым'}), 400
     
+    feedback_entry = {
+        'id': len(all_feedback) + 1,
+        'time': datetime.now().strftime('%H:%M %d.%m'),
+        'name': player_name,
+        'playerId': player_id,
+        'room': code,
+        'message': message,
+        'read': False
+    }
+    all_feedback.append(feedback_entry)
+    
     print(f"[FEEDBACK] От {player_name} (ID: {player_id}, комната: {code}): {message}")
-    
-    # Здесь можно добавить отправку в Telegram
-    # from telegram import Bot
-    # bot = Bot(token='YOUR_BOT_TOKEN')
-    # bot.send_message(chat_id='YOUR_CHAT_ID', text=f"📩 Сообщение от {player_name} (ID: {player_id}):\n{message}")
-    
     return jsonify({'ok': True, 'message': 'Сообщение отправлено в поддержку'})
+
+@app.route('/feedback/list/<int:player_id>', methods=['GET'])
+def get_feedback_list(player_id):
+    if player_id not in ADMIN_IDS:
+        return jsonify({'ok': False, 'error': 'Доступ запрещён'}), 403
+    
+    feedback_list = sorted(all_feedback, key=lambda x: x['id'], reverse=True)
+    return jsonify({'ok': True, 'feedback': feedback_list})
+
+@app.route('/feedback/mark_read/<int:feedback_id>', methods=['POST'])
+def mark_feedback_read(feedback_id):
+    for entry in all_feedback:
+        if entry['id'] == feedback_id:
+            entry['read'] = True
+            return jsonify({'ok': True})
+    return jsonify({'ok': False, 'error': 'Сообщение не найдено'}), 404
+
+@app.route('/admin/games/<int:player_id>', methods=['GET'])
+def admin_games(player_id):
+    if player_id not in ADMIN_IDS:
+        return jsonify({'ok': False, 'error': 'Доступ запрещён'}), 403
+    
+    games_list = []
+    for code, room in rooms.items():
+        players_info = [{'id': p['id'], 'name': p['name']} for p in room['players']]
+        games_list.append({
+            'code': code,
+            'status': room['status'],
+            'players': players_info,
+            'ownerId': room['ownerId'],
+            'created': room['history'][0]['time'] if room['history'] else 'неизвестно'
+        })
+    
+    return jsonify({'ok': True, 'games': games_list})
+
+@app.route('/observe/<code>/<int:player_id>', methods=['POST'])
+def observe_game(code, player_id):
+    if player_id not in ADMIN_IDS:
+        return jsonify({'ok': False, 'error': 'Доступ запрещён'}), 403
+    
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
+    
+    room = rooms[code]
+    
+    if player_id not in room.get('observers', []):
+        room.setdefault('observers', []).append(player_id)
+    
+    return jsonify({'ok': True, 'roomCode': code, 'playerId': player_id})
+
+@app.route('/check_timeouts/<code>', methods=['POST'])
+def check_timeouts(code):
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
+    
+    room = rooms[code]
+    if room['status'] != 'playing':
+        return jsonify({'ok': False, 'error': 'Игра не активна'}), 400
+    
+    current_time = datetime.now().timestamp()
+    time_diff = current_time - room['last_move_time']
+    
+    # Если прошло больше 60 секунд
+    if time_diff > 60:
+        current_player_id = room['currentPlayer']
+        current_player = None
+        for p in room['players']:
+            if p['id'] == current_player_id:
+                current_player = p
+                break
+        
+        if current_player:
+            current_player['missed_turns'] = current_player.get('missed_turns', 0) + 1
+            print(f"[TIMEOUT] {current_player['name']} пропустил ход ({current_player['missed_turns']} раз)")
+            
+            # Если пропущено 2 раза — удаляем игрока
+            if current_player['missed_turns'] >= 2:
+                player_name = current_player['name']
+                room['players'] = [p for p in room['players'] if p['id'] != current_player_id]
+                room['history'].append({
+                    'time': datetime.now().strftime('%H:%M'),
+                    'text': f'⏰ {player_name} исключён за бездействие',
+                    'type': 'system'
+                })
+                print(f"[KICK] {player_name} исключён из комнаты {code} за бездействие")
+                
+                # Если игроков не осталось, удаляем комнату
+                if len(room['players']) == 0:
+                    del rooms[code]
+                    return jsonify({'ok': True, 'kicked': True})
+                
+                # Если вышел создатель, передаём владение
+                if room['ownerId'] == current_player_id:
+                    if len(room['players']) > 0:
+                        new_owner = random.choice(room['players'])
+                        room['ownerId'] = new_owner['id']
+                        room['history'].append({
+                            'time': datetime.now().strftime('%H:%M'),
+                            'text': f'👑 Владение перешло к {new_owner["name"]}',
+                            'type': 'system'
+                        })
+            else:
+                # Просто переключаем ход
+                next_player = (current_player_id + 1) % len(room['players'])
+                room['currentPlayer'] = int(next_player)
+                room['last_move_time'] = datetime.now().timestamp()
+                room['history'].append({
+                    'time': datetime.now().strftime('%H:%M'),
+                    'text': f'⏰ Ход передан {room["players"][next_player]["name"]} (бездействие)',
+                    'type': 'system'
+                })
+    
+    return jsonify({'ok': True})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
