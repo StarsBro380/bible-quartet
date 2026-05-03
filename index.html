@@ -299,7 +299,7 @@
         ::-webkit-scrollbar-track { background: var(--bg); }
         ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
 
-        /* Бегущая пунктирная рамка — полный периметр */
+        /* Бегущая пунктирная рамка — чистая */
         .running-border {
             position: absolute;
             top: -2px;
@@ -307,19 +307,10 @@
             right: -2px;
             bottom: -2px;
             border-radius: 12px;
-            border: 2px solid transparent;
+            border: 2px dashed var(--accent);
             pointer-events: none;
-            background: 
-                linear-gradient(#f5f0e8, #f5f0e8) padding-box,
-                repeating-linear-gradient(
-                    45deg,
-                    var(--accent) 0px,
-                    var(--accent) 8px,
-                    transparent 8px,
-                    transparent 16px
-                ) border-box;
             animation: dash-move 2s linear infinite;
-            opacity: 0.8;
+            opacity: 0.7;
         }
 
         .code-display:hover .running-border {
