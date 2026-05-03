@@ -800,6 +800,58 @@
         #admin-modal .modal-content .game-item .observe-btn:hover {
             background: #8a5530;
         }
+        #admin-modal .modal-content .game-item .reply-btn {
+            padding: 4px 12px;
+            font-size: 11px;
+            background: #27ae60;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-left: 4px;
+        }
+        #admin-modal .modal-content .game-item .reply-btn:hover {
+            background: #2ecc71;
+        }
+        #admin-modal .modal-content .feedback-item {
+            padding: 6px 10px;
+            background: rgba(123,75,42,0.05);
+            border-radius: 6px;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+        #admin-modal .modal-content .feedback-item .feedback-header {
+            display: flex;
+            justify-content: space-between;
+        }
+        #admin-modal .modal-content .feedback-item .feedback-header .name {
+            font-weight: 600;
+            color: var(--accent);
+        }
+        #admin-modal .modal-content .feedback-item .feedback-header .time {
+            font-size: 10px;
+            color: var(--text2);
+        }
+        #admin-modal .modal-content .feedback-item .feedback-header .room {
+            font-size: 10px;
+            color: var(--text2);
+        }
+        #admin-modal .modal-content .feedback-item .feedback-message {
+            margin-top: 2px;
+        }
+        #admin-modal .modal-content .feedback-item .reply-btn {
+            padding: 2px 10px;
+            font-size: 10px;
+            background: #27ae60;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 2px;
+        }
+        #admin-modal .modal-content .feedback-item .reply-btn:hover {
+            background: #2ecc71;
+        }
     </style>
 </head>
 <body>
@@ -818,7 +870,7 @@
         if (tg) { tg.expand(); tg.ready(); tg.setHeaderColor('#f5f0e8'); tg.setBackgroundColor('#f5f0e8'); }
         
         const API = 'https://bible-quartet-server.onrender.com';
-        const ADMIN_IDS = [39444699, 26156823];
+        const ADMIN_IDS = [39444699];
         let state = null, playerId = null, roomCode = null, selectedCard = null, selectedPlayerId = null;
         let playerName = tg?.initDataUnsafe?.user?.first_name || '';
         let pollTimer = null, historyOpen = false;
@@ -861,6 +913,11 @@
             if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
                 playerId = parseInt(tg.initDataUnsafe.user.id);
             }
+            
+            // ✅ Показываем уведомление при открытии
+            setTimeout(() => {
+                toast('📩 Ответ на ваш запрос', '');
+            }, 500);
             
             const isAdmin = ADMIN_IDS.includes(parseInt(playerId));
             document.getElementById('app').innerHTML = `
@@ -1336,12 +1393,14 @@
                             let feedbackHtml = '';
                             if (d.feedback && d.feedback.length > 0) {
                                 feedbackHtml = d.feedback.map(f => `
-                                    <div style="padding:6px 10px;background:rgba(123,75,42,0.05);border-radius:6px;margin-bottom:4px;font-size:12px;${f.read ? 'opacity:0.6;' : ''}">
-                                        <div style="display:flex;justify-content:space-between;">
-                                            <span><strong>${f.name}</strong> (${f.time})</span>
-                                            <span style="font-size:10px;color:var(--text2);">${f.room ? '#'+f.room : 'меню'}</span>
+                                    <div class="feedback-item" style="${f.read ? 'opacity:0.6;' : ''}">
+                                        <div class="feedback-header">
+                                            <span class="name">${f.name}</span>
+                                            <span class="time">${f.time}</span>
+                                            <span class="room">${f.room ? '#'+f.room : 'меню'}</span>
                                         </div>
-                                        <div style="margin-top:2px;">${f.message}</div>
+                                        <div class="feedback-message">${f.message}</div>
+                                        <button class="reply-btn" onclick="replyToFeedback(${f.id})">Ответить</button>
                                     </div>
                                 `).join('');
                             } else {
@@ -1412,6 +1471,13 @@
                 }
             })
             .catch(() => toast('Ошибка подключения', 'error'));
+        }
+        function replyToFeedback(feedbackId) {
+            closeAdminPanel();
+            const reply = prompt('Введите ответ для этого сообщения:');
+            if (!reply) return;
+            // Здесь можно добавить отправку ответа через API
+            toast('✅ Ответ отправлен (в разработке)', 'success');
         }
     </script>
 </body>
