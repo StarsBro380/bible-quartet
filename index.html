@@ -200,7 +200,7 @@
                 row.innerHTML = '<span style="color:var(--text2);font-size:12px;">⏳ Ожидание хода другого игрока... (вы #'+pid+', ходит #'+cp+')</span>';
                 return;
             }
-            if (selectedCard) { row.innerHTML = `<button class="btn btn-primary" onclick="">❓ Просить "${selectedCard.cardName}"</button>`; }
+            if (selectedCard) { row.innerHTML = `<button class="btn btn-primary" onclick="requestCard()">❓ Просить "${selectedCard.cardName}"</button>`; }
             else { row.innerHTML = '<span style="color:var(--text2);font-size:12px;">👆 Выберите карточку и игрока</span>'; }
         }
         function showMenu() {
@@ -242,25 +242,7 @@
         function copyCode(){if(!roomCode)return;navigator.clipboard.writeText(roomCode).then(()=>toast('📋 Код скопирован!','success')).catch(()=>toast('Не удалось скопировать','error'));}
         function showLobby() {
             clearInterval(pollTimer);
-            pollTimer=setInterval(async()=>{
-                try {
-                    const r=await fetch(`${API}/state/${roomCode}/${playerId}`);
-                    const d=await r.json();
-                    if(d.ok){
-                        const container = document.getElementById('players-waiting');
-                        if(container) {
-                            container.innerHTML = '';
-                            d.players.forEach(p => {
-                                const div = document.createElement('div');
-                                div.className = 'pw-item';
-                                div.textContent = `👤 ${p.name} ${p.id === d.ownerId ? '(Создатель)' : ''}`;
-                                container.appendChild(div);
-                            });
-                        }
-                        if(d.status==='playing'){fetchState();}
-                    }
-                } catch(e){}
-            },1000);
+            // Сразу показываем лобби
             document.getElementById('app').innerHTML=`
                 <div class="code-display" onclick="copyCode()">
                     <div class="code">${roomCode}</div>
@@ -278,6 +260,27 @@
                 <button class="btn btn-primary btn-full" onclick="startGame()">🎮 Начать игру</button>
                 <button class="btn btn-secondary btn-full" onclick="clearInterval(pollTimer);showMenu();">← Отмена</button>
             `;
+            // Запускаем опрос состояния
+            pollTimer=setInterval(async()=>{
+                try {
+                    const r=await fetch(`${API}/state/${roomCode}/${playerId}`);
+                    const d=await r.json();
+                    if(d.ok){
+                        const container = document.getElementById('players-waiting');
+                        if(container) {
+                            // Полностью очищаем и перезаписываем список
+                            container.innerHTML = '';
+                            d.players.forEach(p => {
+                                const div = document.createElement('div');
+                                div.className = 'pw-item';
+                                div.textContent = `👤 ${p.name} ${p.id === d.ownerId ? '(Создатель)' : ''}`;
+                                container.appendChild(div);
+                            });
+                        }
+                        if(d.status==='playing'){fetchState();}
+                    }
+                } catch(e){}
+            },1000);
         }
         async function updateName() {
             const newName = document.getElementById('lobby-name').value.trim() || 'Игрок';
@@ -348,30 +351,28 @@
             if (p) toast(`Выбран: ${p.name}`,'');
             renderGame();
         }
-       async function requestCard(){
-    if(!selectedCard){toast('⚠️ Выберите карточку!','error');return;}
-    const toPlayer=selectedPlayerId!==null?selectedPlayerId:state.players.find(p=>parseInt(p.id)!==parseInt(playerId))?.id;
-    if(toPlayer===undefined){toast('⚠️ Выберите игрока!','error');return;}
-    
-    // Получаем имена для уведомления
-    const fromName = state.players.find(p => parseInt(p.id) === parseInt(playerId))?.name || 'Игрок';
-    const toName = state.players.find(p => parseInt(p.id) === parseInt(toPlayer))?.name || 'Игрок';
-    
-    try {
-        const r=await fetch(API+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,fromPlayer:parseInt(playerId),toPlayer:parseInt(toPlayer),category:selectedCard.category,cardName:selectedCard.cardName})});
-        const d=await r.json();
-        if(d.ok){
-            if(d.found){
-                toast(`✅ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карта есть! Переходит к ${fromName}`, 'success');
-            }else{
-                const nextName = state.players.find(p => parseInt(p.id) === parseInt(d.nextPlayer))?.name || 'неизвестно';
-                toast(`❌ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карты нет. Ходит ${nextName}`, 'error');
-            }
-            selectedCard=null;selectedPlayerId=null;
-            setTimeout(fetchState, 300);
-        } else toast(d.error,'error');
-    } catch(e){toast('Ошибка','error');}
-}
+        function selectCard(cat,name){if(parseInt(state.currentPlayer)!==parseInt(playerId))return;selectedCard=(selectedCard&&selectedCard.category===cat&&selectedCard.cardName===name)?null:{category:cat,cardName:name};renderGame();}
+        async function requestCard(){
+            if(!selectedCard){toast('⚠️ Выберите карточку!','error');return;}
+            const toPlayer=selectedPlayerId!==null?selectedPlayerId:state.players.find(p=>parseInt(p.id)!==parseInt(playerId))?.id;
+            if(toPlayer===undefined){toast('⚠️ Выберите игрока!','error');return;}
+            const fromName = state.players.find(p => parseInt(p.id) === parseInt(playerId))?.name || 'Игрок';
+            const toName = state.players.find(p => parseInt(p.id) === parseInt(toPlayer))?.name || 'Игрок';
+            try {
+                const r=await fetch(API+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,fromPlayer:parseInt(playerId),toPlayer:parseInt(toPlayer),category:selectedCard.category,cardName:selectedCard.cardName})});
+                const d=await r.json();
+                if(d.ok){
+                    if(d.found){
+                        toast(`✅ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карта есть! Переходит к ${fromName}`, 'success');
+                    }else{
+                        const nextName = state.players.find(p => parseInt(p.id) === parseInt(d.nextPlayer))?.name || 'неизвестно';
+                        toast(`❌ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карты нет. Ходит ${nextName}`, 'error');
+                    }
+                    selectedCard=null;selectedPlayerId=null;
+                    fetchState();
+                } else toast(d.error,'error');
+            } catch(e){toast('Ошибка','error');}
+        }
         function checkWin(){
             if(!state)return;
             const allCollected=state.players.reduce((s,p)=>s+p.quartets.length,0);
