@@ -5,19 +5,15 @@ import string
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from flask_socketio import SocketIO, emit, join_room, leave_room
 
 app = Flask(__name__)
 CORS(app)
 
-# Отключаем кэширование
+# Отключаем кэширование (важно для Render.com)
 @app.after_request
 def after_request(response):
     response.headers.add('Cache-Control', 'no-cache, no-store, must-revalidate')
     return response
-
-# Настройка SocketIO
-socketio = SocketIO(app, cors_allowed_origins="*", ping_timeout=60, ping_interval=25)
 
 rooms = {}
 
@@ -50,10 +46,6 @@ def create_room():
     
     deck, categories = create_deck()
     
-    max_players = 52 // cards_count
-    if max_players < 2:
-        max_players = 2
-    
     room = {
         'code': code,
         'players': [{
@@ -66,14 +58,14 @@ def create_room():
         'categories': categories,
         'currentPlayer': 0,
         'status': 'lobby',
-        'maxPlayers': max_players,
+        'maxPlayers': 4,
         'cardsPerPlayer': cards_count,
         'history': [],
         'ownerId': 0
     }
     
     rooms[code] = room
-    print(f"[CREATE] Комната {code}, игрок 0: {player_name}, макс. игроков: {max_players}")
+    print(f"[CREATE] Комната {code}, игрок 0: {player_name}")
     return jsonify({'ok': True, 'code': code, 'playerId': 0})
 
 @app.route('/start', methods=['POST'])
@@ -142,27 +134,6 @@ def join_room():
     print(f"[JOIN] Текущие игроки в комнате: {[p['id'] for p in room['players']]}")
     return jsonify({'ok': True, 'playerId': int(player_id)})
 
-@app.route('/rename', methods=['POST'])
-def rename_player():
-    data = request.get_json()
-    code = data.get('code', '').upper()
-    player_id = int(data.get('playerId', -1))
-    new_name = data.get('name', 'Игрок')
-    
-    if code not in rooms:
-        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
-    
-    room = rooms[code]
-    if room['status'] != 'lobby':
-        return jsonify({'ok': False, 'error': 'Нельзя изменить имя после начала игры'}), 400
-    
-    for p in room['players']:
-        if p['id'] == player_id:
-            p['name'] = new_name
-            return jsonify({'ok': True})
-    
-    return jsonify({'ok': False, 'error': 'Игрок не найден'}), 404
-
 @app.route('/state/<code>/<int:player_id>', methods=['GET'])
 def get_state(code, player_id):
     if code not in rooms:
@@ -191,6 +162,7 @@ def get_state(code, player_id):
             info['hand'] = p['hand']
         players_info.append(info)
     
+    # Логирование для отладки
     print(f"[STATE] Комната {code}, запрос от игрока {player_id}, currentPlayer={room['currentPlayer']}, игроки: {[p['id'] for p in room['players']]}")
     
     return jsonify({
@@ -247,12 +219,14 @@ def request_card():
     to_name = target['name']
     
     if card_index is not None:
+        # ✅ УГАДАЛ
         card = target['hand'].pop(card_index)
         requester['hand'].append(card)
         
         check_quartets(room, from_player)
         check_quartets(room, to_player)
         
+        # ✅ КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: ход остаётся у того же игрока
         room['currentPlayer'] = int(from_player)
         
         room['history'].append({
@@ -268,6 +242,7 @@ def request_card():
             'nextPlayer': int(from_player)
         })
     else:
+        # ❌ НЕ УГАДАЛ
         drawn = None
         if room['deck']:
             drawn = room['deck'].pop()
@@ -277,18 +252,16 @@ def request_card():
         next_player = (from_player + 1) % len(room['players'])
         room['currentPlayer'] = int(next_player)
         
-        next_name = room['players'][next_player]['name']
-        
         if drawn:
             room['history'].append({
                 'time': datetime.now().strftime('%H:%M'),
-                'text': f'{from_name} спросил(а) у {to_name}: «{card_name}» ({category}) — ❌ Нет. Ходит {next_name}',
+                'text': f'{from_name} спросил(а) у {to_name}: «{card_name}» ({category}) — ❌ Нет. Взял из запаса.',
                 'type': 'no'
             })
         else:
             room['history'].append({
                 'time': datetime.now().strftime('%H:%M'),
-                'text': f'{from_name} спросил(а) у {to_name}: «{card_name}» ({category}) — ❌ Нет. Запас пуст. Ходит {next_name}',
+                'text': f'{from_name} спросил(а) у {to_name}: «{card_name}» ({category}) — ❌ Нет. Запас пуст.',
                 'type': 'no'
             })
         
@@ -318,35 +291,5 @@ def check_quartets(room, player_id):
             })
             print(f"[QUARTET] {p['name']} собрал(а) квартет «{cat}»!")
 
-# ------ SocketIO для голосового чата ------
-@socketio.on('join_voice')
-def handle_join_voice(data):
-    code = data.get('code')
-    player_id = data.get('playerId')
-    if code:
-        join_room(code)
-        print(f"[VOICE] Игрок {player_id} подключился к голосовому чату в комнате {code}")
-
-@socketio.on('leave_voice')
-def handle_leave_voice(data):
-    code = data.get('code')
-    if code:
-        leave_room(code)
-        print(f"[VOICE] Игрок покинул голосовой чат в комнате {code}")
-
-@socketio.on('audio_data')
-def handle_audio(data):
-    code = data.get('code')
-    from_player = data.get('fromPlayer')
-    audio = data.get('audio')  # base64 строка
-    
-    if code:
-        # Отправляем всем в комнате, кроме отправителя
-        emit('audio_received', {
-            'fromPlayer': from_player,
-            'audio': audio
-        }, room=code, include_self=False)
-
-# ------ Запуск ------
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
