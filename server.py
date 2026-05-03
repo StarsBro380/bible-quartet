@@ -5,11 +5,13 @@ import string
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit, join_room, leave_room
 
 app = Flask(__name__)
 CORS(app)
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app, cors_allowed_origins='*')
 
-# Отключаем кэширование (важно для Render.com)
 @app.after_request
 def after_request(response):
     response.headers.add('Cache-Control', 'no-cache, no-store, must-revalidate')
@@ -162,7 +164,6 @@ def get_state(code, player_id):
             info['hand'] = p['hand']
         players_info.append(info)
     
-    # Логирование для отладки
     print(f"[STATE] Комната {code}, запрос от игрока {player_id}, currentPlayer={room['currentPlayer']}, игроки: {[p['id'] for p in room['players']]}")
     
     return jsonify({
@@ -177,6 +178,31 @@ def get_state(code, player_id):
         'history': room['history'][-30:],
         'ownerId': int(room['ownerId'])
     })
+
+@app.route('/rename', methods=['POST'])
+def rename_player():
+    data = request.get_json()
+    code = data.get('code', '').upper()
+    player_id = int(data.get('playerId', -1))
+    new_name = data.get('name', 'Игрок').strip()
+    
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
+    
+    room = rooms[code]
+    for p in room['players']:
+        if p['id'] == player_id:
+            old_name = p['name']
+            p['name'] = new_name
+            room['history'].append({
+                'time': datetime.now().strftime('%H:%M'),
+                'text': f'✏️ {old_name} сменил имя на "{new_name}"',
+                'type': 'system'
+            })
+            print(f"[RENAME] Игрок {player_id} в комнате {code}: {old_name} -> {new_name}")
+            return jsonify({'ok': True})
+    
+    return jsonify({'ok': False, 'error': 'Игрок не найден'}), 404
 
 @app.route('/request', methods=['POST'])
 def request_card():
@@ -219,14 +245,12 @@ def request_card():
     to_name = target['name']
     
     if card_index is not None:
-        # ✅ УГАДАЛ
         card = target['hand'].pop(card_index)
         requester['hand'].append(card)
         
         check_quartets(room, from_player)
         check_quartets(room, to_player)
         
-        # ✅ КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: ход остаётся у того же игрока
         room['currentPlayer'] = int(from_player)
         
         room['history'].append({
@@ -242,7 +266,6 @@ def request_card():
             'nextPlayer': int(from_player)
         })
     else:
-        # ❌ НЕ УГАДАЛ
         drawn = None
         if room['deck']:
             drawn = room['deck'].pop()
@@ -291,5 +314,40 @@ def check_quartets(room, player_id):
             })
             print(f"[QUARTET] {p['name']} собрал(а) квартет «{cat}»!")
 
+# ----- SocketIO для голосового чата -----
+@socketio.on('join_voice')
+def handle_join_voice(data):
+    code = data.get('code')
+    player_id = data.get('playerId')
+    if code and player_id is not None:
+        join_room(code)
+        print(f"[VOICE] Игрок {player_id} подключился к голосовой комнате {code}")
+        emit('player_joined_voice', {'playerId': player_id}, room=code, include_self=False)
+
+@socketio.on('audio_data')
+def handle_audio_data(data):
+    code = data.get('code')
+    from_player = data.get('fromPlayer')
+    audio = data.get('audio')
+    if code and from_player is not None and audio:
+        emit('audio_received', {
+            'fromPlayer': from_player,
+            'audio': audio
+        }, room=code, include_self=False)
+
+@socketio.on('leave_voice')
+def handle_leave_voice(data):
+    code = data.get('code')
+    player_id = data.get('playerId')
+    if code:
+        leave_room(code)
+        print(f"[VOICE] Игрок {player_id} покинул голосовую комнату {code}")
+        emit('player_left_voice', {'playerId': player_id}, room=code, include_self=False)
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print(f"[VOICE] Клиент отключился")
+
+# ----- Запуск сервера -----
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
