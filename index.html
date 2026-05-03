@@ -26,11 +26,55 @@
         .btn {
             display: inline-block; padding: 14px 22px; font-size: 15px; font-weight: 600;
             border: none; border-radius: 10px; cursor: pointer; margin: 5px;
-            font-family: inherit; transition: all 0.2s; text-align: center;
+            font-family: inherit;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            transform: scale(1);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
         }
-        .btn:active { transform: scale(0.96); }
-        .btn-primary { background: #7b4b2a; color: #fff; }
-        .btn-secondary { background: #fff; color: var(--text); border: 2px solid #d5c8b5; }
+        .btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 20px rgba(123, 75, 42, 0.25);
+        }
+        .btn:active {
+            transform: scale(0.96) !important;
+            transition-duration: 0.1s !important;
+        }
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        .btn:active::after {
+            width: 300px;
+            height: 300px;
+        }
+        .btn-primary {
+            background: #7b4b2a;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #8a5530;
+            box-shadow: 0 4px 20px rgba(123, 75, 42, 0.3);
+        }
+        .btn-secondary {
+            background: #fff;
+            color: var(--text);
+            border: 2px solid #d5c8b5;
+        }
+        .btn-secondary:hover {
+            background: #f5f0e8;
+            border-color: #7b4b2a;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
         .btn-full { width: 100%; display: block; }
         .input {
             width: 100%; padding: 14px 18px; font-size: 16px;
@@ -84,26 +128,49 @@
             font-size: 13px; text-align: center;
             flex: 1 1 calc(50% - 6px); min-width: 90px; max-width: calc(50% - 6px);
             position: relative; color: var(--text);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06); transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .card-chip.owned { border-color: #27ae60; background: #eafaf1; cursor: default; }
         .card-chip.missing { opacity: 0.45; border-style: dashed; background: #fafafa; }
-        .card-chip.missing:active { opacity: 0.9; border-color: var(--accent2); background: #f5f0ff; }
+        .card-chip.missing:hover {
+            transform: scale(1.04);
+            box-shadow: 0 4px 16px rgba(91, 62, 201, 0.2);
+        }
         .card-chip.selected {
             border-color: #5b3ec9 !important; background: #f0ebff !important;
             box-shadow: 0 0 20px rgba(91,62,201,0.3);
-            opacity: 1 !important; transform: scale(1.04); z-index: 5;
+            opacity: 1 !important; transform: scale(1.08) !important;
+            animation: pulse 0.5s ease-in-out;
         }
         .card-chip .chip-name { font-size: 12px; line-height: 1.4; font-weight: 500; }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1.08); }
+            50% { transform: scale(1.12); }
+        }
         .hidden { display: none !important; }
         .player-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
         .player-card {
             background: #fff; border: 2px solid #e0d5c5; border-radius: 12px;
             padding: 12px; flex: 1 1 calc(50% - 8px); min-width: 120px;
-            text-align: center; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow);
+            text-align: center; cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow);
+        }
+        .player-card:hover {
+            transform: scale(1.03);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
         .player-card:active { border-color: var(--accent2); background: #faf7ff; }
-        .player-card.current { border-color: var(--accent); background: #fdf5ec; }
+        .player-card.current {
+            border-color: var(--accent);
+            background: #fdf5ec;
+            animation: glow 1.5s ease-in-out infinite alternate;
+        }
+        @keyframes glow {
+            from { box-shadow: 0 0 8px rgba(123, 75, 42, 0.2); }
+            to { box-shadow: 0 0 20px rgba(123, 75, 42, 0.5); }
+        }
         .player-card.selected-player { border: 3px solid #5b3ec9; background: #f0ebff; }
         .player-card .p-name { font-weight: bold; font-size: 14px; color: var(--accent); }
         .player-card .p-info { font-size: 11px; color: var(--text2); margin-top: 4px; }
@@ -153,6 +220,19 @@
         .players-waiting .pw-item { padding: 8px 12px; background: #fff; border-radius: 8px; margin: 4px 0; border: 1px solid var(--border); }
         .name-section { margin-bottom: 12px; }
         .name-section label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 4px; }
+        .container > * {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 <body>
@@ -206,15 +286,63 @@
         function showMenu() {
             clearInterval(pollTimer);
             document.getElementById('bottom-panel').classList.add('hidden');
-            document.getElementById('app').innerHTML = `<div class="header"><h1>📖 Библейский квартет</h1></div><div class="name-section"><label>Ваше имя</label><input class="input input-name" id="player-name" value="${playerName}" maxlength="20"></div><button class="btn btn-primary btn-full" onclick="saveNameAndCreate()">🎮 Создать игру</button><button class="btn btn-secondary btn-full" onclick="saveNameAndJoin()">🔗 Присоединиться</button>`;
+            document.getElementById('app').innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;gap:12px;max-width:400px;margin:0 auto;padding-top:10px;">
+                    <div class="header" style="width:100%;">
+                        <h1 style="text-align:center;">📖 Библейский квартет</h1>
+                    </div>
+                    <div class="name-section" style="width:100%;">
+                        <label style="text-align:center;display:block;font-size:14px;color:var(--text2);">Ваше имя</label>
+                        <input class="input input-name" id="player-name" value="${playerName}" maxlength="20" style="text-align:center;">
+                    </div>
+                    <button class="btn btn-primary" style="width:100%;max-width:300px;" onclick="saveNameAndCreate()">🎮 Создать игру</button>
+                    <button class="btn btn-secondary" style="width:100%;max-width:300px;" onclick="saveNameAndJoin()">🔗 Присоединиться</button>
+                </div>
+            `;
         }
         function saveNameAndCreate() { playerName = document.getElementById('player-name').value.trim()||'Игрок'; showCreate(); }
         function saveNameAndJoin() { playerName = document.getElementById('player-name').value.trim()||'Игрок'; showJoin(); }
         function showCreate() {
-            document.getElementById('app').innerHTML = `<div class="header"><h2>Создание игры</h2></div><button class="btn btn-primary btn-full" onclick="createGame(7)">7 карт</button><button class="btn btn-primary btn-full" onclick="createGame(10)">10 карт</button><button class="btn btn-primary btn-full" onclick="createGame(15)">15 карт</button><button class="btn btn-secondary btn-full" onclick="showMenu()">← Назад</button>`;
+            document.getElementById('app').innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;gap:12px;max-width:400px;margin:0 auto;padding-top:10px;">
+                    <div class="header" style="width:100%;">
+                        <h2 style="text-align:center;color:var(--accent);">Создание игры</h2>
+                    </div>
+                    <div style="width:100%;display:flex;flex-direction:column;gap:8px;">
+                        <button class="btn btn-primary btn-full" onclick="createGame(7)" style="width:100%;border-radius:12px;">
+                            <div style="display:flex;flex-direction:column;align-items:center;">
+                                <span style="font-size:16px;font-weight:bold;">🃏 7 карт</span>
+                                <span style="font-size:11px;opacity:0.8;margin-top:2px;">👥 3–21 игрок</span>
+                            </div>
+                        </button>
+                        <button class="btn btn-primary btn-full" onclick="createGame(10)" style="width:100%;border-radius:12px;">
+                            <div style="display:flex;flex-direction:column;align-items:center;">
+                                <span style="font-size:16px;font-weight:bold;">🃏 10 карт</span>
+                                <span style="font-size:11px;opacity:0.8;margin-top:2px;">👥 3–14 игроков</span>
+                            </div>
+                        </button>
+                        <button class="btn btn-primary btn-full" onclick="createGame(15)" style="width:100%;border-radius:12px;">
+                            <div style="display:flex;flex-direction:column;align-items:center;">
+                                <span style="font-size:16px;font-weight:bold;">🃏 15 карт</span>
+                                <span style="font-size:11px;opacity:0.8;margin-top:2px;">👥 3–9 игроков</span>
+                            </div>
+                        </button>
+                        <button class="btn btn-secondary btn-full" onclick="showMenu()" style="width:100%;border-radius:12px;">← Назад</button>
+                    </div>
+                </div>
+            `;
         }
         function showJoin() {
-            document.getElementById('app').innerHTML = `<div class="header"><h2>Подключение</h2></div><input class="input input-code" id="join-code" placeholder="ABC123" maxlength="6"><button class="btn btn-primary btn-full" onclick="joinGame()">🔗 Присоединиться</button><button class="btn btn-secondary btn-full" onclick="showMenu()">← Назад</button>`;
+            document.getElementById('app').innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;gap:12px;max-width:400px;margin:0 auto;padding-top:10px;">
+                    <div class="header" style="width:100%;">
+                        <h2 style="text-align:center;color:var(--accent);">Подключение</h2>
+                    </div>
+                    <input class="input input-code" id="join-code" placeholder="ABC123" maxlength="6" style="width:100%;max-width:300px;text-align:center;">
+                    <button class="btn btn-primary btn-full" onclick="joinGame()" style="width:100%;max-width:300px;">🔗 Присоединиться</button>
+                    <button class="btn btn-secondary btn-full" onclick="showMenu()" style="width:100%;max-width:300px;">← Назад</button>
+                </div>
+            `;
         }
         async function createGame(n) {
             try {
@@ -242,45 +370,49 @@
         function copyCode(){if(!roomCode)return;navigator.clipboard.writeText(roomCode).then(()=>toast('📋 Код скопирован!','success')).catch(()=>toast('Не удалось скопировать','error'));}
         function showLobby() {
             clearInterval(pollTimer);
-            // Сразу показываем лобби
-            document.getElementById('app').innerHTML=`
-                <div class="code-display" onclick="copyCode()">
-                    <div class="code">${roomCode}</div>
-                    <p class="copy-hint">📋 Нажмите, чтобы скопировать код</p>
-                    <p class="waiting">Поделитесь кодом с другими игроками</p>
+            document.getElementById('app').innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:20px;max-width:400px;margin:0 auto;">
+                    <div class="name-section" style="width:100%;">
+                        <label style="text-align:center;display:block;font-size:14px;color:var(--text2);">Ваше имя</label>
+                        <input class="input input-name" id="lobby-name" value="${playerName}" maxlength="20" style="text-align:center;">
+                    </div>
                 </div>
-                <div class="name-section">
-                    <label>Ваше имя</label>
-                    <input class="input input-name" id="lobby-name" value="${playerName}" maxlength="20">
-                    <button class="btn btn-secondary btn-full" onclick="updateName()">Обновить имя</button>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:12px;max-width:400px;margin:0 auto;">
+                    <div class="code-display" onclick="copyCode()" style="width:100%;">
+                        <div class="code">${roomCode}</div>
+                        <p class="copy-hint">📋 Нажмите, чтобы скопировать код</p>
+                        <p class="waiting">Поделитесь кодом с другими игроками</p>
+                    </div>
+                    <button class="btn btn-secondary btn-full" onclick="updateName()" style="width:100%;max-width:300px;">Обновить имя</button>
+                    <div class="players-waiting" id="players-waiting" style="width:100%;">
+                        <div class="pw-item" style="text-align:center;">👤 ${playerName} (Создатель)</div>
+                    </div>
+                    <button class="btn btn-primary btn-full" onclick="startGame()" style="width:100%;max-width:300px;">🎮 Начать игру</button>
+                    <button class="btn btn-secondary btn-full" onclick="clearInterval(pollTimer);showMenu();" style="width:100%;max-width:300px;">← Отмена</button>
                 </div>
-                <div class="players-waiting" id="players-waiting">
-                    <div class="pw-item">👤 ${playerName} (Создатель)</div>
-                </div>
-                <button class="btn btn-primary btn-full" onclick="startGame()">🎮 Начать игру</button>
-                <button class="btn btn-secondary btn-full" onclick="clearInterval(pollTimer);showMenu();">← Отмена</button>
             `;
-            // Запускаем опрос состояния
-            pollTimer=setInterval(async()=>{
+            pollTimer = setInterval(async () => {
                 try {
-                    const r=await fetch(`${API}/state/${roomCode}/${playerId}`);
-                    const d=await r.json();
-                    if(d.ok){
+                    const r = await fetch(`${API}/state/${roomCode}/${playerId}`);
+                    const d = await r.json();
+                    if (d.ok) {
                         const container = document.getElementById('players-waiting');
-                        if(container) {
-                            // Полностью очищаем и перезаписываем список
+                        if (container) {
                             container.innerHTML = '';
                             d.players.forEach(p => {
                                 const div = document.createElement('div');
                                 div.className = 'pw-item';
+                                div.style.textAlign = 'center';
                                 div.textContent = `👤 ${p.name} ${p.id === d.ownerId ? '(Создатель)' : ''}`;
                                 container.appendChild(div);
                             });
                         }
-                        if(d.status==='playing'){fetchState();}
+                        if (d.status === 'playing') {
+                            fetchState();
+                        }
                     }
-                } catch(e){}
-            },1000);
+                } catch (e) {}
+            }, 1000);
         }
         async function updateName() {
             const newName = document.getElementById('lobby-name').value.trim() || 'Игрок';
