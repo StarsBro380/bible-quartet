@@ -16,8 +16,24 @@ def after_request(response):
     return response
 
 rooms = {}
-all_feedback = []
 ADMIN_IDS = [39444699]
+
+FEEDBACK_FILE = 'feedback.json'
+
+def load_feedback():
+    if os.path.exists(FEEDBACK_FILE):
+        try:
+            with open(FEEDBACK_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            return []
+    return []
+
+def save_feedback(feedback_list):
+    with open(FEEDBACK_FILE, 'w', encoding='utf-8') as f:
+        json.dump(feedback_list, f, ensure_ascii=False, indent=2)
+
+all_feedback = load_feedback()
 
 def generate_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -149,7 +165,6 @@ def get_state(code, player_id):
     
     room = rooms[code]
     
-    # Проверяем, является ли пользователь наблюдателем
     is_observer = player_id in room.get('observers', [])
     
     player = None
@@ -158,7 +173,6 @@ def get_state(code, player_id):
             player = p
             break
     
-    # Если это не наблюдатель и не игрок, возвращаем ошибку
     if not player and not is_observer:
         return jsonify({'ok': False, 'error': f'Игрок {player_id} не найден'}), 404
     
@@ -170,7 +184,6 @@ def get_state(code, player_id):
             'quartets': p['quartets'],
             'handCount': int(len(p['hand']))
         }
-        # Показываем руку только самому игроку или наблюдателю
         if p['id'] == player_id or is_observer:
             info['hand'] = p['hand']
         players_info.append(info)
@@ -228,7 +241,6 @@ def request_card():
     
     room = rooms[code]
     
-    # Проверяем, является ли игрок наблюдателем
     if from_player in room.get('observers', []):
         return jsonify({'ok': False, 'error': 'Наблюдатели не могут ходить'}), 400
     
@@ -256,7 +268,6 @@ def request_card():
     from_name = requester['name']
     to_name = target['name']
     
-    # Сбрасываем счётчик пропущенных ходов
     for p in room['players']:
         if p['id'] == from_player:
             p['missed_turns'] = 0
@@ -344,12 +355,10 @@ def leave_room():
     
     room = rooms[code]
     
-    # Если это наблюдатель, просто удаляем его
     if player_id in room.get('observers', []):
         room['observers'].remove(player_id)
         return jsonify({'ok': True})
     
-    # Находим игрока
     player = None
     for p in room['players']:
         if p['id'] == player_id:
@@ -361,15 +370,12 @@ def leave_room():
     
     player_name = player['name']
     
-    # Удаляем игрока
     room['players'] = [p for p in room['players'] if p['id'] != player_id]
     
-    # Если игроков не осталось, удаляем комнату
     if len(room['players']) == 0:
         del rooms[code]
         return jsonify({'ok': True})
     
-    # Если вышел создатель, передаём владение
     if room['ownerId'] == player_id:
         if len(room['players']) > 0:
             new_owner = random.choice(room['players'])
@@ -380,7 +386,6 @@ def leave_room():
                 'type': 'system'
             })
     
-    # Если текущий ход принадлежал вышедшему, переключаем
     if room['currentPlayer'] == player_id:
         if len(room['players']) > 0:
             next_player = room['currentPlayer'] % len(room['players'])
@@ -431,6 +436,7 @@ def feedback():
     if not message:
         return jsonify({'ok': False, 'error': 'Сообщение не может быть пустым'}), 400
     
+    global all_feedback
     feedback_entry = {
         'id': len(all_feedback) + 1,
         'time': datetime.now().strftime('%H:%M %d.%m'),
@@ -441,6 +447,7 @@ def feedback():
         'read': False
     }
     all_feedback.append(feedback_entry)
+    save_feedback(all_feedback)
     
     print(f"[FEEDBACK] От {player_name} (ID: {player_id}, комната: {code}): {message}")
     return jsonify({'ok': True, 'message': 'Сообщение отправлено в поддержку'})
@@ -455,9 +462,11 @@ def get_feedback_list(player_id):
 
 @app.route('/feedback/mark_read/<int:feedback_id>', methods=['POST'])
 def mark_feedback_read(feedback_id):
+    global all_feedback
     for entry in all_feedback:
         if entry['id'] == feedback_id:
             entry['read'] = True
+            save_feedback(all_feedback)
             return jsonify({'ok': True})
     return jsonify({'ok': False, 'error': 'Сообщение не найдено'}), 404
 
@@ -506,7 +515,6 @@ def check_timeouts(code):
     current_time = datetime.now().timestamp()
     time_diff = current_time - room['last_move_time']
     
-    # Если прошло больше 60 секунд
     if time_diff > 60:
         current_player_id = room['currentPlayer']
         current_player = None
@@ -519,7 +527,6 @@ def check_timeouts(code):
             current_player['missed_turns'] = current_player.get('missed_turns', 0) + 1
             print(f"[TIMEOUT] {current_player['name']} пропустил ход ({current_player['missed_turns']} раз)")
             
-            # Если пропущено 2 раза — удаляем игрока
             if current_player['missed_turns'] >= 2:
                 player_name = current_player['name']
                 room['players'] = [p for p in room['players'] if p['id'] != current_player_id]
@@ -530,12 +537,10 @@ def check_timeouts(code):
                 })
                 print(f"[KICK] {player_name} исключён из комнаты {code} за бездействие")
                 
-                # Если игроков не осталось, удаляем комнату
                 if len(room['players']) == 0:
                     del rooms[code]
                     return jsonify({'ok': True, 'kicked': True})
                 
-                # Если вышел создатель, передаём владение
                 if room['ownerId'] == current_player_id:
                     if len(room['players']) > 0:
                         new_owner = random.choice(room['players'])
@@ -546,7 +551,6 @@ def check_timeouts(code):
                             'type': 'system'
                         })
             else:
-                # Просто переключаем ход
                 next_player = (current_player_id + 1) % len(room['players'])
                 room['currentPlayer'] = int(next_player)
                 room['last_move_time'] = datetime.now().timestamp()
