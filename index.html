@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Библейский квартет</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #f5f0e8; --card: #fffef9; --accent: #7b4b2a; --accent2: #5b3ec9;
@@ -20,7 +20,7 @@
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', 'Georgia', 'Times New Roman', serif;
+            font-family: 'Inter', sans-serif;
             background: var(--bg);
             background: var(--gradient);
             color: var(--text);
@@ -642,7 +642,7 @@
             box-shadow: 0 8px 40px rgba(0,0,0,0.2);
         }
         #feedback-modal .modal-content h3 {
-            font-family: 'Playfair Display', serif;
+            font-family: 'Inter', sans-serif;
             color: var(--accent);
             font-size: 18px;
             margin-bottom: 12px;
@@ -701,7 +701,7 @@
             overflow-y: auto;
         }
         #rules-modal .modal-content h3 {
-            font-family: 'Playfair Display', serif;
+            font-family: 'Inter', sans-serif;
             color: var(--accent);
             font-size: 18px;
             margin-bottom: 12px;
@@ -753,7 +753,7 @@
             overflow-y: auto;
         }
         #admin-modal .modal-content h3 {
-            font-family: 'Playfair Display', serif;
+            font-family: 'Inter', sans-serif;
             color: var(--accent);
             font-size: 18px;
             margin-bottom: 12px;
@@ -955,7 +955,7 @@
                         </button>
                         ${isAdmin ? `
                         <button class="btn btn-secondary" style="max-width:300px;padding:8px 16px;font-size:12px;flex:1;background:rgba(123,75,42,0.15);border-color:var(--accent);" onclick="openAdminPanel()">
-                            📊 Игры
+                            🛠 Админская часть
                         </button>
                         ` : ''}
                     </div>
