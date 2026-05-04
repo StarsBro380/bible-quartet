@@ -49,6 +49,22 @@
             transform: scale(0.96) !important;
             transition-duration: 0.1s !important;
         }
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        .btn:active::after {
+            width: 300px;
+            height: 300px;
+        }
         .btn-primary {
             background: linear-gradient(135deg, #8B5A2B 0%, #6B3A1B 100%);
             color: #fff;
@@ -89,6 +105,7 @@
             background: rgba(255, 255, 255, 0.9);
         }
         .input-code { text-align: center; letter-spacing: 4px; font-weight: bold; text-transform: uppercase; }
+        .input-name { text-align: left; letter-spacing: 0; font-weight: normal; text-transform: none; }
         .toast {
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.95);
@@ -327,6 +344,8 @@
             border: 1px solid #d5c8b5;
             font-size: 14px; 
         }
+        .name-section { margin-bottom: 4px; }
+        .name-section label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 3px; font-weight: 500; }
         .container > * {
             animation: fadeIn 0.5s ease-out forwards;
         }
@@ -354,6 +373,159 @@
             border-radius: 2px; 
         }
 
+        /* Бегущая пунктирная рамка — чистая */
+        .running-border {
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 14px;
+            border: 2px dashed var(--accent);
+            pointer-events: none;
+            animation: dash-move 2s linear infinite;
+            opacity: 0.8;
+        }
+
+        .code-display:hover .running-border {
+            animation-direction: reverse;
+            opacity: 1;
+        }
+
+        @keyframes dash-move {
+            0% {
+                background-position: 0% 0%;
+            }
+            100% {
+                background-position: 100% 100%;
+            }
+        }
+
+        /* Панель игрока */
+        .player-panel {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 18px;
+            background: linear-gradient(135deg, rgba(123,75,42,0.08), rgba(123,75,42,0.02));
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border-radius: 14px;
+            border: 2px solid #d5c8b5;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            margin: 3px 0;
+            width: 100%;
+            transition: all 0.3s;
+        }
+
+        .player-panel:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        }
+
+        .player-panel:first-child {
+            background: linear-gradient(135deg, rgba(123,75,42,0.15), rgba(123,75,42,0.05));
+            border-color: var(--accent);
+            border-width: 2px;
+        }
+
+        .player-avatar {
+            font-size: 28px;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f5f0e8, #e8ddd0);
+            border-radius: 50%;
+            border: 2px solid #d5c8b5;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .player-avatar.creator {
+            background: linear-gradient(135deg, #7b4b2a, #8a5530);
+            color: #fff;
+            border-color: #7b4b2a;
+        }
+
+        .player-info {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .player-name {
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--accent);
+            font-family: 'Playfair Display', serif;
+        }
+
+        .player-role {
+            font-size: 12px;
+            color: var(--text2);
+            margin-top: 2px;
+            font-weight: 500;
+        }
+
+        .player-role.creator-role {
+            color: #7b4b2a;
+            font-weight: 600;
+        }
+
+        /* Игроки, присоединившиеся позже */
+        .player-panel:not(:first-child) {
+            background: rgba(255, 255, 255, 0.6);
+            border-style: dashed;
+        }
+
+        .player-panel:not(:first-child) .player-avatar {
+            background: linear-gradient(135deg, #e8ddd0, #d5c8b5);
+        }
+
+        /* Логотип — современный минимализм */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 4px 0;
+            margin: 0 auto;
+        }
+
+        .logo-icon {
+            font-size: 32px;
+            color: var(--accent);
+            filter: drop-shadow(0 2px 4px rgba(123,75,42,0.2));
+        }
+
+        .logo-text-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            line-height: 1.1;
+        }
+
+        .logo-text-main {
+            font-family: 'Inter', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 1px;
+        }
+
+        .logo-text-sub {
+            font-family: 'Inter', sans-serif;
+            font-size: 9px;
+            font-weight: 400;
+            color: var(--text2);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-top: 1px;
+        }
+
+        /* Улучшенный дизайн первой страницы */
         .menu-container {
             display: flex;
             flex-direction: column;
@@ -394,6 +566,12 @@
             z-index: 1;
         }
 
+        .menu-container .name-section {
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+
         .menu-container .btn {
             width: 100%;
             max-width: 300px;
@@ -401,6 +579,7 @@
             z-index: 1;
         }
 
+        /* Декоративный элемент для первой страницы */
         .menu-decoration {
             position: absolute;
             bottom: -40px;
@@ -423,6 +602,7 @@
             pointer-events: none;
         }
 
+        /* Анимированные иконки для кнопок */
         .btn-icon {
             display: inline-block;
             margin-right: 8px;
@@ -438,73 +618,8 @@
             animation-delay: 0.3s;
         }
 
-        /* 🔔 Уведомление сверху (постоянное) */
-        #notification-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: rgba(123, 75, 42, 0.95);
-            backdrop-filter: blur(10px);
-            color: #fff;
-            padding: 10px 16px;
-            display: none;
-            align-items: center;
-            justify-content: space-between;
-            z-index: 200;
-            font-size: 13px;
-            font-weight: 500;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-            transform: translateY(-100%);
-            transition: transform 0.3s ease-out;
-        }
-        #notification-bar.show {
-            transform: translateY(0);
-            display: flex;
-        }
-        #notification-bar .close-btn {
-            background: none;
-            border: none;
-            color: #fff;
-            font-size: 18px;
-            cursor: pointer;
-            padding: 0 6px;
-            opacity: 0.7;
-        }
-        #notification-bar .close-btn:hover {
-            opacity: 1;
-        }
-
-        /* 📬 Кнопка уведомлений в меню */
-        .notification-badge {
-            position: relative;
-        }
-        .notification-badge .badge {
-            position: absolute;
-            top: -6px;
-            right: -6px;
-            background: var(--red);
-            color: #fff;
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-weight: 700;
-        }
-        .support-btn {
-            position: relative;
-        }
-        .support-btn .unread-dot {
-            position: absolute;
-            top: 6px;
-            right: 6px;
-            width: 8px;
-            height: 8px;
-            background: var(--red);
-            border-radius: 50%;
-        }
-
-        /* Модальное окно — адаптивное */
-        .modal-overlay {
+        /* Модальное окно обратной связи */
+        #feedback-modal {
             position: fixed;
             top: 0;
             left: 0;
@@ -518,7 +633,116 @@
             justify-content: center;
             animation: fadeIn 0.3s ease-out;
         }
-        .modal-overlay .modal-content {
+        #feedback-modal .modal-content {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+        }
+        #feedback-modal .modal-content h3 {
+            font-family: 'Inter', sans-serif;
+            color: var(--accent);
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+        #feedback-modal .modal-content p {
+            font-size: 13px;
+            color: var(--text2);
+            margin-bottom: 12px;
+        }
+        #feedback-modal .modal-content textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 2px solid #d5c8b5;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            resize: none;
+        }
+        #feedback-modal .modal-content textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        #feedback-modal .modal-content .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        #feedback-modal .modal-content .btn-group .btn {
+            flex: 1;
+        }
+
+        /* Модальное окно правил */
+        #rules-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+        #rules-modal .modal-content {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        #rules-modal .modal-content h3 {
+            font-family: 'Inter', sans-serif;
+            color: var(--accent);
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+        #rules-modal .modal-content .rules-text {
+            font-size: 13px;
+            color: var(--text);
+            line-height: 1.6;
+        }
+        #rules-modal .modal-content .rules-text ul {
+            padding-left: 20px;
+            margin: 8px 0;
+        }
+        #rules-modal .modal-content .rules-text ul li {
+            margin-bottom: 4px;
+        }
+        #rules-modal .modal-content .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        #rules-modal .modal-content .btn-group .btn {
+            flex: 1;
+        }
+
+        /* Панель администратора */
+        #admin-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+        #admin-modal .modal-content {
             background: #fff;
             border-radius: 16px;
             padding: 24px;
@@ -528,96 +752,109 @@
             max-height: 80vh;
             overflow-y: auto;
         }
-        .modal-overlay .modal-content h3 {
+        #admin-modal .modal-content h3 {
             font-family: 'Inter', sans-serif;
             color: var(--accent);
             font-size: 18px;
             margin-bottom: 12px;
         }
-        .modal-overlay .modal-content .btn-group {
-            display: flex;
-            gap: 8px;
+        #admin-modal .modal-content .section-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--accent);
             margin-top: 12px;
-        }
-        .modal-overlay .modal-content .btn-group .btn {
-            flex: 1;
-        }
-
-        /* Чат поддержки */
-        .chat-messages {
-            max-height: 300px;
-            overflow-y: auto;
-            margin: 8px 0;
-            padding: 8px;
-            background: rgba(245, 240, 232, 0.3);
-            border-radius: 8px;
-        }
-        .chat-message {
-            padding: 6px 10px;
             margin-bottom: 6px;
+        }
+        #admin-modal .modal-content .game-item {
+            padding: 8px 12px;
+            background: rgba(123,75,42,0.05);
             border-radius: 8px;
-            font-size: 13px;
-            display: flex;
-            flex-direction: column;
-            max-width: 85%;
-        }
-        .chat-message.user {
-            background: rgba(123, 75, 42, 0.08);
-            align-self: flex-end;
-            margin-left: auto;
-        }
-        .chat-message.admin {
-            background: rgba(39, 174, 96, 0.08);
-            border-left: 3px solid var(--green);
-        }
-        .chat-message .msg-header {
+            margin-bottom: 4px;
             display: flex;
             justify-content: space-between;
-            font-size: 10px;
-            color: var(--text2);
-            margin-bottom: 2px;
+            align-items: center;
+            font-size: 13px;
         }
-        .chat-message .msg-header .sender {
+        #admin-modal .modal-content .game-item .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        #admin-modal .modal-content .game-item .status-indicator.active {
+            background: #27ae60;
+        }
+        #admin-modal .modal-content .game-item .status-indicator.finished {
+            background: #c0392b;
+        }
+        #admin-modal .modal-content .game-item .observe-btn {
+            padding: 4px 12px;
+            font-size: 11px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        #admin-modal .modal-content .game-item .observe-btn:hover {
+            background: #8a5530;
+        }
+        #admin-modal .modal-content .game-item .reply-btn {
+            padding: 4px 12px;
+            font-size: 11px;
+            background: #27ae60;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-left: 4px;
+        }
+        #admin-modal .modal-content .game-item .reply-btn:hover {
+            background: #2ecc71;
+        }
+        #admin-modal .modal-content .feedback-item {
+            padding: 6px 10px;
+            background: rgba(123,75,42,0.05);
+            border-radius: 6px;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+        #admin-modal .modal-content .feedback-item .feedback-header {
+            display: flex;
+            justify-content: space-between;
+        }
+        #admin-modal .modal-content .feedback-item .feedback-header .name {
             font-weight: 600;
             color: var(--accent);
         }
-        .chat-message .msg-header .time {
-            font-weight: 400;
+        #admin-modal .modal-content .feedback-item .feedback-header .time {
+            font-size: 10px;
+            color: var(--text2);
         }
-        .chat-message .msg-text {
-            font-weight: 400;
+        #admin-modal .modal-content .feedback-item .feedback-header .room {
+            font-size: 10px;
+            color: var(--text2);
         }
-        .chat-input-area {
-            display: flex;
-            gap: 6px;
-            margin-top: 8px;
+        #admin-modal .modal-content .feedback-item .feedback-message {
+            margin-top: 2px;
         }
-        .chat-input-area input {
-            flex: 1;
-            padding: 8px 12px;
-            border: 2px solid #d5c8b5;
-            border-radius: 8px;
-            font-family: 'Inter', sans-serif;
-            font-size: 14px;
+        #admin-modal .modal-content .feedback-item .reply-btn {
+            padding: 2px 10px;
+            font-size: 10px;
+            background: #27ae60;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 2px;
         }
-        .chat-input-area input:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-        .chat-input-area .btn {
-            padding: 8px 16px;
-            font-size: 13px;
-            flex: 0 0 auto;
+        #admin-modal .modal-content .feedback-item .reply-btn:hover {
+            background: #2ecc71;
         }
     </style>
 </head>
 <body>
-    <!-- 🔔 Уведомление сверху -->
-    <div id="notification-bar">
-        <span id="notification-text">📩 У вас есть ответ от поддержки</span>
-        <button class="close-btn" onclick="closeNotification()">✕</button>
-    </div>
-
     <div class="toast" id="toast"></div>
     <div class="container" id="app"></div>
     <div class="bottom-panel hidden" id="bottom-panel">
@@ -635,33 +872,16 @@
         const API = 'https://bible-quartet-server.onrender.com';
         const ADMIN_IDS = [39444699];
         let state = null, playerId = null, roomCode = null, selectedCard = null, selectedPlayerId = null;
-        let playerName = tg?.initDataUnsafe?.user?.first_name || 'Игрок';
+        let playerName = tg?.initDataUnsafe?.user?.first_name || '';
         let pollTimer = null, historyOpen = false;
-        let feedbackOpen = false, rulesOpen = false, adminOpen = false, statsOpen = false;
+        let feedbackOpen = false, rulesOpen = false, adminOpen = false;
         let isObserver = false;
-        let notificationShown = false;
 
         function toast(msg, type) {
             const t = document.getElementById('toast');
             t.textContent = msg; t.className = 'toast ' + (type||'') + ' show';
             clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2500);
         }
-
-        // 🔔 Постоянное уведомление
-        function showPersistentNotification(msg) {
-            const bar = document.getElementById('notification-bar');
-            const text = document.getElementById('notification-text');
-            text.textContent = msg;
-            bar.classList.add('show');
-            notificationShown = true;
-        }
-
-        function closeNotification() {
-            const bar = document.getElementById('notification-bar');
-            bar.classList.remove('show');
-            notificationShown = false;
-        }
-
         function toggleHistory() {
             historyOpen = !historyOpen;
             const c = document.getElementById('history-container');
@@ -689,10 +909,15 @@
             clearInterval(pollTimer);
             document.getElementById('bottom-panel').classList.add('hidden');
             
+            // ✅ Загружаем ID из Telegram при открытии
             if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
                 playerId = parseInt(tg.initDataUnsafe.user.id);
-                playerName = tg.initDataUnsafe.user.first_name || 'Игрок';
             }
+            
+            // ✅ Показываем уведомление при открытии
+            setTimeout(() => {
+                toast('📩 Ответ на ваш запрос', '');
+            }, 500);
             
             const isAdmin = ADMIN_IDS.includes(parseInt(playerId));
             document.getElementById('app').innerHTML = `
@@ -703,17 +928,22 @@
                         <span class="logo-icon">📖</span>
                         <div class="logo-text-group">
                             <span class="logo-text-main">Библейский квартет</span>
-                            <span class="logo-text-sub">BIBLE QUARTET</span>
+                            <span class="logo-text-sub">Bible Quartet</span>
                         </div>
                     </div>
                     <div style="text-align:center;color:var(--text2);font-size:12px;line-height:1.5;max-width:300px;margin:0 auto;position:relative;z-index:1;">
                         <p>Здесь вы можете играть в Библейский квартет онлайн с другими людьми.</p>
                         <p style="margin-top:4px;opacity:0.7;">Если вы заметили ошибки или хотите что-то добавить, напишите в поддержку.</p>
                     </div>
-                    <button class="btn btn-primary" style="position:relative;z-index:1;margin-top:8px;" onclick="createGameWithDefaultName()">
+                    <div class="name-section" style="width:100%;position:relative;z-index:1;">
+                        <label style="text-align:center;display:block;font-size:13px;color:var(--text2);font-weight:500;">Ваше имя</label>
+                        <input class="input input-name" id="player-name" value="${playerName}" maxlength="20" style="text-align:center;"
+                               onblur="saveNameFromMenu()" onkeydown="if(event.key==='Enter') saveNameFromMenu()">
+                    </div>
+                    <button class="btn btn-primary" style="position:relative;z-index:1;" onclick="saveNameAndCreate()">
                         <span class="btn-icon">🎮</span> Создать игру
                     </button>
-                    <button class="btn btn-secondary" style="position:relative;z-index:1;" onclick="joinGameWithDefaultName()">
+                    <button class="btn btn-secondary" style="position:relative;z-index:1;" onclick="saveNameAndJoin()">
                         <span class="btn-icon join-icon">🔗</span> Присоединиться
                     </button>
                     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1;margin-top:8px;">
@@ -731,16 +961,13 @@
                     </div>
                 </div>
             `;
+            window.saveNameFromMenu = function() {
+                const newName = document.getElementById('player-name').value.trim() || 'Игрок';
+                playerName = newName;
+            };
         }
-
-        function createGameWithDefaultName() {
-            showCreate();
-        }
-
-        function joinGameWithDefaultName() {
-            showJoin();
-        }
-
+        function saveNameAndCreate() { showCreate(); }
+        function saveNameAndJoin() { showJoin(); }
         function showCreate() {
             document.getElementById('app').innerHTML = `
                 <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:400px;margin:0 auto;padding-top:10px;">
@@ -818,7 +1045,7 @@
                             <span class="logo-icon" style="font-size:28px;">📖</span>
                             <div class="logo-text-group">
                                 <span class="logo-text-main" style="font-size:18px;">Библейский квартет</span>
-                                <span class="logo-text-sub" style="font-size:8px;">BIBLE QUARTET</span>
+                                <span class="logo-text-sub" style="font-size:8px;">Bible Quartet</span>
                             </div>
                         </div>
                     </div>
@@ -931,6 +1158,7 @@
             if(!state||state.status==='lobby'){showLobby();return;}
             document.getElementById('bottom-panel').classList.remove('hidden');
             
+            // Если это наблюдатель, показываем специальную панель
             if (isObserver) {
                 document.getElementById('app').innerHTML = `
                     <div style="text-align:center;padding:20px;color:var(--text2);">
@@ -962,6 +1190,7 @@
             else {html+=active.map(cat=>{const cards=allCats[cat]||[],cnt=grouped[cat].length,done=cnt===4;const catId=cat.replace(/[^a-zA-Zа-яА-Я0-9]/g,'_');return `<div class="cat-section"><div class="cat-header" onclick="toggleCat('${catId}')"><span class="title">${cat}</span><span class="badge ${done?'badge-full':'badge-partial'}">${cnt}/4${done?' ✅':''}</span><span class="arrow" id="arrow-${catId}">▼</span></div><div class="cards-row" id="row-${catId}">${cards.map(c=>{const o=c.owned;const s=selectedCard&&selectedCard.category===cat&&selectedCard.cardName===c.name;return o?`<div class="card-chip owned"><div class="chip-name">✅ ${c.name}</div></div>`:`<div class="card-chip missing ${s?'selected':''}" onclick="selectCard('${cat.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')"><div class="chip-name">🃏 ${c.name}</div></div>`;}).join('')}</div></div>`;}).join('');}
             document.getElementById('app').innerHTML=html;renderHistory(state.history);renderActions();checkWin();
             
+            // Добавляем кнопки выхода и завершения игры
             const bottom = document.getElementById('bottom-panel');
             const exitBtn = document.createElement('div');
             exitBtn.style.cssText = 'display:flex;gap:8px;padding:4px 10px;justify-content:center;';
@@ -1038,69 +1267,36 @@
         }
         showMenu();
 
-        // ----- Обратная связь (чат) -----
+        // ----- Обратная связь -----
         function openFeedback() {
             if (feedbackOpen) return;
             feedbackOpen = true;
             const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
             modal.id = 'feedback-modal';
-            
-            fetch(API + '/feedback/chat/' + playerId)
-                .then(res => res.json())
-                .then(d => {
-                    if (!d.ok) {
-                        toast('Ошибка загрузки чата: ' + d.error, 'error');
-                        return;
-                    }
-                    
-                    let messagesHtml = '';
-                    if (d.messages && d.messages.length > 0) {
-                        messagesHtml = d.messages.map(m => `
-                            <div class="chat-message ${m.from_admin ? 'admin' : 'user'}">
-                                <div class="msg-header">
-                                    <span class="sender">${m.from_admin ? '👑 Поддержка' : 'Вы'}</span>
-                                    <span class="time">${m.time}</span>
-                                </div>
-                                <div class="msg-text">${m.text}</div>
-                            </div>
-                        `).join('');
-                    } else {
-                        messagesHtml = '<div style="text-align:center;color:var(--text2);font-size:13px;padding:20px;">Нет сообщений</div>';
-                    }
-                    
-                    modal.innerHTML = `
-                        <div class="modal-content">
-                            <h3>💬 Поддержка</h3>
-                            <div class="chat-messages">
-                                ${messagesHtml}
-                            </div>
-                            <div class="chat-input-area">
-                                <input type="text" id="chat-input" placeholder="Напишите сообщение..." />
-                                <button class="btn btn-primary" onclick="sendChatMessage()">Отправить</button>
-                            </div>
-                            <div class="btn-group">
-                                <button class="btn btn-secondary" onclick="closeFeedback()">← Закрыть</button>
-                            </div>
-                        </div>
-                    `;
-                    document.body.appendChild(modal);
-                    
-                    const chatDiv = modal.querySelector('.chat-messages');
-                    if (chatDiv) chatDiv.scrollTop = chatDiv.scrollHeight;
-                })
-                .catch(() => toast('Ошибка загрузки чата', 'error'));
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3>💬 Обратная связь</h3>
+                    <p>Напишите, что хотите сообщить: ошибки, идеи, предложения.</p>
+                    <textarea id="feedback-message" placeholder="Ваше сообщение..."></textarea>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="sendFeedback()">📤 Отправить</button>
+                        <button class="btn btn-secondary" onclick="closeFeedback()">← Назад</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
         }
         function closeFeedback() {
             feedbackOpen = false;
             const modal = document.getElementById('feedback-modal');
             if (modal) modal.remove();
         }
-        function sendChatMessage() {
-            const input = document.getElementById('chat-input');
-            const message = input.value.trim();
-            if (!message) return;
-            
+        function sendFeedback() {
+            const message = document.getElementById('feedback-message').value.trim();
+            if (!message) {
+                toast('Напишите сообщение', 'error');
+                return;
+            }
             fetch(API + '/feedback', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -1114,9 +1310,8 @@
             .then(res => res.json())
             .then(d => {
                 if (d.ok) {
-                    input.value = '';
+                    toast('✅ Сообщение отправлено в поддержку!', 'success');
                     closeFeedback();
-                    toast('✅ Сообщение отправлено!', 'success');
                 } else {
                     toast('❌ ' + d.error, 'error');
                 }
@@ -1129,7 +1324,6 @@
             if (rulesOpen) return;
             rulesOpen = true;
             const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
             modal.id = 'rules-modal';
             modal.innerHTML = `
                 <div class="modal-content">
@@ -1167,7 +1361,7 @@
             if (modal) modal.remove();
         }
 
-        // ----- Панель администратора (красивая, компактная) -----
+        // ----- Панель администратора -----
         function openAdminPanel() {
             if (adminOpen) return;
             if (!ADMIN_IDS.includes(parseInt(playerId))) {
@@ -1176,168 +1370,83 @@
             }
             adminOpen = true;
             
-            fetch(API + '/admin/games/' + playerId)
+            fetch(API + '/feedback/list/' + playerId)
                 .then(res => res.json())
-                .then(g => {
-                    if (!g.ok) {
-                        toast('Ошибка загрузки игр: ' + g.error, 'error');
+                .then(d => {
+                    if (!d.ok) {
+                        toast('Ошибка загрузки: ' + d.error, 'error');
                         adminOpen = false;
                         return;
                     }
                     
-                    const modal = document.createElement('div');
-                    modal.className = 'modal-overlay';
-                    modal.id = 'admin-modal';
-                    modal.style.cssText = `
-                        position: fixed;
-                        top: 0;
-                        left: 0;
-                        right: 0;
-                        bottom: 0;
-                        background: rgba(0,0,0,0.5);
-                        backdrop-filter: blur(8px);
-                        z-index: 1000;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        padding: 12px;
-                    `;
-                    
-                    const sortedGames = g.games.sort((a, b) => {
-                        if (a.status === 'playing' && b.status !== 'playing') return -1;
-                        if (a.status !== 'playing' && b.status === 'playing') return 1;
-                        return 0;
-                    });
-                    
-                    let gamesHtml = '';
-                    if (sortedGames && sortedGames.length > 0) {
-                        gamesHtml = sortedGames.map(game => `
-                            <div class="game-item" style="padding:8px 12px;background:rgba(123,75,42,0.05);border-radius:8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;font-size:12px;flex-wrap:wrap;gap:4px;">
-                                <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
-                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;${game.status === 'playing' ? 'background:#27ae60;' : 'background:#c0392b;'}"></span>
-                                    <strong style="font-size:13px;">${game.code}</strong>
-                                    <span style="font-size:11px;color:var(--text2);">${game.status === 'playing' ? '🟢' : '🔴'}</span>
-                                    <span style="font-size:11px;color:var(--text2);">👤 ${game.players.map(p => p.name).join(', ')}</span>
+                    fetch(API + '/admin/games/' + playerId)
+                        .then(res => res.json())
+                        .then(g => {
+                            if (!g.ok) {
+                                toast('Ошибка загрузки игр: ' + g.error, 'error');
+                                adminOpen = false;
+                                return;
+                            }
+                            
+                            const modal = document.createElement('div');
+                            modal.id = 'admin-modal';
+                            let feedbackHtml = '';
+                            if (d.feedback && d.feedback.length > 0) {
+                                feedbackHtml = d.feedback.map(f => `
+                                    <div class="feedback-item" style="${f.read ? 'opacity:0.6;' : ''}">
+                                        <div class="feedback-header">
+                                            <span class="name">${f.name}</span>
+                                            <span class="time">${f.time}</span>
+                                            <span class="room">${f.room ? '#'+f.room : 'меню'}</span>
+                                        </div>
+                                        <div class="feedback-message">${f.message}</div>
+                                        <button class="reply-btn" onclick="replyToFeedback(${f.id})">Ответить</button>
+                                    </div>
+                                `).join('');
+                            } else {
+                                feedbackHtml = '<p style="font-size:13px;color:var(--text2);">Сообщений пока нет</p>';
+                            }
+                            
+                            let gamesHtml = '';
+                            if (g.games && g.games.length > 0) {
+                                gamesHtml = g.games.map(game => `
+                                    <div class="game-item">
+                                        <div>
+                                            <span class="status-indicator ${game.status === 'playing' ? 'active' : 'finished'}"></span>
+                                            <strong>${game.code}</strong>
+                                            <span style="font-size:11px;color:var(--text2);margin-left:6px;">${game.status === 'playing' ? '🟢' : '🔴'}</span>
+                                            <span style="font-size:11px;color:var(--text2);margin-left:6px;">👤 ${game.players.map(p => p.name).join(', ')}</span>
+                                        </div>
+                                        ${game.status === 'playing' ? `
+                                        <button class="observe-btn" onclick="observeGame('${game.code}')">👁 Наблюдать</button>
+                                        ` : '<span style="font-size:11px;color:var(--text2);">Завершена</span>'}
+                                    </div>
+                                `).join('');
+                            } else {
+                                gamesHtml = '<p style="font-size:13px;color:var(--text2);">Активных игр нет</p>';
+                            }
+                            
+                            modal.innerHTML = `
+                                <div class="modal-content">
+                                    <h3>📊 Панель администратора</h3>
+                                    <div class="section-title">📩 Сообщения</div>
+                                    ${feedbackHtml}
+                                    <div class="section-title">🎮 Игры</div>
+                                    ${gamesHtml}
+                                    <div class="btn-group" style="margin-top:12px;">
+                                        <button class="btn btn-secondary" onclick="closeAdminPanel()">← Закрыть</button>
+                                    </div>
                                 </div>
-                                ${game.status === 'playing' ? `
-                                <button class="observe-btn" onclick="observeGame('${game.code}')" style="padding:4px 10px;font-size:11px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;white-space:nowrap;">👁 Наблюдать</button>
-                                ` : `
-                                <button class="observe-btn" onclick="viewGameStats('${game.code}')" style="padding:4px 10px;font-size:11px;background:var(--accent2);color:#fff;border:none;border-radius:6px;cursor:pointer;white-space:nowrap;">📊 Детали</button>
-                                `}
-                            </div>
-                        `).join('');
-                    } else {
-                        gamesHtml = '<p style="font-size:13px;color:var(--text2);text-align:center;padding:20px;">Активных игр нет</p>';
-                    }
-                    
-                    modal.innerHTML = `
-                        <div class="modal-content" style="max-width:600px;width:95%;max-height:85vh;overflow-y:auto;">
-                            <h3>📊 Панель администратора</h3>
-                            <div class="section-title" style="font-weight:600;font-size:14px;color:var(--accent);margin-top:12px;margin-bottom:6px;">🎮 Игры</div>
-                            ${gamesHtml}
-                            <div class="btn-group" style="margin-top:12px;">
-                                <button class="btn btn-secondary" onclick="closeAdminPanel()">← Закрыть</button>
-                            </div>
-                        </div>
-                    `;
-                    document.body.appendChild(modal);
-                })
-                .catch(() => toast('Ошибка загрузки', 'error'));
+                            `;
+                            document.body.appendChild(modal);
+                        });
+                });
         }
         function closeAdminPanel() {
             adminOpen = false;
             const modal = document.getElementById('admin-modal');
             if (modal) modal.remove();
         }
-
-        // ----- Статистика игры (красивая, на весь экран) -----
-        function viewGameStats(code) {
-            if (statsOpen) return;
-            statsOpen = true;
-            
-            fetch(API + '/game_stats/' + code)
-                .then(res => res.json())
-                .then(d => {
-                    if (!d.ok) {
-                        toast('Ошибка загрузки: ' + d.error, 'error');
-                        statsOpen = false;
-                        return;
-                    }
-                    
-                    const stats = d.stats;
-                    const modal = document.createElement('div');
-                    modal.className = 'modal-overlay';
-                    modal.id = 'stats-modal';
-                    modal.style.cssText = `
-                        position: fixed;
-                        top: 0;
-                        left: 0;
-                        right: 0;
-                        bottom: 0;
-                        background: rgba(0,0,0,0.5);
-                        backdrop-filter: blur(8px);
-                        z-index: 1000;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        padding: 12px;
-                    `;
-                    
-                    let playersHtml = '';
-                    if (stats.players && stats.players.length > 0) {
-                        playersHtml = stats.players.map(p => `
-                            <div class="player-stats-item" style="padding:6px 10px;background:rgba(123,75,42,0.05);border-radius:6px;margin-bottom:3px;display:flex;justify-content:space-between;font-size:12px;flex-wrap:wrap;gap:4px;">
-                                <span><strong>${p.name}</strong> (ID: ${p.id})</span>
-                                <span>🏆 ${p.quartets} кв. | 🃏 ${p.handCount} карт</span>
-                            </div>
-                        `).join('');
-                    } else {
-                        playersHtml = '<p style="font-size:13px;color:var(--text2);text-align:center;padding:10px;">Нет игроков</p>';
-                    }
-                    
-                    let historyHtml = '';
-                    if (stats.history && stats.history.length > 0) {
-                        historyHtml = stats.history.map(h => `
-                            <div class="player-history-item" style="padding:4px 8px;background:rgba(123,75,42,0.03);border-radius:4px;margin-bottom:2px;display:flex;justify-content:space-between;font-size:11px;color:var(--text2);flex-wrap:wrap;gap:4px;">
-                                <span>${h.name} (ID: ${h.id})</span>
-                                <span>${h.joined} → ${h.left || 'в игре'}</span>
-                            </div>
-                        `).join('');
-                    } else {
-                        historyHtml = '<p style="font-size:13px;color:var(--text2);text-align:center;padding:10px;">Нет истории</p>';
-                    }
-                    
-                    modal.innerHTML = `
-                        <div class="modal-content" style="max-width:500px;width:95%;max-height:85vh;overflow-y:auto;">
-                            <h3>📊 Статистика игры ${code}</h3>
-                            <div style="margin:8px 0;font-size:12px;color:var(--text2);display:flex;flex-wrap:wrap;gap:8px;">
-                                <span>Статус: ${stats.status === 'playing' ? '🟢 Активна' : '🔴 Завершена'}</span>
-                                <span>👤 ${stats.maxPlayers} игр.</span>
-                                <span>🃏 ${stats.cardsPerPlayer} карт</span>
-                                <span>📅 ${stats.created}</span>
-                            </div>
-                            
-                            <div class="section-title" style="font-weight:600;font-size:14px;color:var(--accent);margin-top:12px;margin-bottom:4px;">👥 Игроки</div>
-                            ${playersHtml}
-                            
-                            <div class="section-title" style="font-weight:600;font-size:14px;color:var(--accent);margin-top:12px;margin-bottom:4px;">📜 История подключений</div>
-                            ${historyHtml}
-                            
-                            <div class="btn-group" style="margin-top:12px;">
-                                <button class="btn btn-secondary" onclick="closeStatsModal()">← Закрыть</button>
-                            </div>
-                        </div>
-                    `;
-                    document.body.appendChild(modal);
-                })
-                .catch(() => toast('Ошибка загрузки статистики', 'error'));
-        }
-        function closeStatsModal() {
-            statsOpen = false;
-            const modal = document.getElementById('stats-modal');
-            if (modal) modal.remove();
-        }
-
         function observeGame(code) {
             closeAdminPanel();
             if (!ADMIN_IDS.includes(parseInt(playerId))) {
@@ -1362,6 +1471,13 @@
                 }
             })
             .catch(() => toast('Ошибка подключения', 'error'));
+        }
+        function replyToFeedback(feedbackId) {
+            closeAdminPanel();
+            const reply = prompt('Введите ответ для этого сообщения:');
+            if (!reply) return;
+            // Здесь можно добавить отправку ответа через API
+            toast('✅ Ответ отправлен (в разработке)', 'success');
         }
     </script>
 </body>
