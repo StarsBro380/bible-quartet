@@ -57,6 +57,7 @@ def create_room():
     data = request.get_json()
     player_name = data.get('name', 'Игрок')
     cards_count = int(data.get('cards', 10))
+    player_id = int(data.get('playerId', -1))
     
     code = generate_code()
     while code in rooms:
@@ -123,6 +124,7 @@ def join_room():
     data = request.get_json()
     code = data.get('code', '').upper()
     player_name = data.get('name', 'Игрок')
+    player_id = int(data.get('playerId', -1))
     
     if code not in rooms:
         return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
