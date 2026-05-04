@@ -83,7 +83,15 @@ def create_room():
         'history': [],
         'ownerId': 0,
         'observers': [],
-        'last_move_time': datetime.now().timestamp()
+        'last_move_time': datetime.now().timestamp(),
+        'player_history': {}  # Для хранения истории подключений игроков
+    }
+    
+    # Записываем создателя в историю игроков
+    room['player_history'][0] = {
+        'name': player_name,
+        'joined': datetime.now().strftime('%H:%M %d.%m'),
+        'left': None
     }
     
     rooms[code] = room
@@ -148,6 +156,13 @@ def join_room():
         'quartets': [],
         'missed_turns': 0
     })
+    
+    # Записываем игрока в историю
+    room['player_history'][new_id] = {
+        'name': player_name,
+        'joined': datetime.now().strftime('%H:%M %d.%m'),
+        'left': None
+    }
     
     room['history'].append({
         'time': datetime.now().strftime('%H:%M'),
@@ -217,6 +232,9 @@ def rename_player():
         if p['id'] == player_id:
             old_name = p['name']
             p['name'] = new_name
+            # Обновляем имя в истории
+            if player_id in room['player_history']:
+                room['player_history'][player_id]['name'] = new_name
             room['history'].append({
                 'time': datetime.now().strftime('%H:%M'),
                 'text': f'✏️ {old_name} сменил имя на "{new_name}"',
@@ -370,6 +388,10 @@ def leave_room():
     
     player_name = player['name']
     
+    # Отмечаем уход игрока в истории
+    if player_id in room['player_history']:
+        room['player_history'][player_id]['left'] = datetime.now().strftime('%H:%M %d.%m')
+    
     room['players'] = [p for p in room['players'] if p['id'] != player_id]
     
     if len(room['players']) == 0:
@@ -444,13 +466,41 @@ def feedback():
         'playerId': player_id,
         'room': code,
         'message': message,
-        'read': False
+        'read': False,
+        'reply': None,
+        'reply_time': None,
+        'from_admin': False
     }
     all_feedback.append(feedback_entry)
     save_feedback(all_feedback)
     
     print(f"[FEEDBACK] От {player_name} (ID: {player_id}, комната: {code}): {message}")
     return jsonify({'ok': True, 'message': 'Сообщение отправлено в поддержку'})
+
+@app.route('/feedback/chat/<int:player_id>', methods=['GET'])
+def get_feedback_chat(player_id):
+    # Получаем все сообщения, где playerId совпадает или toPlayerId совпадает (ответы)
+    messages = []
+    for entry in all_feedback:
+        if entry['playerId'] == player_id:
+            # Сообщение от пользователя
+            messages.append({
+                'id': entry['id'],
+                'text': entry['message'],
+                'time': entry['time'],
+                'from_admin': False
+            })
+            # Если есть ответ от админа
+            if entry.get('reply'):
+                messages.append({
+                    'id': entry['id'] * 1000,
+                    'text': entry['reply'],
+                    'time': entry.get('reply_time', entry['time']),
+                    'from_admin': True
+                })
+    # Сортируем по времени
+    messages.sort(key=lambda x: x['time'])
+    return jsonify({'ok': True, 'messages': messages})
 
 @app.route('/feedback/list/<int:player_id>', methods=['GET'])
 def get_feedback_list(player_id):
@@ -459,6 +509,29 @@ def get_feedback_list(player_id):
     
     feedback_list = sorted(all_feedback, key=lambda x: x['id'], reverse=True)
     return jsonify({'ok': True, 'feedback': feedback_list})
+
+@app.route('/feedback/reply', methods=['POST'])
+def feedback_reply():
+    data = request.get_json()
+    feedback_id = int(data.get('feedbackId', -1))
+    message = data.get('message', '').strip()
+    admin_id = data.get('adminId', -1)
+    
+    if admin_id not in ADMIN_IDS:
+        return jsonify({'ok': False, 'error': 'Доступ запрещён'}), 403
+    
+    if not message:
+        return jsonify({'ok': False, 'error': 'Сообщение не может быть пустым'}), 400
+    
+    global all_feedback
+    for entry in all_feedback:
+        if entry['id'] == feedback_id:
+            entry['reply'] = message
+            entry['reply_time'] = datetime.now().strftime('%H:%M %d.%m')
+            entry['read'] = True
+            save_feedback(all_feedback)
+            return jsonify({'ok': True, 'message': 'Ответ отправлен'})
+    return jsonify({'ok': False, 'error': 'Сообщение не найдено'}), 404
 
 @app.route('/feedback/mark_read/<int:feedback_id>', methods=['POST'])
 def mark_feedback_read(feedback_id):
@@ -477,16 +550,74 @@ def admin_games(player_id):
     
     games_list = []
     for code, room in rooms.items():
-        players_info = [{'id': p['id'], 'name': p['name']} for p in room['players']]
+        # Формируем список игроков с историей
+        players_info = []
+        for p in room['players']:
+            players_info.append({
+                'id': p['id'],
+                'name': p['name']
+            })
+        
+        # Добавляем историю всех, кто когда-либо был в комнате
+        history_info = []
+        for pid, info in room.get('player_history', {}).items():
+            history_info.append({
+                'id': pid,
+                'name': info['name'],
+                'joined': info['joined'],
+                'left': info.get('left', 'В игре')
+            })
+        
         games_list.append({
             'code': code,
             'status': room['status'],
             'players': players_info,
             'ownerId': room['ownerId'],
-            'created': room['history'][0]['time'] if room['history'] else 'неизвестно'
+            'created': room['history'][0]['time'] if room['history'] else 'неизвестно',
+            'player_history': history_info,
+            'maxPlayers': room['maxPlayers'],
+            'cardsPerPlayer': room['cardsPerPlayer']
         })
     
     return jsonify({'ok': True, 'games': games_list})
+
+@app.route('/game_stats/<code>', methods=['GET'])
+def game_stats(code):
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
+    
+    room = rooms[code]
+    
+    # Формируем статистику
+    stats = {
+        'code': code,
+        'status': room['status'],
+        'created': room['history'][0]['time'] if room['history'] else 'неизвестно',
+        'maxPlayers': room['maxPlayers'],
+        'cardsPerPlayer': room['cardsPerPlayer'],
+        'players': [],
+        'history': []
+    }
+    
+    # Игроки
+    for p in room['players']:
+        stats['players'].append({
+            'id': p['id'],
+            'name': p['name'],
+            'quartets': len(p['quartets']),
+            'handCount': len(p['hand'])
+        })
+    
+    # История игроков (все, кто подключался)
+    for pid, info in room.get('player_history', {}).items():
+        stats['history'].append({
+            'id': pid,
+            'name': info['name'],
+            'joined': info['joined'],
+            'left': info.get('left', 'В игре')
+        })
+    
+    return jsonify({'ok': True, 'stats': stats})
 
 @app.route('/observe/<code>/<int:player_id>', methods=['POST'])
 def observe_game(code, player_id):
@@ -530,6 +661,9 @@ def check_timeouts(code):
             if current_player['missed_turns'] >= 2:
                 player_name = current_player['name']
                 room['players'] = [p for p in room['players'] if p['id'] != current_player_id]
+                # Отмечаем уход в истории
+                if current_player_id in room['player_history']:
+                    room['player_history'][current_player_id]['left'] = datetime.now().strftime('%H:%M %d.%m')
                 room['history'].append({
                     'time': datetime.now().strftime('%H:%M'),
                     'text': f'⏰ {player_name} исключён за бездействие',
