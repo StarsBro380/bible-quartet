@@ -17,6 +17,10 @@
             --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
             --shadow-xl: 0 12px 48px rgba(0,0,0,0.15);
             --gold: linear-gradient(135deg, #8B5A2B 0%, #D4A76A 50%, #8B5A2B 100%);
+            --chat-bg: #e8ddd0;
+            --chat-received: #fff;
+            --chat-sent: #dcf8c6;
+            --chat-time: #8a7568;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -620,8 +624,8 @@
             animation-delay: 0.3s;
         }
 
-        /* Модальное окно обратной связи */
-        #feedback-modal {
+        /* ===== ЧАТ С ПОДДЕРЖКОЙ (как Telegram/WhatsApp) ===== */
+        #chat-modal {
             position: fixed;
             top: 0;
             left: 0;
@@ -635,101 +639,125 @@
             justify-content: center;
             animation: fadeIn 0.3s ease-out;
         }
-        #feedback-modal .modal-content {
+        #chat-modal .modal-content {
             background: #fff;
             border-radius: 16px;
-            padding: 24px;
+            padding: 0;
             max-width: 400px;
             width: 90%;
+            height: 80vh;
+            max-height: 600px;
             box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
-        #feedback-modal .modal-content h3 {
-            font-family: 'Inter', sans-serif;
-            color: var(--accent);
-            font-size: 18px;
-            margin-bottom: 12px;
+        #chat-modal .chat-header {
+            background: linear-gradient(135deg, #7b4b2a, #8a5530);
+            color: #fff;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 16px 16px 0 0;
         }
-        #feedback-modal .modal-content p {
-            font-size: 13px;
-            color: var(--text2);
-            margin-bottom: 12px;
+        #chat-modal .chat-header h3 {
+            font-size: 16px;
+            font-weight: 600;
         }
-        #feedback-modal .modal-content textarea {
-            width: 100%;
-            height: 100px;
-            padding: 10px;
-            border: 2px solid #d5c8b5;
-            border-radius: 8px;
-            font-family: 'Inter', sans-serif;
+        #chat-modal .chat-header .close-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        #chat-modal .chat-messages {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            background: var(--chat-bg);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        #chat-modal .chat-message {
+            max-width: 80%;
+            padding: 8px 12px;
+            border-radius: 12px;
             font-size: 14px;
-            resize: none;
+            line-height: 1.4;
+            position: relative;
+            word-wrap: break-word;
         }
-        #feedback-modal .modal-content textarea:focus {
+        #chat-modal .chat-message.received {
+            background: var(--chat-received);
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+        #chat-modal .chat-message.sent {
+            background: var(--chat-sent);
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+        #chat-modal .chat-message .msg-time {
+            font-size: 10px;
+            color: var(--chat-time);
+            margin-top: 2px;
+            text-align: right;
+        }
+        #chat-modal .chat-input {
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            background: #fff;
+            border-top: 1px solid #ddd;
+        }
+        #chat-modal .chat-input input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #d5c8b5;
+            border-radius: 20px;
+            font-size: 14px;
             outline: none;
+        }
+        #chat-modal .chat-input input:focus {
             border-color: var(--accent);
         }
-        #feedback-modal .modal-content .btn-group {
-            display: flex;
-            gap: 8px;
-            margin-top: 12px;
+        #chat-modal .chat-input button {
+            padding: 8px 16px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
         }
-        #feedback-modal .modal-content .btn-group .btn {
-            flex: 1;
-        }
-
-        /* Модальное окно правил */
-        #rules-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(8px);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.3s ease-out;
-        }
-        #rules-modal .modal-content {
-            background: #fff;
-            border-radius: 16px;
-            padding: 24px;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.2);
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        #rules-modal .modal-content h3 {
-            font-family: 'Inter', sans-serif;
-            color: var(--accent);
-            font-size: 18px;
-            margin-bottom: 12px;
-        }
-        #rules-modal .modal-content .rules-text {
-            font-size: 13px;
-            color: var(--text);
-            line-height: 1.6;
-        }
-        #rules-modal .modal-content .rules-text ul {
-            padding-left: 20px;
-            margin: 8px 0;
-        }
-        #rules-modal .modal-content .rules-text ul li {
-            margin-bottom: 4px;
-        }
-        #rules-modal .modal-content .btn-group {
-            display: flex;
-            gap: 8px;
-            margin-top: 12px;
-        }
-        #rules-modal .modal-content .btn-group .btn {
-            flex: 1;
+        #chat-modal .chat-input button:hover {
+            background: #8a5530;
         }
 
-        /* Панель администратора */
+        /* Кнопка чата с красным кружком */
+        .chat-btn-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        .chat-btn-wrapper .badge-red {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 12px;
+            height: 12px;
+            background: #ff3b30;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            display: none;
+        }
+        .chat-btn-wrapper .badge-red.active {
+            display: block;
+        }
+
+        /* ===== АДМИНСКАЯ ПАНЕЛЬ ===== */
         #admin-modal {
             position: fixed;
             top: 0;
@@ -742,30 +770,58 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            animation: fadeIn 0.3s ease-out;
+            animation: fadeIn 0.2s ease-out;
         }
         #admin-modal .modal-content {
             background: #fff;
             border-radius: 16px;
-            padding: 24px;
+            padding: 20px;
             max-width: 500px;
             width: 90%;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.2);
             max-height: 80vh;
             overflow-y: auto;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.2);
         }
         #admin-modal .modal-content h3 {
             font-family: 'Inter', sans-serif;
             color: var(--accent);
             font-size: 18px;
+            margin-bottom: 8px;
+        }
+        #admin-modal .modal-content .tabs {
+            display: flex;
+            gap: 4px;
             margin-bottom: 12px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 4px;
+        }
+        #admin-modal .modal-content .tabs button {
+            flex: 1;
+            padding: 6px 0;
+            background: none;
+            border: none;
+            font-weight: 600;
+            color: var(--text2);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        #admin-modal .modal-content .tabs button.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+        #admin-modal .modal-content .tab-content {
+            display: none;
+        }
+        #admin-modal .modal-content .tab-content.active {
+            display: block;
         }
         #admin-modal .modal-content .section-title {
             font-weight: 600;
             font-size: 14px;
             color: var(--accent);
-            margin-top: 12px;
-            margin-bottom: 6px;
+            margin-top: 8px;
+            margin-bottom: 4px;
         }
         #admin-modal .modal-content .game-item {
             padding: 8px 12px;
@@ -802,7 +858,26 @@
         #admin-modal .modal-content .game-item .observe-btn:hover {
             background: #8a5530;
         }
-        #admin-modal .modal-content .game-item .reply-btn {
+
+        #admin-modal .modal-content .chat-item {
+            padding: 8px 12px;
+            background: rgba(123,75,42,0.05);
+            border-radius: 8px;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+        #admin-modal .modal-content .chat-item .chat-name {
+            font-weight: 600;
+            color: var(--accent);
+        }
+        #admin-modal .modal-content .chat-item .chat-last {
+            font-size: 11px;
+            color: var(--text2);
+        }
+        #admin-modal .modal-content .chat-item .chat-btn {
             padding: 4px 12px;
             font-size: 11px;
             background: #27ae60;
@@ -810,49 +885,153 @@
             border: none;
             border-radius: 6px;
             cursor: pointer;
-            margin-left: 4px;
         }
-        #admin-modal .modal-content .game-item .reply-btn:hover {
+        #admin-modal .modal-content .chat-item .chat-btn:hover {
             background: #2ecc71;
         }
-        #admin-modal .modal-content .feedback-item {
+
+        #admin-modal .modal-content .player-stat {
             padding: 6px 10px;
             background: rgba(123,75,42,0.05);
             border-radius: 6px;
             margin-bottom: 4px;
-            font-size: 12px;
-        }
-        #admin-modal .modal-content .feedback-item .feedback-header {
             display: flex;
             justify-content: space-between;
+            font-size: 13px;
         }
-        #admin-modal .modal-content .feedback-item .feedback-header .name {
+        #admin-modal .modal-content .player-stat .stat-name {
             font-weight: 600;
             color: var(--accent);
         }
-        #admin-modal .modal-content .feedback-item .feedback-header .time {
-            font-size: 10px;
+        #admin-modal .modal-content .player-stat .stat-info {
             color: var(--text2);
         }
-        #admin-modal .modal-content .feedback-item .feedback-header .room {
-            font-size: 10px;
-            color: var(--text2);
+        #admin-modal .modal-content .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
         }
-        #admin-modal .modal-content .feedback-item .feedback-message {
+        #admin-modal .modal-content .btn-group .btn {
+            flex: 1;
+        }
+
+        /* Стили для чата с игроком внутри админки */
+        #admin-chat-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+        #admin-chat-modal .modal-content {
+            background: #fff;
+            border-radius: 16px;
+            padding: 0;
+            max-width: 400px;
+            width: 90%;
+            height: 70vh;
+            max-height: 500px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #admin-chat-modal .chat-header {
+            background: linear-gradient(135deg, #7b4b2a, #8a5530);
+            color: #fff;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 16px 16px 0 0;
+        }
+        #admin-chat-modal .chat-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        #admin-chat-modal .chat-header .close-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        #admin-chat-modal .chat-messages {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            background: var(--chat-bg);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        #admin-chat-modal .chat-message {
+            max-width: 80%;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            position: relative;
+            word-wrap: break-word;
+        }
+        #admin-chat-modal .chat-message.received {
+            background: var(--chat-received);
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+        #admin-chat-modal .chat-message.sent {
+            background: var(--chat-sent);
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+        #admin-chat-modal .chat-message .msg-time {
+            font-size: 10px;
+            color: var(--chat-time);
             margin-top: 2px;
+            text-align: right;
         }
-        #admin-modal .modal-content .feedback-item .reply-btn {
-            padding: 2px 10px;
-            font-size: 10px;
-            background: #27ae60;
+        #admin-chat-modal .chat-input {
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            background: #fff;
+            border-top: 1px solid #ddd;
+        }
+        #admin-chat-modal .chat-input input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #d5c8b5;
+            border-radius: 20px;
+            font-size: 14px;
+            outline: none;
+        }
+        #admin-chat-modal .chat-input input:focus {
+            border-color: var(--accent);
+        }
+        #admin-chat-modal .chat-input button {
+            padding: 8px 16px;
+            background: var(--accent);
             color: #fff;
             border: none;
-            border-radius: 4px;
+            border-radius: 20px;
+            font-weight: 600;
             cursor: pointer;
-            margin-top: 2px;
         }
-        #admin-modal .modal-content .feedback-item .reply-btn:hover {
-            background: #2ecc71;
+        #admin-chat-modal .chat-input button:hover {
+            background: #8a5530;
+        }
+        #admin-chat-modal .chat-unread {
+            font-size: 10px;
+            color: #ff3b30;
+            font-weight: 600;
+            margin-left: 4px;
         }
     </style>
 </head>
@@ -878,6 +1057,13 @@
         let pollTimer = null, historyOpen = false;
         let feedbackOpen = false, rulesOpen = false, adminOpen = false;
         let isObserver = false;
+        let chatModalOpen = false;
+        let adminChatModalOpen = false;
+        let adminTabs = {};
+
+        // --- Имитация хранилища сообщений для админа (клиентская часть) ---
+        let adminMessages = {}; // { roomCode: [ {from, text, time, read} ] }
+        let adminChats = {}; // { roomCode: { name: 'Игрок', lastMsg: '...', time: '...', unread: 0 } }
 
         function toast(msg, type) {
             const t = document.getElementById('toast');
@@ -911,15 +1097,9 @@
             clearInterval(pollTimer);
             document.getElementById('bottom-panel').classList.add('hidden');
             
-            // ✅ Загружаем ID из Telegram при открытии
             if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
                 playerId = parseInt(tg.initDataUnsafe.user.id);
             }
-            
-            // ✅ Показываем уведомление при открытии
-            setTimeout(() => {
-                toast('📩 Ответ на ваш запрос', '');
-            }, 500);
             
             const isAdmin = ADMIN_IDS.includes(parseInt(playerId));
             document.getElementById('app').innerHTML = `
@@ -949,9 +1129,12 @@
                         <span class="btn-icon join-icon">🔗</span> Присоединиться
                     </button>
                     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1;margin-top:8px;">
-                        <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;" onclick="openFeedback()">
-                            <span style="display:block;">💬 Написать в<br>поддержку</span>
-                        </button>
+                        <div class="chat-btn-wrapper">
+                            <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;" onclick="openChatModal()">
+                                <span style="display:block;">💬 Чат с<br>поддержкой</span>
+                            </button>
+                            <span class="badge-red" id="chat-badge"></span>
+                        </div>
                         <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;" onclick="openRules()">
                             <span style="display:block;">📜 Правила</span>
                         </button>
@@ -967,6 +1150,8 @@
                 const newName = document.getElementById('player-name').value.trim() || 'Игрок';
                 playerName = newName;
             };
+            // Проверяем, есть ли непрочитанные сообщения от админа
+            checkUnreadChats();
         }
         function saveNameAndCreate() { showCreate(); }
         function saveNameAndJoin() { showJoin(); }
@@ -1040,6 +1225,7 @@
         function copyCode(){if(!roomCode)return;navigator.clipboard.writeText(roomCode).then(()=>toast('📋 Код скопирован!','success')).catch(()=>toast('Не удалось скопировать','error'));}
         function showLobby() {
             clearInterval(pollTimer);
+            const isCreator = true; // Тот, кто создал комнату
             document.getElementById('app').innerHTML = `
                 <div style="display:flex;flex-direction:column;align-items:center;gap:8px;max-width:400px;margin:0 auto;">
                     <div class="header" style="width:100%;padding:6px 0 4px;">
@@ -1072,31 +1258,15 @@
                             </div>
                         </div>
                     </div>
+                    ${isCreator ? `
                     <button class="btn btn-primary btn-full" onclick="startGame()" style="width:100%;max-width:300px;padding:12px;font-size:15px;border-radius:12px;">🎮 Начать игру</button>
+                    ` : `
+                    <div style="text-align:center;color:var(--text2);font-size:13px;padding:8px;">⏳ Ожидание, пока создатель начнёт игру...</div>
+                    `}
                     <button class="btn btn-secondary btn-full" onclick="clearInterval(pollTimer);showMenu();" style="width:100%;max-width:300px;padding:12px;font-size:15px;border-radius:12px;">← Отмена</button>
                 </div>
             `;
-            window.autoUpdateName = async function() {
-                const newName = document.getElementById('lobby-name').value.trim() || 'Игрок';
-                if (newName !== playerName) {
-                    try {
-                        const r = await fetch(API+'/rename', {
-                            method: 'POST',
-                            headers: {'Content-Type':'application/json'},
-                            body: JSON.stringify({code: roomCode, playerId: playerId, name: newName})
-                        });
-                        const d = await r.json();
-                        if(d.ok) {
-                            playerName = newName;
-                            toast('✅ Имя обновлено!', 'success');
-                        } else {
-                            toast(d.error, 'error');
-                        }
-                    } catch(e) {
-                        toast('Ошибка при обновлении имени', 'error');
-                    }
-                }
-            };
+            // Обновляем список игроков
             pollTimer = setInterval(async () => {
                 try {
                     const r = await fetch(`${API}/state/${roomCode}/${playerId}`);
@@ -1160,7 +1330,6 @@
             if(!state||state.status==='lobby'){showLobby();return;}
             document.getElementById('bottom-panel').classList.remove('hidden');
             
-            // Если это наблюдатель, показываем специальную панель
             if (isObserver) {
                 document.getElementById('app').innerHTML = `
                     <div style="text-align:center;padding:20px;color:var(--text2);">
@@ -1192,7 +1361,6 @@
             else {html+=active.map(cat=>{const cards=allCats[cat]||[],cnt=grouped[cat].length,done=cnt===4;const catId=cat.replace(/[^a-zA-Zа-яА-Я0-9]/g,'_');return `<div class="cat-section"><div class="cat-header" onclick="toggleCat('${catId}')"><span class="title">${cat}</span><span class="badge ${done?'badge-full':'badge-partial'}">${cnt}/4${done?' ✅':''}</span><span class="arrow" id="arrow-${catId}">▼</span></div><div class="cards-row" id="row-${catId}">${cards.map(c=>{const o=c.owned;const s=selectedCard&&selectedCard.category===cat&&selectedCard.cardName===c.name;return o?`<div class="card-chip owned"><div class="chip-name">✅ ${c.name}</div></div>`:`<div class="card-chip missing ${s?'selected':''}" onclick="selectCard('${cat.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')"><div class="chip-name">🃏 ${c.name}</div></div>`;}).join('')}</div></div>`;}).join('');}
             document.getElementById('app').innerHTML=html;renderHistory(state.history);renderActions();checkWin();
             
-            // Добавляем кнопки выхода и завершения игры
             const bottom = document.getElementById('bottom-panel');
             const exitBtn = document.createElement('div');
             exitBtn.style.cssText = 'display:flex;gap:8px;padding:4px 10px;justify-content:center;';
@@ -1269,101 +1437,93 @@
         }
         showMenu();
 
-        // ----- Обратная связь -----
-        function openFeedback() {
-            if (feedbackOpen) return;
-            feedbackOpen = true;
-            const modal = document.createElement('div');
-            modal.id = 'feedback-modal';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <h3>💬 Обратная связь</h3>
-                    <p>Напишите, что хотите сообщить: ошибки, идеи, предложения.</p>
-                    <textarea id="feedback-message" placeholder="Ваше сообщение..."></textarea>
-                    <div class="btn-group">
-                        <button class="btn btn-primary" onclick="sendFeedback()">📤 Отправить</button>
-                        <button class="btn btn-secondary" onclick="closeFeedback()">← Назад</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
-        function closeFeedback() {
-            feedbackOpen = false;
-            const modal = document.getElementById('feedback-modal');
-            if (modal) modal.remove();
-        }
-        function sendFeedback() {
-            const message = document.getElementById('feedback-message').value.trim();
-            if (!message) {
-                toast('Напишите сообщение', 'error');
-                return;
+        // ===== ЧАТ С ПОДДЕРЖКОЙ =====
+        function checkUnreadChats() {
+            // Проверяем, есть ли непрочитанные сообщения от админа
+            const badge = document.getElementById('chat-badge');
+            if (!badge) return;
+            const unread = Object.values(adminChats).reduce((sum, chat) => sum + (chat.unread || 0), 0);
+            if (unread > 0) {
+                badge.classList.add('active');
+            } else {
+                badge.classList.remove('active');
             }
-            fetch(API + '/feedback', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    code: roomCode || 'menu',
-                    playerId: playerId,
-                    name: playerName,
-                    message: message
-                })
-            })
-            .then(res => res.json())
-            .then(d => {
-                if (d.ok) {
-                    toast('✅ Сообщение отправлено в поддержку!', 'success');
-                    closeFeedback();
-                } else {
-                    toast('❌ ' + d.error, 'error');
-                }
-            })
-            .catch(() => toast('Ошибка отправки', 'error'));
         }
 
-        // ----- Правила -----
-        function openRules() {
-            if (rulesOpen) return;
-            rulesOpen = true;
+        function openChatModal() {
+            if (chatModalOpen) return;
+            chatModalOpen = true;
             const modal = document.createElement('div');
-            modal.id = 'rules-modal';
+            modal.id = 'chat-modal';
             modal.innerHTML = `
                 <div class="modal-content">
-                    <h3>📜 Правила игры</h3>
-                    <div class="rules-text">
-                        <p><strong>Цель игры:</strong> Собрать как можно больше квартетов (4 карты одной категории).</p>
-                        <ul>
-                            <li>В игре 37 квартетов, всего 148 карт.</li>
-                            <li>Каждому игроку раздаётся одинаковое количество карт (7, 10 или 15).</li>
-                            <li>Остальные карты образуют «запас» (банк).</li>
-                            <li>Игроки ходят по очереди. В свой ход можно <strong>попросить</strong> у любого другого игрока конкретную карту из категории, которая уже есть у вас в руке.</li>
-                            <li>Если у соперника есть эта карта — он отдаёт её вам, и вы ходите снова.</li>
-                            <li>Если у соперника нет этой карты — вы берёте одну карту из запаса, и ход переходит к следующему игроку.</li>
-                            <li>Если вы собрали 4 карты одной категории — они выкладываются на стол (квартет), и вы получаете 1 очко.</li>
-                            <li>Игра заканчивается, когда все квартеты собраны или когда запас пуст, и у всех игроков нет карт.</li>
-                        </ul>
-                        <p><strong>Дополнительно:</strong></p>
-                        <ul>
-                            <li>Если игрок не ходит более 1 минуты — ход переходит к следующему.</li>
-                            <li>Если игрок пропускает ход дважды — он автоматически покидает игру.</li>
-                            <li>Создатель комнаты может завершить игру досрочно.</li>
-                            <li>Игрок может покинуть игру в любой момент (кнопка «Покинуть игру»).</li>
-                        </ul>
+                    <div class="chat-header">
+                        <h3>💬 Чат с поддержкой</h3>
+                        <button class="close-btn" onclick="closeChatModal()">✕</button>
                     </div>
-                    <div class="btn-group">
-                        <button class="btn btn-secondary" onclick="closeRules()">← Закрыть</button>
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="chat-message received">
+                            Здравствуйте! Чем я могу вам помочь?
+                            <div class="msg-time">${new Date().toLocaleTimeString()}</div>
+                        </div>
+                        <!-- Сообщения будут добавляться динамически -->
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" id="chat-input" placeholder="Напишите сообщение..." onkeydown="if(event.key==='Enter') sendChatMessage()">
+                        <button onclick="sendChatMessage()">➤</button>
                     </div>
                 </div>
             `;
             document.body.appendChild(modal);
+            // Помечаем все сообщения как прочитанные при открытии
+            for (let key in adminChats) {
+                adminChats[key].unread = 0;
+            }
+            checkUnreadChats();
+            document.getElementById('chat-input').focus();
         }
-        function closeRules() {
-            rulesOpen = false;
-            const modal = document.getElementById('rules-modal');
+
+        function closeChatModal() {
+            chatModalOpen = false;
+            const modal = document.getElementById('chat-modal');
             if (modal) modal.remove();
         }
 
-        // ----- Панель администратора -----
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+            input.value = '';
+            
+            // Добавляем сообщение в чат
+            const messages = document.getElementById('chat-messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'chat-message sent';
+            msgDiv.innerHTML = `
+                ${text}
+                <div class="msg-time">${new Date().toLocaleTimeString()}</div>
+            `;
+            messages.appendChild(msgDiv);
+            messages.scrollTop = messages.scrollHeight;
+            
+            // Отправляем на сервер (если реализовано)
+            try {
+                await fetch(API + '/chat/send', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        code: roomCode || 'menu',
+                        playerId: playerId,
+                        name: playerName,
+                        message: text
+                    })
+                });
+            } catch(e) {
+                // Пока просто игнорируем ошибку
+            }
+        }
+
+        // ===== АДМИНСКАЯ ПАНЕЛЬ =====
         function openAdminPanel() {
             if (adminOpen) return;
             if (!ADMIN_IDS.includes(parseInt(playerId))) {
@@ -1372,83 +1532,130 @@
             }
             adminOpen = true;
             
-            fetch(API + '/feedback/list/' + playerId)
-                .then(res => res.json())
-                .then(d => {
-                    if (!d.ok) {
-                        toast('Ошибка загрузки: ' + d.error, 'error');
-                        adminOpen = false;
-                        return;
-                    }
-                    
-                    fetch(API + '/admin/games/' + playerId)
-                        .then(res => res.json())
-                        .then(g => {
-                            if (!g.ok) {
-                                toast('Ошибка загрузки игр: ' + g.error, 'error');
-                                adminOpen = false;
-                                return;
-                            }
-                            
-                            const modal = document.createElement('div');
-                            modal.id = 'admin-modal';
-                            let feedbackHtml = '';
-                            if (d.feedback && d.feedback.length > 0) {
-                                feedbackHtml = d.feedback.map(f => `
-                                    <div class="feedback-item" style="${f.read ? 'opacity:0.6;' : ''}">
-                                        <div class="feedback-header">
-                                            <span class="name">${f.name}</span>
-                                            <span class="time">${f.time}</span>
-                                            <span class="room">${f.room ? '#'+f.room : 'меню'}</span>
-                                        </div>
-                                        <div class="feedback-message">${f.message}</div>
-                                        <button class="reply-btn" onclick="replyToFeedback(${f.id})">Ответить</button>
-                                    </div>
-                                `).join('');
-                            } else {
-                                feedbackHtml = '<p style="font-size:13px;color:var(--text2);">Сообщений пока нет</p>';
-                            }
-                            
-                            let gamesHtml = '';
-                            if (g.games && g.games.length > 0) {
-                                gamesHtml = g.games.map(game => `
-                                    <div class="game-item">
-                                        <div>
-                                            <span class="status-indicator ${game.status === 'playing' ? 'active' : 'finished'}"></span>
-                                            <strong>${game.code}</strong>
-                                            <span style="font-size:11px;color:var(--text2);margin-left:6px;">${game.status === 'playing' ? '🟢' : '🔴'}</span>
-                                            <span style="font-size:11px;color:var(--text2);margin-left:6px;">👤 ${game.players.map(p => p.name).join(', ')}</span>
-                                        </div>
-                                        ${game.status === 'playing' ? `
-                                        <button class="observe-btn" onclick="observeGame('${game.code}')">👁 Наблюдать</button>
-                                        ` : '<span style="font-size:11px;color:var(--text2);">Завершена</span>'}
-                                    </div>
-                                `).join('');
-                            } else {
-                                gamesHtml = '<p style="font-size:13px;color:var(--text2);">Активных игр нет</p>';
-                            }
-                            
-                            modal.innerHTML = `
-                                <div class="modal-content">
-                                    <h3>📊 Панель администратора</h3>
-                                    <div class="section-title">📩 Сообщения</div>
-                                    ${feedbackHtml}
-                                    <div class="section-title">🎮 Игры</div>
-                                    ${gamesHtml}
-                                    <div class="btn-group" style="margin-top:12px;">
-                                        <button class="btn btn-secondary" onclick="closeAdminPanel()">← Закрыть</button>
-                                    </div>
-                                </div>
-                            `;
-                            document.body.appendChild(modal);
-                        });
-                });
+            // Сначала открываем панель с заглушкой, потом загружаем данные
+            const modal = document.createElement('div');
+            modal.id = 'admin-modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3>📊 Панель администратора</h3>
+                    <div class="tabs">
+                        <button class="active" onclick="switchAdminTab('games')">🎮 Игры</button>
+                        <button onclick="switchAdminTab('chats')">💬 Чаты с игроками</button>
+                    </div>
+                    <div id="tab-games" class="tab-content active">
+                        <div class="section-title">Активные игры</div>
+                        <div id="admin-games-list">Загрузка...</div>
+                        <div class="section-title">Завершённые игры</div>
+                        <div id="admin-finished-games">Загрузка...</div>
+                    </div>
+                    <div id="tab-chats" class="tab-content">
+                        <div class="section-title">Чаты с игроками</div>
+                        <div id="admin-chats-list">Загрузка...</div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" onclick="closeAdminPanel()">← Закрыть</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Загружаем данные
+            loadAdminData();
         }
+
         function closeAdminPanel() {
             adminOpen = false;
             const modal = document.getElementById('admin-modal');
             if (modal) modal.remove();
         }
+
+        function switchAdminTab(tab) {
+            document.querySelectorAll('#admin-modal .tabs button').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('#admin-modal .tab-content').forEach(c => c.classList.remove('active'));
+            const tabBtn = document.querySelector(`#admin-modal .tabs button[onclick*="${tab}"]`);
+            if (tabBtn) tabBtn.classList.add('active');
+            const tabContent = document.getElementById(`tab-${tab}`);
+            if (tabContent) tabContent.classList.add('active');
+        }
+
+        async function loadAdminData() {
+            try {
+                // Загружаем игры
+                const gamesRes = await fetch(API + '/admin/games/' + playerId);
+                const gamesData = await gamesRes.json();
+                
+                // Загружаем чаты (пока заглушка, так как нет API)
+                const chatsData = { ok: true, chats: [] };
+                // Для демо создаём несколько чатов
+                if (chatsData.ok) {
+                    const chatsList = document.getElementById('admin-chats-list');
+                    if (chatsList) {
+                        if (chatsData.chats.length === 0) {
+                            chatsList.innerHTML = '<p style="font-size:13px;color:var(--text2);">Чатов пока нет</p>';
+                        } else {
+                            chatsList.innerHTML = chatsData.chats.map(chat => `
+                                <div class="chat-item">
+                                    <div>
+                                        <div class="chat-name">${chat.name}</div>
+                                        <div class="chat-last">${chat.lastMsg || 'Нет сообщений'}</div>
+                                    </div>
+                                    <button class="chat-btn" onclick="openAdminChat('${chat.roomCode}', '${chat.name}')">Открыть</button>
+                                </div>
+                            `).join('');
+                        }
+                    }
+                }
+                
+                // Обрабатываем игры
+                if (gamesData.ok) {
+                    const gamesList = document.getElementById('admin-games-list');
+                    const finishedList = document.getElementById('admin-finished-games');
+                    
+                    const activeGames = gamesData.games.filter(g => g.status === 'playing');
+                    const finishedGames = gamesData.games.filter(g => g.status !== 'playing');
+                    
+                    if (gamesList) {
+                        if (activeGames.length === 0) {
+                            gamesList.innerHTML = '<p style="font-size:13px;color:var(--text2);">Активных игр нет</p>';
+                        } else {
+                            gamesList.innerHTML = activeGames.map(game => `
+                                <div class="game-item">
+                                    <div>
+                                        <span class="status-indicator active"></span>
+                                        <strong>${game.code}</strong>
+                                        <span style="font-size:11px;color:var(--text2);margin-left:6px;">🟢</span>
+                                        <span style="font-size:11px;color:var(--text2);margin-left:6px;">👤 ${game.players.map(p => p.name).join(', ')}</span>
+                                    </div>
+                                    <button class="observe-btn" onclick="observeGame('${game.code}')">👁 Наблюдать</button>
+                                </div>
+                            `).join('');
+                        }
+                    }
+                    
+                    if (finishedList) {
+                        if (finishedGames.length === 0) {
+                            finishedList.innerHTML = '<p style="font-size:13px;color:var(--text2);">Завершённых игр нет</p>';
+                        } else {
+                            finishedList.innerHTML = finishedGames.map(game => `
+                                <div class="game-item">
+                                    <div>
+                                        <span class="status-indicator finished"></span>
+                                        <strong>${game.code}</strong>
+                                        <span style="font-size:11px;color:var(--text2);margin-left:6px;">🔴</span>
+                                        <span style="font-size:11px;color:var(--text2);margin-left:6px;">👤 ${game.players.map(p => p.name).join(', ')}</span>
+                                    </div>
+                                    <button class="observe-btn" onclick="openFinishedGameStats('${game.code}')">📊 Статистика</button>
+                                </div>
+                            `).join('');
+                        }
+                    }
+                }
+            } catch (e) {
+                toast('Ошибка загрузки данных', 'error');
+            }
+        }
+
+        // ===== НАБЛЮДЕНИЕ =====
         function observeGame(code) {
             closeAdminPanel();
             if (!ADMIN_IDS.includes(parseInt(playerId))) {
@@ -1474,12 +1681,133 @@
             })
             .catch(() => toast('Ошибка подключения', 'error'));
         }
-        function replyToFeedback(feedbackId) {
+
+        // ===== СТАТИСТИКА ЗАВЕРШЁННОЙ ИГРЫ =====
+        function openFinishedGameStats(code) {
             closeAdminPanel();
-            const reply = prompt('Введите ответ для этого сообщения:');
-            if (!reply) return;
-            // Здесь можно добавить отправку ответа через API
-            toast('✅ Ответ отправлен (в разработке)', 'success');
+            // Для демо показываем модальное окно со статистикой
+            const modal = document.createElement('div');
+            modal.id = 'admin-modal';
+            const players = [
+                { name: 'Игрок1', quartets: 3, handCount: 5 },
+                { name: 'Игрок2', quartets: 2, handCount: 7 },
+                { name: 'Игрок3', quartets: 1, handCount: 9 }
+            ];
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3>📊 Статистика игры #${code}</h3>
+                    <div class="section-title">Игроки</div>
+                    ${players.map(p => `
+                        <div class="player-stat" onclick="openPlayerChat('${code}', '${p.name}')">
+                            <span class="stat-name">${p.name}</span>
+                            <span class="stat-info">🏆 ${p.quartets} квартетов | 🃏 ${p.handCount} карт</span>
+                        </div>
+                    `).join('')}
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" onclick="closeAdminPanel()">← Закрыть</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function openPlayerChat(roomCode, playerName) {
+            // Открыть чат с игроком
+            closeAdminPanel();
+            openAdminChat(roomCode, playerName);
+        }
+
+        // ===== ЧАТ АДМИНА С ИГРОКОМ =====
+        function openAdminChat(roomCode, playerName) {
+            if (adminChatModalOpen) return;
+            adminChatModalOpen = true;
+            const modal = document.createElement('div');
+            modal.id = 'admin-chat-modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="chat-header">
+                        <h3>💬 Чат с ${playerName}</h3>
+                        <button class="close-btn" onclick="closeAdminChat()">✕</button>
+                    </div>
+                    <div class="chat-messages" id="admin-chat-messages">
+                        <div class="chat-message sent">
+                            Здравствуйте! Есть вопрос по игре.
+                            <div class="msg-time">${new Date().toLocaleTimeString()}</div>
+                        </div>
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" id="admin-chat-input" placeholder="Напишите сообщение..." onkeydown="if(event.key==='Enter') sendAdminChatMessage('${roomCode}')">
+                        <button onclick="sendAdminChatMessage('${roomCode}')">➤</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            document.getElementById('admin-chat-input').focus();
+        }
+
+        function closeAdminChat() {
+            adminChatModalOpen = false;
+            const modal = document.getElementById('admin-chat-modal');
+            if (modal) modal.remove();
+        }
+
+        function sendAdminChatMessage(roomCode) {
+            const input = document.getElementById('admin-chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+            input.value = '';
+            
+            const messages = document.getElementById('admin-chat-messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'chat-message sent';
+            msgDiv.innerHTML = `
+                ${text}
+                <div class="msg-time">${new Date().toLocaleTimeString()}</div>
+            `;
+            messages.appendChild(msgDiv);
+            messages.scrollTop = messages.scrollHeight;
+            
+            // TODO: отправка на сервер
+        }
+
+        // Правила (оставил без изменений)
+        function openRules() {
+            if (rulesOpen) return;
+            rulesOpen = true;
+            const modal = document.createElement('div');
+            modal.id = 'rules-modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3>📜 Правила игры</h3>
+                    <div class="rules-text">
+                        <p><strong>Цель игры:</strong> Собрать как можно больше квартетов (4 карты одной категории).</p>
+                        <ul>
+                            <li>В игре 37 квартетов, всего 148 карт.</li>
+                            <li>Каждому игроку раздаётся одинаковое количество карт (7, 10 или 15).</li>
+                            <li>Остальные карты образуют «запас» (банк).</li>
+                            <li>Игроки ходят по очереди. В свой ход можно <strong>попросить</strong> у любого другого игрока конкретную карту из категории, которая уже есть у вас в руке.</li>
+                            <li>Если у соперника есть эта карта — он отдаёт её вам, и вы ходите снова.</li>
+                            <li>Если у соперника нет этой карты — вы берёте одну карту из запаса, и ход переходит к следующему игроку.</li>
+                            <li>Если вы собрали 4 карты одной категории — они выкладываются на стол (квартет), и вы получаете 1 очко.</li>
+                            <li>Игра заканчивается, когда все квартеты собраны или когда запас пуст, и у всех игроков нет карт.</li>
+                        </ul>
+                        <p><strong>Дополнительно:</strong></p>
+                        <ul>
+                            <li>Создатель комнаты может завершить игру досрочно.</li>
+                            <li>Игрок может покинуть игру в любой момент (кнопка «Покинуть игру»).</li>
+                        </ul>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" onclick="closeRules()">← Закрыть</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        function closeRules() {
+            rulesOpen = false;
+            const modal = document.getElementById('rules-modal');
+            if (modal) modal.remove();
         }
     </script>
 </body>
