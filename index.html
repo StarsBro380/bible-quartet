@@ -637,7 +637,7 @@
         let state = null, playerId = null, roomCode = null, selectedCard = null, selectedPlayerId = null;
         let playerName = tg?.initDataUnsafe?.user?.first_name || 'Игрок';
         let pollTimer = null, historyOpen = false;
-        let feedbackOpen = false, rulesOpen = false, adminOpen = false;
+        let feedbackOpen = false, rulesOpen = false, adminOpen = false, statsOpen = false;
         let isObserver = false;
         let notificationShown = false;
 
@@ -689,7 +689,6 @@
             clearInterval(pollTimer);
             document.getElementById('bottom-panel').classList.add('hidden');
             
-            // ✅ Загружаем имя из Telegram при открытии
             if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
                 playerId = parseInt(tg.initDataUnsafe.user.id);
                 playerName = tg.initDataUnsafe.user.first_name || 'Игрок';
@@ -704,7 +703,7 @@
                         <span class="logo-icon">📖</span>
                         <div class="logo-text-group">
                             <span class="logo-text-main">Библейский квартет</span>
-                            <span class="logo-text-sub">Bible Quartet</span>
+                            <span class="logo-text-sub">BIBLE QUARTET</span>
                         </div>
                     </div>
                     <div style="text-align:center;color:var(--text2);font-size:12px;line-height:1.5;max-width:300px;margin:0 auto;position:relative;z-index:1;">
@@ -819,7 +818,7 @@
                             <span class="logo-icon" style="font-size:28px;">📖</span>
                             <div class="logo-text-group">
                                 <span class="logo-text-main" style="font-size:18px;">Библейский квартет</span>
-                                <span class="logo-text-sub" style="font-size:8px;">Bible Quartet</span>
+                                <span class="logo-text-sub" style="font-size:8px;">BIBLE QUARTET</span>
                             </div>
                         </div>
                     </div>
@@ -1047,7 +1046,6 @@
             modal.className = 'modal-overlay';
             modal.id = 'feedback-modal';
             
-            // Загружаем историю сообщений
             fetch(API + '/feedback/chat/' + playerId)
                 .then(res => res.json())
                 .then(d => {
@@ -1088,7 +1086,6 @@
                     `;
                     document.body.appendChild(modal);
                     
-                    // Прокрутка вниз
                     const chatDiv = modal.querySelector('.chat-messages');
                     if (chatDiv) chatDiv.scrollTop = chatDiv.scrollHeight;
                 })
@@ -1170,7 +1167,7 @@
             if (modal) modal.remove();
         }
 
-        // ----- Панель администратора -----
+        // ----- Панель администратора (красивая, компактная) -----
         function openAdminPanel() {
             if (adminOpen) return;
             if (!ADMIN_IDS.includes(parseInt(playerId))) {
@@ -1191,31 +1188,50 @@
                     const modal = document.createElement('div');
                     modal.className = 'modal-overlay';
                     modal.id = 'admin-modal';
+                    modal.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: rgba(0,0,0,0.5);
+                        backdrop-filter: blur(8px);
+                        z-index: 1000;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 12px;
+                    `;
+                    
+                    const sortedGames = g.games.sort((a, b) => {
+                        if (a.status === 'playing' && b.status !== 'playing') return -1;
+                        if (a.status !== 'playing' && b.status === 'playing') return 1;
+                        return 0;
+                    });
                     
                     let gamesHtml = '';
-                    if (g.games && g.games.length > 0) {
-                        gamesHtml = g.games.map(game => `
-                            <div class="game-item" style="padding:8px 12px;background:rgba(123,75,42,0.05);border-radius:8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;font-size:13px;">
-                                <div>
-                                    <span class="status-indicator ${game.status === 'playing' ? 'active' : 'finished'}" style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;${game.status === 'playing' ? 'background:#27ae60;' : 'background:#c0392b;'}"></span>
-                                    <strong>${game.code}</strong>
-                                    <span style="font-size:11px;color:var(--text2);margin-left:6px;">${game.status === 'playing' ? '🟢' : '🔴'}</span>
-                                    <span style="font-size:11px;color:var(--text2);margin-left:6px;">👤 ${game.players.map(p => p.name).join(', ')}</span>
-                                    <span style="font-size:11px;color:var(--text2);margin-left:6px;">👑 ${game.ownerId}</span>
+                    if (sortedGames && sortedGames.length > 0) {
+                        gamesHtml = sortedGames.map(game => `
+                            <div class="game-item" style="padding:8px 12px;background:rgba(123,75,42,0.05);border-radius:8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;font-size:12px;flex-wrap:wrap;gap:4px;">
+                                <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
+                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;${game.status === 'playing' ? 'background:#27ae60;' : 'background:#c0392b;'}"></span>
+                                    <strong style="font-size:13px;">${game.code}</strong>
+                                    <span style="font-size:11px;color:var(--text2);">${game.status === 'playing' ? '🟢' : '🔴'}</span>
+                                    <span style="font-size:11px;color:var(--text2);">👤 ${game.players.map(p => p.name).join(', ')}</span>
                                 </div>
                                 ${game.status === 'playing' ? `
-                                <button class="observe-btn" onclick="observeGame('${game.code}')" style="padding:4px 12px;font-size:11px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;">👁 Наблюдать</button>
+                                <button class="observe-btn" onclick="observeGame('${game.code}')" style="padding:4px 10px;font-size:11px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;white-space:nowrap;">👁 Наблюдать</button>
                                 ` : `
-                                <button class="observe-btn" onclick="viewGameStats('${game.code}')" style="padding:4px 12px;font-size:11px;background:var(--accent2);color:#fff;border:none;border-radius:6px;cursor:pointer;">📊 Просмотр</button>
+                                <button class="observe-btn" onclick="viewGameStats('${game.code}')" style="padding:4px 10px;font-size:11px;background:var(--accent2);color:#fff;border:none;border-radius:6px;cursor:pointer;white-space:nowrap;">📊 Детали</button>
                                 `}
                             </div>
                         `).join('');
                     } else {
-                        gamesHtml = '<p style="font-size:13px;color:var(--text2);">Активных игр нет</p>';
+                        gamesHtml = '<p style="font-size:13px;color:var(--text2);text-align:center;padding:20px;">Активных игр нет</p>';
                     }
                     
                     modal.innerHTML = `
-                        <div class="modal-content">
+                        <div class="modal-content" style="max-width:600px;width:95%;max-height:85vh;overflow-y:auto;">
                             <h3>📊 Панель администратора</h3>
                             <div class="section-title" style="font-weight:600;font-size:14px;color:var(--accent);margin-top:12px;margin-bottom:6px;">🎮 Игры</div>
                             ${gamesHtml}
@@ -1225,13 +1241,103 @@
                         </div>
                     `;
                     document.body.appendChild(modal);
-                });
+                })
+                .catch(() => toast('Ошибка загрузки', 'error'));
         }
         function closeAdminPanel() {
             adminOpen = false;
             const modal = document.getElementById('admin-modal');
             if (modal) modal.remove();
         }
+
+        // ----- Статистика игры (красивая, на весь экран) -----
+        function viewGameStats(code) {
+            if (statsOpen) return;
+            statsOpen = true;
+            
+            fetch(API + '/game_stats/' + code)
+                .then(res => res.json())
+                .then(d => {
+                    if (!d.ok) {
+                        toast('Ошибка загрузки: ' + d.error, 'error');
+                        statsOpen = false;
+                        return;
+                    }
+                    
+                    const stats = d.stats;
+                    const modal = document.createElement('div');
+                    modal.className = 'modal-overlay';
+                    modal.id = 'stats-modal';
+                    modal.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: rgba(0,0,0,0.5);
+                        backdrop-filter: blur(8px);
+                        z-index: 1000;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 12px;
+                    `;
+                    
+                    let playersHtml = '';
+                    if (stats.players && stats.players.length > 0) {
+                        playersHtml = stats.players.map(p => `
+                            <div class="player-stats-item" style="padding:6px 10px;background:rgba(123,75,42,0.05);border-radius:6px;margin-bottom:3px;display:flex;justify-content:space-between;font-size:12px;flex-wrap:wrap;gap:4px;">
+                                <span><strong>${p.name}</strong> (ID: ${p.id})</span>
+                                <span>🏆 ${p.quartets} кв. | 🃏 ${p.handCount} карт</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        playersHtml = '<p style="font-size:13px;color:var(--text2);text-align:center;padding:10px;">Нет игроков</p>';
+                    }
+                    
+                    let historyHtml = '';
+                    if (stats.history && stats.history.length > 0) {
+                        historyHtml = stats.history.map(h => `
+                            <div class="player-history-item" style="padding:4px 8px;background:rgba(123,75,42,0.03);border-radius:4px;margin-bottom:2px;display:flex;justify-content:space-between;font-size:11px;color:var(--text2);flex-wrap:wrap;gap:4px;">
+                                <span>${h.name} (ID: ${h.id})</span>
+                                <span>${h.joined} → ${h.left || 'в игре'}</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        historyHtml = '<p style="font-size:13px;color:var(--text2);text-align:center;padding:10px;">Нет истории</p>';
+                    }
+                    
+                    modal.innerHTML = `
+                        <div class="modal-content" style="max-width:500px;width:95%;max-height:85vh;overflow-y:auto;">
+                            <h3>📊 Статистика игры ${code}</h3>
+                            <div style="margin:8px 0;font-size:12px;color:var(--text2);display:flex;flex-wrap:wrap;gap:8px;">
+                                <span>Статус: ${stats.status === 'playing' ? '🟢 Активна' : '🔴 Завершена'}</span>
+                                <span>👤 ${stats.maxPlayers} игр.</span>
+                                <span>🃏 ${stats.cardsPerPlayer} карт</span>
+                                <span>📅 ${stats.created}</span>
+                            </div>
+                            
+                            <div class="section-title" style="font-weight:600;font-size:14px;color:var(--accent);margin-top:12px;margin-bottom:4px;">👥 Игроки</div>
+                            ${playersHtml}
+                            
+                            <div class="section-title" style="font-weight:600;font-size:14px;color:var(--accent);margin-top:12px;margin-bottom:4px;">📜 История подключений</div>
+                            ${historyHtml}
+                            
+                            <div class="btn-group" style="margin-top:12px;">
+                                <button class="btn btn-secondary" onclick="closeStatsModal()">← Закрыть</button>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                })
+                .catch(() => toast('Ошибка загрузки статистики', 'error'));
+        }
+        function closeStatsModal() {
+            statsOpen = false;
+            const modal = document.getElementById('stats-modal');
+            if (modal) modal.remove();
+        }
+
         function observeGame(code) {
             closeAdminPanel();
             if (!ADMIN_IDS.includes(parseInt(playerId))) {
@@ -1256,19 +1362,6 @@
                 }
             })
             .catch(() => toast('Ошибка подключения', 'error'));
-        }
-        function viewGameStats(code) {
-            closeAdminPanel();
-            fetch(API + '/game_stats/' + code)
-                .then(res => res.json())
-                .then(d => {
-                    if (!d.ok) {
-                        toast('Ошибка загрузки: ' + d.error, 'error');
-                        return;
-                    }
-                    toast('📊 Статистика игры ' + code + ': ' + JSON.stringify(d), 'info');
-                })
-                .catch(() => toast('Ошибка загрузки статистики', 'error'));
         }
     </script>
 </body>
