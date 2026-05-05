@@ -1643,7 +1643,7 @@
 
         async function loadAdminData() {
             try {
-                // Загружаем игры
+                // Загружаем активные игры
                 const gamesRes = await fetch(API + '/admin/games/' + playerId);
                 const gamesData = await gamesRes.json();
                 
@@ -1651,15 +1651,11 @@
                 const chatsRes = await fetch(API + '/chat/list/' + playerId);
                 const chatsData = await chatsRes.json();
                 
-                // Обрабатываем игры
+                // Обрабатываем активные игры
                 if (gamesData.ok) {
                     const gamesList = document.getElementById('admin-games-list');
-                    const finishedList = document.getElementById('admin-finished-games');
-                    
-                    const activeGames = gamesData.games.filter(g => g.status === 'playing');
-                    const finishedGames = gamesData.games.filter(g => g.status !== 'playing');
-                    
                     if (gamesList) {
+                        const activeGames = gamesData.games.filter(g => g.status === 'playing');
                         if (activeGames.length === 0) {
                             gamesList.innerHTML = '<p style="font-size:13px;color:var(--text2);">Активных игр нет</p>';
                         } else {
@@ -1676,23 +1672,39 @@
                             `).join('');
                         }
                     }
-                    
+                }
+                
+                // ✅ ДОБАВЛЯЕМ ЗАГРУЗКУ АРХИВА ЗАВЕРШЁННЫХ ИГР (вставляем этот блок)
+                try {
+                    const archiveRes = await fetch(API + '/admin/finished_games/' + playerId);
+                    const archiveData = await archiveRes.json();
+                    const finishedList = document.getElementById('admin-finished-games');
                     if (finishedList) {
-                        if (finishedGames.length === 0) {
-                            finishedList.innerHTML = '<p style="font-size:13px;color:var(--text2);">Завершённых игр нет</p>';
-                        } else {
-                            finishedList.innerHTML = finishedGames.map(game => `
-                                <div class="game-item">
-                                    <div>
-                                        <span class="status-indicator finished"></span>
-                                        <strong>${game.code}</strong>
-                                        <span style="font-size:11px;color:var(--text2);margin-left:6px;">🔴</span>
-                                        <span style="font-size:11px;color:var(--text2);margin-left:6px;">👤 ${game.players.map(p => p.name).join(', ')}</span>
+                        if (archiveData.ok) {
+                            const finishedGames = archiveData.games || [];
+                            if (finishedGames.length === 0) {
+                                finishedList.innerHTML = '<p style="font-size:13px;color:var(--text2);">Завершённых игр нет</p>';
+                            } else {
+                                finishedList.innerHTML = finishedGames.map(game => `
+                                    <div class="game-item">
+                                        <div>
+                                            <span class="status-indicator finished"></span>
+                                            <strong>${game.code}</strong>
+                                            <span style="font-size:11px;color:var(--text2);margin-left:6px;">🔴</span>
+                                            <span style="font-size:11px;color:var(--text2);margin-left:6px;">👤 ${game.players.map(p => p.name).join(', ')}</span>
+                                        </div>
+                                        <button class="observe-btn" onclick="openFinishedGameStats('${game.code}')">📊 Статистика</button>
                                     </div>
-                                    <button class="observe-btn" onclick="openFinishedGameStats('${game.code}')">📊 Статистика</button>
-                                </div>
-                            `).join('');
+                                `).join('');
+                            }
+                        } else {
+                            finishedList.innerHTML = '<p style="font-size:13px;color:var(--text2);">Ошибка загрузки завершённых игр</p>';
                         }
+                    }
+                } catch (e) {
+                    const finishedList = document.getElementById('admin-finished-games');
+                    if (finishedList) {
+                        finishedList.innerHTML = '<p style="font-size:13px;color:var(--text2);">Ошибка загрузки</p>';
                     }
                 }
                 
@@ -1759,44 +1771,44 @@
         }
 
         // ===== СТАТИСТИКА ЗАВЕРШЁННОЙ ИГРЫ =====
-function openFinishedGameStats(code) {
-    closeAdminPanel();
-    // Загружаем данные из файла завершённых игр
-    fetch(API + '/admin/finished_games/' + playerId)
-        .then(res => res.json())
-        .then(d => {
-            if (d.ok) {
-                const game = d.games.find(g => g.code === code);
-                if (game) {
-                    const players = game.players || [];
-                    const modal = document.createElement('div');
-                    modal.id = 'admin-modal';
-                    modal.innerHTML = `
-                        <div class="modal-content">
-                            <h3>📊 Статистика игры #${code}</h3>
-                            <div class="section-title">Игроки</div>
-                            ${players.map(p => `
-                                <div class="player-stat" onclick="openPlayerChat('${code}', '${p.name}')">
-                                    <span class="stat-name">${p.name}</span>
-                                    <span class="stat-info">🏆 ${p.quartets || 0} квартетов | 🃏 ${p.handCount || 0} карт</span>
+        function openFinishedGameStats(code) {
+            closeAdminPanel();
+            // Загружаем данные из архива
+            fetch(API + '/admin/finished_games/' + playerId)
+                .then(res => res.json())
+                .then(d => {
+                    if (d.ok) {
+                        const game = d.games.find(g => g.code === code);
+                        if (game) {
+                            const players = game.players || [];
+                            const modal = document.createElement('div');
+                            modal.id = 'admin-modal';
+                            modal.innerHTML = `
+                                <div class="modal-content">
+                                    <h3>📊 Статистика игры #${code}</h3>
+                                    <div class="section-title">Игроки</div>
+                                    ${players.map(p => `
+                                        <div class="player-stat" onclick="openPlayerChat('${code}', '${p.name}')">
+                                            <span class="stat-name">${p.name}</span>
+                                            <span class="stat-info">🏆 ${p.quartets || 0} квартетов | 🃏 ${p.handCount || 0} карт</span>
+                                        </div>
+                                    `).join('')}
+                                    <div class="btn-group">
+                                        <button class="btn btn-secondary" onclick="closeAdminPanel()">← Закрыть</button>
+                                    </div>
                                 </div>
-                            `).join('')}
-                            <div class="btn-group">
-                                <button class="btn btn-secondary" onclick="closeAdminPanel()">← Закрыть</button>
-                            </div>
-                        </div>
-                    `;
-                    document.body.appendChild(modal);
-                } else {
-                    toast('Игра не найдена в архиве', 'error');
-                }
-            } else {
-                toast('Ошибка загрузки статистики', 'error');
-            }
-        })
-        .catch(() => toast('Ошибка соединения', 'error'));
-}
-        
+                            `;
+                            document.body.appendChild(modal);
+                        } else {
+                            toast('Игра не найдена в архиве', 'error');
+                        }
+                    } else {
+                        toast('Ошибка загрузки статистики', 'error');
+                    }
+                })
+                .catch(() => toast('Ошибка соединения', 'error'));
+        }
+
         function openPlayerChat(roomCode, playerName) {
             // Открыть чат с игроком
             closeAdminPanel();
