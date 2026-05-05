@@ -37,11 +37,12 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            margin: 0;
         }
-        .container { 
-            max-width: 100%; 
-            width: 100%; 
-            margin: 0 auto; 
+        .container {
+            max-width: 100%;
+            width: 100%;
+            margin: 0 auto;
             flex: 1;
             display: flex;
             flex-direction: column;
@@ -551,11 +552,11 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
             max-width: 400px;
             width: 100%;
             margin: 0 auto;
-            padding: 20px 16px 30px;
+            padding: 24px 16px 28px;
             background: rgba(255, 255, 255, 0.4);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
@@ -564,6 +565,8 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.06);
             position: relative;
             overflow: hidden;
+            height: auto;
+            min-height: 400px;
         }
 
         .menu-container::before {
@@ -1173,38 +1176,38 @@
         function saveNameAndJoin() { showJoin(); }
         function showCreate() {
             document.getElementById('app').innerHTML = `
-                <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:400px;margin:0 auto;padding-top:10px;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:400px;width:100%;margin:0 auto;padding-top:10px;">
                     <div class="header" style="width:100%;">
                         <h2 style="text-align:center;color:var(--accent);font-family:'Inter',sans-serif;font-weight:700;font-size:18px;">Создание игры</h2>
                         <div class="decor-line"></div>
                     </div>
-                    <div style="width:100%;display:flex;flex-direction:column;gap:8px;">
-                        <button class="btn btn-primary btn-full" onclick="createGame(7)" style="width:100%;border-radius:12px;">
+                    <div class="create-options" style="width:100%;display:flex;flex-direction:column;gap:8px;padding:0 4px;">
+                        <button class="btn btn-primary" onclick="createGame(7)" style="width:100%;padding:16px 20px;font-size:16px;border-radius:12px;">
                             <div style="display:flex;flex-direction:column;align-items:center;">
-                                <span style="font-size:15px;font-weight:700;">🃏 7 карт</span>
-                                <span style="font-size:11px;opacity:0.8;margin-top:2px;">👥 3–21 игрок</span>
+                                <span style="font-size:16px;font-weight:700;">🃏 7 карт</span>
+                                <span style="font-size:12px;opacity:0.8;margin-top:4px;">👥 3–21 игрок</span>
                             </div>
                         </button>
-                        <button class="btn btn-primary btn-full" onclick="createGame(10)" style="width:100%;border-radius:12px;">
+                        <button class="btn btn-primary" onclick="createGame(10)" style="width:100%;padding:16px 20px;font-size:16px;border-radius:12px;">
                             <div style="display:flex;flex-direction:column;align-items:center;">
-                                <span style="font-size:15px;font-weight:700;">🃏 10 карт</span>
-                                <span style="font-size:11px;opacity:0.8;margin-top:2px;">👥 3–14 игроков</span>
+                                <span style="font-size:16px;font-weight:700;">🃏 10 карт</span>
+                                <span style="font-size:12px;opacity:0.8;margin-top:4px;">👥 3–14 игроков</span>
                             </div>
                         </button>
-                        <button class="btn btn-primary btn-full" onclick="createGame(15)" style="width:100%;border-radius:12px;">
+                        <button class="btn btn-primary" onclick="createGame(15)" style="width:100%;padding:16px 20px;font-size:16px;border-radius:12px;">
                             <div style="display:flex;flex-direction:column;align-items:center;">
-                                <span style="font-size:15px;font-weight:700;">🃏 15 карт</span>
-                                <span style="font-size:11px;opacity:0.8;margin-top:2px;">👥 3–9 игроков</span>
+                                <span style="font-size:16px;font-weight:700;">🃏 15 карт</span>
+                                <span style="font-size:12px;opacity:0.8;margin-top:4px;">👥 3–9 игроков</span>
                             </div>
                         </button>
-                        <button class="btn btn-secondary btn-full" onclick="showMenu()" style="width:100%;border-radius:12px;">← Назад</button>
+                        <button class="btn btn-secondary" onclick="showMenu()" style="width:100%;padding:16px 20px;font-size:16px;border-radius:12px;">← Назад</button>
                     </div>
                 </div>
             `;
         }
         function showJoin() {
             document.getElementById('app').innerHTML = `
-                <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:400px;margin:0 auto;padding-top:10px;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:400px;width:100%;margin:0 auto;padding-top:10px;">
                     <div class="header" style="width:100%;">
                         <h2 style="text-align:center;color:var(--accent);font-family:'Inter',sans-serif;font-weight:700;font-size:18px;">Подключение</h2>
                         <div class="decor-line"></div>
@@ -1506,6 +1509,10 @@
                 </div>
             `;
             document.body.appendChild(modal);
+            
+            // ✅ Загружаем историю сообщений
+            loadChatHistory();
+            
             // Помечаем все сообщения как прочитанные при открытии
             for (let key in adminChats) {
                 adminChats[key].unread = 0;
@@ -1551,6 +1558,31 @@
                 });
             } catch(e) {
                 // Пока просто игнорируем ошибку
+            }
+        }
+
+        async function loadChatHistory() {
+            try {
+                // Загружаем сообщения для этого игрока
+                const res = await fetch(API + '/chat/messages/' + playerId + '/' + playerId);
+                const d = await res.json();
+                if (d.ok && d.messages) {
+                    const messages = document.getElementById('chat-messages');
+                    // Очищаем
+                    messages.innerHTML = '';
+                    d.messages.forEach(msg => {
+                        const div = document.createElement('div');
+                        div.className = 'chat-message ' + (msg.from_player === playerId ? 'sent' : 'received');
+                        div.innerHTML = `
+                            ${msg.message}
+                            <div class="msg-time">${msg.time}</div>
+                        `;
+                        messages.appendChild(div);
+                    });
+                    messages.scrollTop = messages.scrollHeight;
+                }
+            } catch (e) {
+                // Игнорируем ошибки
             }
         }
 
