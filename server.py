@@ -20,6 +20,7 @@ rooms = {}
 chat_messages = []
 chat_id_counter = 0
 CHAT_FILE = 'chat_messages.json'  # Файл для хранения сообщений
+FINISHED_GAMES_FILE = 'finished_games.json'  # Файл для хранения завершённых игр
 
 ADMIN_IDS = [39444699]  # ID администратора
 
@@ -51,8 +52,30 @@ def save_chat_messages():
     except Exception as e:
         print(f"[CHAT] Ошибка сохранения сообщений: {e}")
 
-# Загружаем сообщения при старте
+# ===== ЗАГРУЗКА ЗАВЕРШЁННЫХ ИГР ИЗ ФАЙЛА =====
+def load_finished_games():
+    try:
+        if os.path.exists(FINISHED_GAMES_FILE):
+            with open(FINISHED_GAMES_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        else:
+            return []
+    except Exception as e:
+        print(f"[FINISHED] Ошибка загрузки завершённых игр: {e}")
+        return []
+
+# ===== СОХРАНЕНИЕ ЗАВЕРШЁННЫХ ИГР В ФАЙЛ =====
+def save_finished_games(games):
+    try:
+        with open(FINISHED_GAMES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(games, f, ensure_ascii=False, indent=2)
+        print(f"[FINISHED] Сохранено {len(games)} завершённых игр в файл")
+    except Exception as e:
+        print(f"[FINISHED] Ошибка сохранения завершённых игр: {e}")
+
+# Загружаем данные при старте
 load_chat_messages()
+finished_games = load_finished_games()
 
 def generate_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -486,6 +509,15 @@ def admin_games(admin_id):
     
     return jsonify({'ok': True, 'games': result})
 
+# ===== НОВЫЙ ЭНДПОИНТ: ЗАВЕРШЁННЫЕ ИГРЫ ИЗ ФАЙЛА =====
+@app.route('/admin/finished_games/<int:admin_id>', methods=['GET'])
+def admin_finished_games(admin_id):
+    if admin_id not in ADMIN_IDS:
+        return jsonify({'ok': False, 'error': 'Доступ только для администраторов'}), 403
+    
+    global finished_games
+    return jsonify({'ok': True, 'games': finished_games})
+
 # ===== ВЫХОД ИЗ ИГРЫ =====
 @app.route('/leave', methods=['POST'])
 def leave_game():
@@ -539,7 +571,32 @@ def end_game():
         'type': 'system'
     })
     
-    print(f"[END] Игра в комнате {code} завершена создателем {player_id}")
+    # Сохраняем статистику в файл
+    global finished_games
+    players_info = []
+    for p in room['players']:
+        if p.get('is_observer', False):
+            continue
+        players_info.append({
+            'id': p['id'],
+            'name': p['name'],
+            'quartets': len(p['quartets']),
+            'handCount': len(p['hand'])
+        })
+    
+    finished_games.append({
+        'code': code,
+        'status': 'finished',
+        'players': players_info,
+        'ownerId': room['ownerId'],
+        'ended_at': datetime.now().strftime('%Y-%m-%d %H:%M')
+    })
+    save_finished_games(finished_games)
+    
+    # Удаляем комнату из памяти
+    del rooms[code]
+    
+    print(f"[END] Игра в комнате {code} завершена создателем {player_id}, статистика сохранена")
     return jsonify({'ok': True})
 
 # ===== ПЕРЕИМЕНОВАНИЕ =====
