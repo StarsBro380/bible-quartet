@@ -28,11 +28,26 @@
             background: var(--bg);
             background: var(--gradient);
             color: var(--text);
-            min-height: 100vh; padding: 12px; padding-bottom: 160px;
+            min-height: 100vh;
+            padding: 12px;
+            padding-bottom: 120px;
             -webkit-tap-highlight-color: transparent; user-select: none;
             font-size: 14px; line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
-        .container { max-width: 100%; margin: 0 auto; }
+        .container { 
+            max-width: 100%; 
+            width: 100%; 
+            margin: 0 auto; 
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
         .header { text-align: center; padding: 6px 0 4px; }
         .btn {
             display: inline-block; padding: 12px 20px; font-size: 15px; font-weight: 600;
@@ -538,6 +553,7 @@
             align-items: center;
             gap: 14px;
             max-width: 400px;
+            width: 100%;
             margin: 0 auto;
             padding: 20px 16px 30px;
             background: rgba(255, 255, 255, 0.4);
@@ -1225,7 +1241,6 @@
         function copyCode(){if(!roomCode)return;navigator.clipboard.writeText(roomCode).then(()=>toast('📋 Код скопирован!','success')).catch(()=>toast('Не удалось скопировать','error'));}
         function showLobby() {
             clearInterval(pollTimer);
-            const isCreator = true; // Тот, кто создал комнату
             document.getElementById('app').innerHTML = `
                 <div style="display:flex;flex-direction:column;align-items:center;gap:8px;max-width:400px;margin:0 auto;">
                     <div class="header" style="width:100%;padding:6px 0 4px;">
@@ -1258,14 +1273,31 @@
                             </div>
                         </div>
                     </div>
-                    ${isCreator ? `
                     <button class="btn btn-primary btn-full" onclick="startGame()" style="width:100%;max-width:300px;padding:12px;font-size:15px;border-radius:12px;">🎮 Начать игру</button>
-                    ` : `
-                    <div style="text-align:center;color:var(--text2);font-size:13px;padding:8px;">⏳ Ожидание, пока создатель начнёт игру...</div>
-                    `}
                     <button class="btn btn-secondary btn-full" onclick="clearInterval(pollTimer);showMenu();" style="width:100%;max-width:300px;padding:12px;font-size:15px;border-radius:12px;">← Отмена</button>
                 </div>
             `;
+            window.autoUpdateName = async function() {
+                const newName = document.getElementById('lobby-name').value.trim() || 'Игрок';
+                if (newName !== playerName) {
+                    try {
+                        const r = await fetch(API+'/rename', {
+                            method: 'POST',
+                            headers: {'Content-Type':'application/json'},
+                            body: JSON.stringify({code: roomCode, playerId: playerId, name: newName})
+                        });
+                        const d = await r.json();
+                        if(d.ok) {
+                            playerName = newName;
+                            toast('✅ Имя обновлено!', 'success');
+                        } else {
+                            toast(d.error, 'error');
+                        }
+                    } catch(e) {
+                        toast('Ошибка при обновлении имени', 'error');
+                    }
+                }
+            };
             // Обновляем список игроков
             pollTimer = setInterval(async () => {
                 try {
@@ -1466,7 +1498,6 @@
                             Здравствуйте! Чем я могу вам помочь?
                             <div class="msg-time">${new Date().toLocaleTimeString()}</div>
                         </div>
-                        <!-- Сообщения будут добавляться динамически -->
                     </div>
                     <div class="chat-input">
                         <input type="text" id="chat-input" placeholder="Напишите сообщение..." onkeydown="if(event.key==='Enter') sendChatMessage()">
@@ -1698,30 +1729,35 @@
         // ===== СТАТИСТИКА ЗАВЕРШЁННОЙ ИГРЫ =====
         function openFinishedGameStats(code) {
             closeAdminPanel();
-            // Для демо показываем модальное окно со статистикой
-            const modal = document.createElement('div');
-            modal.id = 'admin-modal';
-            const players = [
-                { name: 'Игрок1', quartets: 3, handCount: 5 },
-                { name: 'Игрок2', quartets: 2, handCount: 7 },
-                { name: 'Игрок3', quartets: 1, handCount: 9 }
-            ];
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <h3>📊 Статистика игры #${code}</h3>
-                    <div class="section-title">Игроки</div>
-                    ${players.map(p => `
-                        <div class="player-stat" onclick="openPlayerChat('${code}', '${p.name}')">
-                            <span class="stat-name">${p.name}</span>
-                            <span class="stat-info">🏆 ${p.quartets} квартетов | 🃏 ${p.handCount} карт</span>
-                        </div>
-                    `).join('')}
-                    <div class="btn-group">
-                        <button class="btn btn-secondary" onclick="closeAdminPanel()">← Закрыть</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
+            // Сначала загружаем данные игры с сервера
+            fetch(API + '/state/' + code + '/' + playerId)
+                .then(res => res.json())
+                .then(d => {
+                    if (d.ok) {
+                        const players = d.players || [];
+                        const modal = document.createElement('div');
+                        modal.id = 'admin-modal';
+                        modal.innerHTML = `
+                            <div class="modal-content">
+                                <h3>📊 Статистика игры #${code}</h3>
+                                <div class="section-title">Игроки</div>
+                                ${players.map(p => `
+                                    <div class="player-stat" onclick="openPlayerChat('${code}', '${p.name}')">
+                                        <span class="stat-name">${p.name}</span>
+                                        <span class="stat-info">🏆 ${p.quartets || 0} квартетов | 🃏 ${p.handCount || 0} карт</span>
+                                    </div>
+                                `).join('')}
+                                <div class="btn-group">
+                                    <button class="btn btn-secondary" onclick="closeAdminPanel()">← Закрыть</button>
+                                </div>
+                            </div>
+                        `;
+                        document.body.appendChild(modal);
+                    } else {
+                        toast('Ошибка загрузки статистики', 'error');
+                    }
+                })
+                .catch(() => toast('Ошибка соединения', 'error'));
         }
 
         function openPlayerChat(roomCode, playerName) {
@@ -1808,7 +1844,7 @@
                 const d = await res.json();
                 if (d.ok && d.messages) {
                     const messages = document.getElementById('admin-chat-messages');
-                    // Очищаем, кроме приветственного
+                    // Очищаем
                     messages.innerHTML = '';
                     d.messages.forEach(msg => {
                         const div = document.createElement('div');
