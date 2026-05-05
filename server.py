@@ -19,8 +19,40 @@ rooms = {}
 # Хранилище сообщений для чата с поддержкой
 chat_messages = []
 chat_id_counter = 0
+CHAT_FILE = 'chat_messages.json'  # Файл для хранения сообщений
 
 ADMIN_IDS = [39444699]  # ID администратора
+
+# ===== ЗАГРУЗКА СООБЩЕНИЙ ИЗ ФАЙЛА =====
+def load_chat_messages():
+    global chat_messages, chat_id_counter
+    try:
+        if os.path.exists(CHAT_FILE):
+            with open(CHAT_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                chat_messages = data.get('messages', [])
+                chat_id_counter = data.get('counter', 0)
+                print(f"[CHAT] Загружено {len(chat_messages)} сообщений из файла")
+        else:
+            chat_messages = []
+            chat_id_counter = 0
+            print("[CHAT] Файл сообщений не найден, создаём новый")
+    except Exception as e:
+        print(f"[CHAT] Ошибка загрузки сообщений: {e}")
+        chat_messages = []
+        chat_id_counter = 0
+
+# ===== СОХРАНЕНИЕ СООБЩЕНИЙ В ФАЙЛ =====
+def save_chat_messages():
+    try:
+        with open(CHAT_FILE, 'w', encoding='utf-8') as f:
+            json.dump({'messages': chat_messages, 'counter': chat_id_counter}, f, ensure_ascii=False, indent=2)
+        print(f"[CHAT] Сохранено {len(chat_messages)} сообщений в файл")
+    except Exception as e:
+        print(f"[CHAT] Ошибка сохранения сообщений: {e}")
+
+# Загружаем сообщения при старте
+load_chat_messages()
 
 def generate_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -44,6 +76,7 @@ def create_room():
     data = request.get_json()
     player_name = data.get('name', 'Игрок')
     cards_count = int(data.get('cards', 10))
+    player_id = int(data.get('playerId', 0))
     
     code = generate_code()
     while code in rooms:
@@ -106,6 +139,7 @@ def join_room():
     data = request.get_json()
     code = data.get('code', '').upper()
     player_name = data.get('name', 'Игрок')
+    player_id = int(data.get('playerId', 0))
     
     if code not in rooms:
         return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
@@ -118,12 +152,12 @@ def join_room():
     if len(room['players']) >= room['maxPlayers']:
         return jsonify({'ok': False, 'error': 'Комната заполнена'}), 400
     
-    player_id = len(room['players'])
+    new_id = len(room['players'])
     cards = room['deck'][:room['cardsPerPlayer']]
     room['deck'] = room['deck'][room['cardsPerPlayer']:]
     
     room['players'].append({
-        'id': player_id,
+        'id': new_id,
         'name': player_name,
         'hand': cards,
         'quartets': []
@@ -135,8 +169,8 @@ def join_room():
         'type': 'system'
     })
     
-    print(f"[JOIN] Комната {code}, новый игрок {player_id}: {player_name}")
-    return jsonify({'ok': True, 'playerId': int(player_id)})
+    print(f"[JOIN] Комната {code}, новый игрок {new_id}: {player_name}")
+    return jsonify({'ok': True, 'playerId': int(new_id)})
 
 @app.route('/state/<code>/<int:player_id>', methods=['GET'])
 def get_state(code, player_id):
@@ -295,18 +329,23 @@ def send_chat_message():
     if not message:
         return jsonify({'ok': False, 'error': 'Сообщение не может быть пустым'}), 400
     
-    # Сохраняем сообщение
+    # Уникальный ключ чата: ID игрока
+    chat_key = str(player_id)
+    
     chat_id_counter += 1
     chat_messages.append({
         'id': chat_id_counter,
         'from_player': player_id,
         'from_name': name,
         'to_player': None,
-        'room': code,
+        'room': chat_key,
         'message': message,
         'time': datetime.now().strftime('%H:%M'),
         'read': False
     })
+    
+    # Сохраняем в файл
+    save_chat_messages()
     
     print(f"[CHAT] Сообщение от {name} (ID {player_id}): {message}")
     return jsonify({'ok': True, 'message_id': chat_id_counter})
@@ -316,7 +355,7 @@ def get_chat_messages(admin_id):
     if admin_id not in ADMIN_IDS:
         return jsonify({'ok': False, 'error': 'Доступ только для администраторов'}), 403
     
-    # Группируем сообщения по комнатам
+    # Группируем сообщения по чатам (ключ = ID игрока)
     chats = {}
     for msg in chat_messages:
         key = msg['room']
@@ -324,32 +363,33 @@ def get_chat_messages(admin_id):
             chats[key] = []
         chats[key].append(msg)
     
-    # Формируем список чатов
     result = []
-    for room_code, msgs in chats.items():
+    for chat_key, msgs in chats.items():
         last_msg = msgs[-1]
+        # Имя игрока из первого сообщения
+        player_name = msgs[0]['from_name']
         result.append({
-            'roomCode': room_code,
-            'name': msgs[0]['from_name'],
+            'roomCode': chat_key,
+            'name': player_name,
             'lastMsg': last_msg['message'],
             'time': last_msg['time'],
-            'unread': sum(1 for m in msgs if not m['read'])
+            'unread': sum(1 for m in msgs if not m['read'] and m['from_player'] != admin_id)
         })
     
     return jsonify({'ok': True, 'chats': result})
 
-@app.route('/chat/messages/<int:admin_id>/<room_code>', methods=['GET'])
-def get_room_chat_messages(admin_id, room_code):
+@app.route('/chat/messages/<int:admin_id>/<chat_key>', methods=['GET'])
+def get_room_chat_messages(admin_id, chat_key):
     if admin_id not in ADMIN_IDS:
         return jsonify({'ok': False, 'error': 'Доступ только для администраторов'}), 403
     
-    # Получаем все сообщения для этой комнаты
-    room_messages = [m for m in chat_messages if m['room'] == room_code]
+    room_messages = [m for m in chat_messages if m['room'] == chat_key]
     
     # Помечаем как прочитанные
     for m in chat_messages:
-        if m['room'] == room_code:
+        if m['room'] == chat_key:
             m['read'] = True
+    save_chat_messages()
     
     return jsonify({'ok': True, 'messages': room_messages})
 
@@ -358,7 +398,7 @@ def reply_to_chat():
     global chat_id_counter
     data = request.get_json()
     admin_id = int(data.get('adminId', -1))
-    room_code = data.get('roomCode', '')
+    chat_key = data.get('roomCode', '')
     message = data.get('message', '')
     
     if admin_id not in ADMIN_IDS:
@@ -367,29 +407,20 @@ def reply_to_chat():
     if not message:
         return jsonify({'ok': False, 'error': 'Сообщение не может быть пустым'}), 400
     
-    # Находим игрока, которому адресовано сообщение
-    player_msg = None
-    for msg in chat_messages:
-        if msg['room'] == room_code:
-            player_msg = msg
-            break
-    
-    if not player_msg:
-        return jsonify({'ok': False, 'error': 'Чат не найден'}), 404
-    
     chat_id_counter += 1
     chat_messages.append({
         'id': chat_id_counter,
         'from_player': admin_id,
         'from_name': 'Администратор',
-        'to_player': player_msg['from_player'],
-        'room': room_code,
+        'to_player': None,
+        'room': chat_key,
         'message': message,
         'time': datetime.now().strftime('%H:%M'),
         'read': False
     })
+    save_chat_messages()
     
-    print(f"[CHAT] Ответ админа в комнату {room_code}: {message}")
+    print(f"[CHAT] Ответ админа в чат {chat_key}: {message}")
     return jsonify({'ok': True, 'message_id': chat_id_counter})
 
 # ===== ДЛЯ АДМИНА: НАБЛЮДЕНИЕ =====
@@ -401,9 +432,7 @@ def observe_game(code, admin_id):
     if code not in rooms:
         return jsonify({'ok': False, 'error': 'Игра не найдена'}), 404
     
-    # Создаём временного наблюдателя
     room = rooms[code]
-    # Добавляем наблюдателя как игрока с флагом is_observer
     observer_id = max([p['id'] for p in room['players']] + [-1]) + 1
     room['players'].append({
         'id': observer_id,
@@ -423,20 +452,35 @@ def admin_games(admin_id):
     
     result = []
     for code, room in rooms.items():
+        # Фильтруем только реальных игроков (не наблюдателей)
         players_info = []
         for p in room['players']:
-            players_info.append({
-                'id': p['id'],
-                'name': p['name'],
-                'quartets': len(p['quartets']),
-                'handCount': len(p['hand'])
+            if p.get('is_observer', False):
+                continue
+            # Если игра не началась, показываем 0 квартетов и 0 карт
+            if room['status'] == 'lobby':
+                players_info.append({
+                    'id': p['id'],
+                    'name': p['name'],
+                    'quartets': 0,
+                    'handCount': 0
+                })
+            else:
+                players_info.append({
+                    'id': p['id'],
+                    'name': p['name'],
+                    'quartets': len(p['quartets']),
+                    'handCount': len(p['hand'])
+                })
+        
+        # Добавляем только если есть игроки
+        if players_info:
+            result.append({
+                'code': code,
+                'status': room['status'],
+                'players': players_info,
+                'ownerId': room['ownerId']
             })
-        result.append({
-            'code': code,
-            'status': room['status'],
-            'players': players_info,
-            'ownerId': room['ownerId']
-        })
     
     return jsonify({'ok': True, 'games': result})
 
@@ -453,15 +497,19 @@ def leave_game():
     room = rooms[code]
     
     # Удаляем игрока
+    old_count = len(room['players'])
     room['players'] = [p for p in room['players'] if p['id'] != player_id]
+    new_count = len(room['players'])
+    
+    print(f"[LEAVE] Игрок {player_id} вышел из комнаты {code}. Было {old_count}, стало {new_count}")
     
     # Если игроков нет — удаляем комнату
-    if len(room['players']) == 0:
+    if new_count == 0:
         del rooms[code]
         print(f"[LEAVE] Комната {code} удалена (все игроки вышли)")
     else:
         # Если ушёл создатель — передаём создателя следующему
-        if room['ownerId'] == player_id and len(room['players']) > 0:
+        if room['ownerId'] == player_id:
             room['ownerId'] = room['players'][0]['id']
             print(f"[LEAVE] Создатель вышел. Новый создатель: {room['ownerId']}")
     
@@ -523,7 +571,6 @@ def feedback():
     if not message:
         return jsonify({'ok': False, 'error': 'Сообщение не может быть пустым'}), 400
     
-    # Сохраняем в лог (можно добавить сохранение в файл)
     print(f"[FEEDBACK] {name} (ID {player_id}, комната {code}): {message}")
     return jsonify({'ok': True})
 
@@ -533,8 +580,10 @@ def feedback_list(admin_id):
     if admin_id not in ADMIN_IDS:
         return jsonify({'ok': False, 'error': 'Доступ только для администраторов'}), 403
     
-    # Временно возвращаем пустой список, так как не храним
     return jsonify({'ok': True, 'feedback': []})
 
 if __name__ == '__main__':
+    # Очищаем комнаты при старте
+    rooms.clear()
+    print("[START] Сервер запущен, данные очищены")
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
