@@ -378,10 +378,12 @@ def get_chat_messages(admin_id):
     
     return jsonify({'ok': True, 'chats': result})
 
-@app.route('/chat/messages/<int:admin_id>/<chat_key>', methods=['GET'])
-def get_room_chat_messages(admin_id, chat_key):
-    if admin_id not in ADMIN_IDS:
-        return jsonify({'ok': False, 'error': 'Доступ только для администраторов'}), 403
+@app.route('/chat/messages/<int:player_id>/<chat_key>', methods=['GET'])
+def get_room_chat_messages(player_id, chat_key):
+    # Разрешаем доступ, если player_id совпадает с chat_key (свои сообщения)
+    # ИЛИ если это админ
+    if player_id != int(chat_key) and player_id not in ADMIN_IDS:
+        return jsonify({'ok': False, 'error': 'Доступ запрещён'}), 403
     
     room_messages = [m for m in chat_messages if m['room'] == chat_key]
     
