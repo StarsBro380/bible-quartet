@@ -1052,6 +1052,57 @@
             font-weight: 600;
             margin-left: 4px;
         }
+                #rules-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+        #rules-modal .modal-content {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        #rules-modal .modal-content h3 {
+            font-family: 'Inter', sans-serif;
+            color: var(--accent);
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+        #rules-modal .modal-content .rules-text {
+            font-size: 13px;
+            color: var(--text);
+            line-height: 1.6;
+        }
+        #rules-modal .modal-content .rules-text ul {
+            padding-left: 20px;
+            margin: 8px 0;
+        }
+        #rules-modal .modal-content .rules-text ul li {
+            margin-bottom: 4px;
+        }
+        #rules-modal .modal-content .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        #rules-modal .modal-content .btn-group .btn {
+            flex: 1;
+        }
+        
     </style>
 </head>
 <body>
@@ -1910,6 +1961,48 @@
                 // Игнорируем ошибки
             }
         }
+
+                // ===== ПРАВИЛА =====
+        function openRules() {
+            if (rulesOpen) return;
+            rulesOpen = true;
+            const modal = document.createElement('div');
+            modal.id = 'rules-modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3>📜 Правила игры</h3>
+                    <div class="rules-text">
+                        <p><strong>Цель игры:</strong> Собрать как можно больше квартетов (4 карты одной категории).</p>
+                        <ul>
+                            <li>В игре 37 квартетов, всего 148 карт.</li>
+                            <li>Каждому игроку раздаётся одинаковое количество карт (7, 10 или 15).</li>
+                            <li>Остальные карты образуют «запас» (банк).</li>
+                            <li>Игроки ходят по очереди. В свой ход можно <strong>попросить</strong> у любого другого игрока конкретную карту из категории, которая уже есть у вас в руке.</li>
+                            <li>Если у соперника есть эта карта — он отдаёт её вам, и вы ходите снова.</li>
+                            <li>Если у соперника нет этой карты — вы берёте одну карту из запаса, и ход переходит к следующему игроку.</li>
+                            <li>Если вы собрали 4 карты одной категории — они выкладываются на стол (квартет), и вы получаете 1 очко.</li>
+                            <li>Игра заканчивается, когда все квартеты собраны или когда запас пуст, и у всех игроков нет карт.</li>
+                        </ul>
+                        <p><strong>Дополнительно:</strong></p>
+                        <ul>
+                            <li>Создатель комнаты может завершить игру досрочно.</li>
+                            <li>Игрок может покинуть игру в любой момент (кнопка «Покинуть игру»).</li>
+                        </ul>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" onclick="closeRules()">← Закрыть</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function closeRules() {
+            rulesOpen = false;
+            const modal = document.getElementById('rules-modal');
+            if (modal) modal.remove();
+        }
+        
     </script>
 </body>
 </html>
