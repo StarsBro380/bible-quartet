@@ -584,14 +584,21 @@ def end_game():
             'handCount': len(p['hand'])
         })
     
-    finished_games.append({
+    game_data = {
         'code': code,
         'status': 'finished',
         'players': players_info,
         'ownerId': room['ownerId'],
-        'ended_at': datetime.now().strftime('%Y-%m-%d %H:%M')
-    })
+        'ended_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+    
+    finished_games.append(game_data)
     save_finished_games(finished_games)
+    
+    # ✅ ПРИНУДИТЕЛЬНАЯ ПРОВЕРКА: сразу читаем файл
+    with open(FINISHED_GAMES_FILE, 'r', encoding='utf-8') as f:
+        saved_data = json.load(f)
+    print(f"[END] В файле сохранено {len(saved_data)} игр. Последняя: {saved_data[-1]['code']}")
     
     # Удаляем комнату из памяти
     del rooms[code]
