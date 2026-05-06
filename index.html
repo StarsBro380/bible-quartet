@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Библейский квартет</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #f5f0e8; --card: #fffef9; --accent: #7b4b2a; --accent2: #5b3ec9;
@@ -24,7 +24,9 @@
             background: var(--bg);
             background: var(--gradient);
             color: var(--text);
-            min-height: 100vh; padding: 12px; padding-bottom: 160px;
+            min-height: 100vh;
+            padding: 12px;
+            padding-bottom: 160px;
             -webkit-tap-highlight-color: transparent; user-select: none;
             font-size: 14px; line-height: 1.5;
         }
@@ -876,6 +878,9 @@
         let pollTimer = null, historyOpen = false;
         let feedbackOpen = false, rulesOpen = false, adminOpen = false;
         let isObserver = false;
+        let turnTimer = null;          // Таймер хода
+        let turnWarning = false;       // Предупреждение показано?
+        let missedTurns = {};          // Счётчик пропущенных ходов для каждого игрока
 
         function toast(msg, type) {
             const t = document.getElementById('toast');
@@ -907,17 +912,12 @@
         }
         function showMenu() {
             clearInterval(pollTimer);
+            if (turnTimer) { clearInterval(turnTimer); turnTimer = null; }
             document.getElementById('bottom-panel').classList.add('hidden');
             
-            // ✅ Загружаем ID из Telegram при открытии
             if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
                 playerId = parseInt(tg.initDataUnsafe.user.id);
             }
-            
-            // ✅ Показываем уведомление при открытии
-            setTimeout(() => {
-                toast('📩 Ответ на ваш запрос', '');
-            }, 500);
             
             const isAdmin = ADMIN_IDS.includes(parseInt(playerId));
             document.getElementById('app').innerHTML = `
@@ -1192,7 +1192,11 @@
             
             // Добавляем кнопки выхода и завершения игры
             const bottom = document.getElementById('bottom-panel');
+            // Удаляем старые кнопки, если есть
+            const oldExit = document.getElementById('exit-buttons');
+            if (oldExit) oldExit.remove();
             const exitBtn = document.createElement('div');
+            exitBtn.id = 'exit-buttons';
             exitBtn.style.cssText = 'display:flex;gap:8px;padding:4px 10px;justify-content:center;';
             exitBtn.innerHTML = `
                 <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;" onclick="leaveGame()">🚪 Покинуть игру</button>
@@ -1201,6 +1205,15 @@
                 ` : ''}
             `;
             bottom.appendChild(exitBtn);
+            
+            // ✅ Таймер хода
+            if (isMyTurn && !turnTimer) {
+                startTurnTimer();
+            } else if (!isMyTurn && turnTimer) {
+                clearInterval(turnTimer);
+                turnTimer = null;
+                turnWarning = false;
+            }
         }
         function toggleCat(id){document.getElementById('row-'+id).classList.toggle('collapsed');document.getElementById('arrow-'+id).classList.toggle('open');}
         function selectPlayer(pid){
@@ -1227,6 +1240,12 @@
                         toast(`❌ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карты нет. Ходит ${nextName}`, 'error');
                     }
                     selectedCard=null;selectedPlayerId=null;
+                    // ✅ Сбрасываем таймер после хода
+                    if (turnTimer) {
+                        clearInterval(turnTimer);
+                        turnTimer = null;
+                        turnWarning = false;
+                    }
                     fetchState();
                 } else toast(d.error,'error');
             } catch(e){toast('Ошибка','error');}
@@ -1236,6 +1255,7 @@
             const allCollected=state.players.reduce((s,p)=>s+p.quartets.length,0);
             if(allCollected>=state.categories.length||(state.bankCount===0&&state.players.every(p=>p.handCount===0))){
                 clearInterval(pollTimer);
+                if (turnTimer) { clearInterval(turnTimer); turnTimer = null; }
                 document.getElementById('bottom-panel').classList.add('hidden');
                 const sorted=[...state.players].sort((a,b)=>b.quartets.length-a.quartets.length);
                 document.getElementById('app').innerHTML=`<div class="header"><h1 style="font-family:'Inter',sans-serif;font-size:24px;font-weight:700;color:var(--accent);">🏆 Игра окончена!</h1><div class="decor-line"></div></div>`+sorted.map((p,i)=>`<div class="score-item ${i===0&&sorted[0].quartets.length>0?'winner':''}"><span>${i===0?'👑 ':''}${p.name}</span><span style="color:var(--accent);font-weight:700;">${p.quartets.length} квартетов</span></div>`).join('')+'<button class="btn btn-primary btn-full" onclick="showMenu()">В меню</button>';
@@ -1247,6 +1267,12 @@
                 const d=await r.json();
                 if(d.ok){
                     toast('🚪 Вы покинули игру', '');
+                    // ✅ Сбрасываем таймер, если он был
+                    if (turnTimer) {
+                        clearInterval(turnTimer);
+                        turnTimer = null;
+                        turnWarning = false;
+                    }
                     clearInterval(pollTimer);
                     document.getElementById('bottom-panel').classList.add('hidden');
                     showMenu();
@@ -1260,225 +1286,96 @@
                 const d=await r.json();
                 if(d.ok){
                     toast('🚫 Игра завершена', '');
+                    if (turnTimer) {
+                        clearInterval(turnTimer);
+                        turnTimer = null;
+                        turnWarning = false;
+                    }
                     clearInterval(pollTimer);
                     await fetchState();
                 } else toast(d.error,'error');
             } catch(e){toast('Ошибка','error');}
         }
-        showMenu();
-
-        // ----- Обратная связь -----
-        function openFeedback() {
-            if (feedbackOpen) return;
-            feedbackOpen = true;
-            const modal = document.createElement('div');
-            modal.id = 'feedback-modal';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <h3>💬 Обратная связь</h3>
-                    <p>Напишите, что хотите сообщить: ошибки, идеи, предложения.</p>
-                    <textarea id="feedback-message" placeholder="Ваше сообщение..."></textarea>
-                    <div class="btn-group">
-                        <button class="btn btn-primary" onclick="sendFeedback()">📤 Отправить</button>
-                        <button class="btn btn-secondary" onclick="closeFeedback()">← Назад</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
-        function closeFeedback() {
-            feedbackOpen = false;
-            const modal = document.getElementById('feedback-modal');
-            if (modal) modal.remove();
-        }
-        function sendFeedback() {
-            const message = document.getElementById('feedback-message').value.trim();
-            if (!message) {
-                toast('Напишите сообщение', 'error');
-                return;
+        
+        // ===== ТАЙМЕР ХОДА =====
+        function startTurnTimer() {
+            if (turnTimer) {
+                clearInterval(turnTimer);
+                turnTimer = null;
+                turnWarning = false;
             }
-            fetch(API + '/feedback', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    code: roomCode || 'menu',
-                    playerId: playerId,
-                    name: playerName,
-                    message: message
-                })
-            })
-            .then(res => res.json())
-            .then(d => {
-                if (d.ok) {
-                    toast('✅ Сообщение отправлено в поддержку!', 'success');
-                    closeFeedback();
-                } else {
-                    toast('❌ ' + d.error, 'error');
-                }
-            })
-            .catch(() => toast('Ошибка отправки', 'error'));
-        }
-
-        // ----- Правила -----
-        function openRules() {
-            if (rulesOpen) return;
-            rulesOpen = true;
-            const modal = document.createElement('div');
-            modal.id = 'rules-modal';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <h3>📜 Правила игры</h3>
-                    <div class="rules-text">
-                        <p><strong>Цель игры:</strong> Собрать как можно больше квартетов (4 карты одной категории).</p>
-                        <ul>
-                            <li>В игре 37 квартетов, всего 148 карт.</li>
-                            <li>Каждому игроку раздаётся одинаковое количество карт (7, 10 или 15).</li>
-                            <li>Остальные карты образуют «запас» (банк).</li>
-                            <li>Игроки ходят по очереди. В свой ход можно <strong>попросить</strong> у любого другого игрока конкретную карту из категории, которая уже есть у вас в руке.</li>
-                            <li>Если у соперника есть эта карта — он отдаёт её вам, и вы ходите снова.</li>
-                            <li>Если у соперника нет этой карты — вы берёте одну карту из запаса, и ход переходит к следующему игроку.</li>
-                            <li>Если вы собрали 4 карты одной категории — они выкладываются на стол (квартет), и вы получаете 1 очко.</li>
-                            <li>Игра заканчивается, когда все квартеты собраны или когда запас пуст, и у всех игроков нет карт.</li>
-                        </ul>
-                        <p><strong>Дополнительно:</strong></p>
-                        <ul>
-                            <li>Если игрок не ходит более 1 минуты — ход переходит к следующему.</li>
-                            <li>Если игрок пропускает ход дважды — он автоматически покидает игру.</li>
-                            <li>Создатель комнаты может завершить игру досрочно.</li>
-                            <li>Игрок может покинуть игру в любой момент (кнопка «Покинуть игру»).</li>
-                        </ul>
-                    </div>
-                    <div class="btn-group">
-                        <button class="btn btn-secondary" onclick="closeRules()">← Закрыть</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
-        function closeRules() {
-            rulesOpen = false;
-            const modal = document.getElementById('rules-modal');
-            if (modal) modal.remove();
-        }
-
-        // ----- Панель администратора -----
-        function openAdminPanel() {
-            if (adminOpen) return;
-            if (!ADMIN_IDS.includes(parseInt(playerId))) {
-                toast('Доступ только для администраторов', 'error');
-                return;
-            }
-            adminOpen = true;
             
-            fetch(API + '/feedback/list/' + playerId)
-                .then(res => res.json())
-                .then(d => {
-                    if (!d.ok) {
-                        toast('Ошибка загрузки: ' + d.error, 'error');
-                        adminOpen = false;
-                        return;
-                    }
+            let secondsLeft = 60; // 60 секунд на ход
+            let warned = false;
+            
+            turnTimer = setInterval(async () => {
+                secondsLeft--;
+                
+                // Предупреждение за 30 секунд
+                if (secondsLeft === 30 && !warned) {
+                    warned = true;
+                    toast('⏰ У вас осталось 30 секунд! Если не сделаете ход, он перейдёт к следующему игроку.', '');
+                }
+                
+                // Время вышло
+                if (secondsLeft <= 0) {
+                    clearInterval(turnTimer);
+                    turnTimer = null;
+                    turnWarning = false;
                     
-                    fetch(API + '/admin/games/' + playerId)
-                        .then(res => res.json())
-                        .then(g => {
-                            if (!g.ok) {
-                                toast('Ошибка загрузки игр: ' + g.error, 'error');
-                                adminOpen = false;
-                                return;
-                            }
-                            
-                            const modal = document.createElement('div');
-                            modal.id = 'admin-modal';
-                            let feedbackHtml = '';
-                            if (d.feedback && d.feedback.length > 0) {
-                                feedbackHtml = d.feedback.map(f => `
-                                    <div class="feedback-item" style="${f.read ? 'opacity:0.6;' : ''}">
-                                        <div class="feedback-header">
-                                            <span class="name">${f.name}</span>
-                                            <span class="time">${f.time}</span>
-                                            <span class="room">${f.room ? '#'+f.room : 'меню'}</span>
-                                        </div>
-                                        <div class="feedback-message">${f.message}</div>
-                                        <button class="reply-btn" onclick="replyToFeedback(${f.id})">Ответить</button>
-                                    </div>
-                                `).join('');
-                            } else {
-                                feedbackHtml = '<p style="font-size:13px;color:var(--text2);">Сообщений пока нет</p>';
-                            }
-                            
-                            let gamesHtml = '';
-                            if (g.games && g.games.length > 0) {
-                                gamesHtml = g.games.map(game => `
-                                    <div class="game-item">
-                                        <div>
-                                            <span class="status-indicator ${game.status === 'playing' ? 'active' : 'finished'}"></span>
-                                            <strong>${game.code}</strong>
-                                            <span style="font-size:11px;color:var(--text2);margin-left:6px;">${game.status === 'playing' ? '🟢' : '🔴'}</span>
-                                            <span style="font-size:11px;color:var(--text2);margin-left:6px;">👤 ${game.players.map(p => p.name).join(', ')}</span>
-                                        </div>
-                                        ${game.status === 'playing' ? `
-                                        <button class="observe-btn" onclick="observeGame('${game.code}')">👁 Наблюдать</button>
-                                        ` : '<span style="font-size:11px;color:var(--text2);">Завершена</span>'}
-                                    </div>
-                                `).join('');
-                            } else {
-                                gamesHtml = '<p style="font-size:13px;color:var(--text2);">Активных игр нет</p>';
-                            }
-                            
-                            modal.innerHTML = `
-                                <div class="modal-content">
-                                    <h3>📊 Панель администратора</h3>
-                                    <div class="section-title">📩 Сообщения</div>
-                                    ${feedbackHtml}
-                                    <div class="section-title">🎮 Игры</div>
-                                    ${gamesHtml}
-                                    <div class="btn-group" style="margin-top:12px;">
-                                        <button class="btn btn-secondary" onclick="closeAdminPanel()">← Закрыть</button>
-                                    </div>
-                                </div>
-                            `;
-                            document.body.appendChild(modal);
-                        });
-                });
+                    // Пропуск хода
+                    await skipTurn();
+                }
+            }, 1000);
         }
-        function closeAdminPanel() {
-            adminOpen = false;
-            const modal = document.getElementById('admin-modal');
-            if (modal) modal.remove();
-        }
-        function observeGame(code) {
-            closeAdminPanel();
-            if (!ADMIN_IDS.includes(parseInt(playerId))) {
-                toast('Доступ только для администраторов', 'error');
+        
+        async function skipTurn() {
+            const currentPlayerId = state.currentPlayer;
+            if (!missedTurns[currentPlayerId]) {
+                missedTurns[currentPlayerId] = 0;
+            }
+            missedTurns[currentPlayerId]++;
+            
+            if (missedTurns[currentPlayerId] >= 3) {
+                // 3 пропуска — исключаем игрока
+                toast(`⚠️ Игрок ${state.players.find(p => p.id === currentPlayerId)?.name || 'неизвестно'} исключён за 3 пропуска хода.`, 'error');
+                await excludePlayer(currentPlayerId);
                 return;
             }
-            fetch(API + '/observe/' + code + '/' + playerId, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({})
-            })
-            .then(res => res.json())
-            .then(d => {
-                if (d.ok) {
-                    roomCode = d.roomCode;
-                    playerId = d.playerId;
-                    isObserver = true;
-                    startPolling();
-                    toast('👁 Вы вошли в игру как наблюдатель', 'success');
+            
+            // Переход хода к следующему
+            const nextPlayer = (currentPlayerId + 1) % state.players.length;
+            state.currentPlayer = nextPlayer;
+            toast(`⏰ Ход перешёл к ${state.players.find(p => p.id === nextPlayer)?.name || 'неизвестно'} (пропуск хода).`, '');
+            fetchState();
+        }
+        
+        async function excludePlayer(playerIdToExclude) {
+            // Отправляем запрос на исключение игрока (сервер должен обработать)
+            try {
+                const r = await fetch(API + '/exclude', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        code: roomCode,
+                        playerId: parseInt(playerIdToExclude)
+                    })
+                });
+                const d = await r.json();
+                if (!d.ok) {
+                    toast('Ошибка при исключении игрока: ' + d.error, 'error');
                 } else {
-                    toast('Ошибка: ' + d.error, 'error');
+                    toast(`👢 Игрок ${state.players.find(p => p.id === playerIdToExclude)?.name || 'неизвестно'} был исключён.`, 'error');
+                    // Сбрасываем счётчик пропусков
+                    missedTurns[playerIdToExclude] = 0;
+                    fetchState();
                 }
-            })
-            .catch(() => toast('Ошибка подключения', 'error'));
+            } catch (e) {
+                toast('Ошибка соединения при исключении игрока', 'error');
+            }
         }
-        function replyToFeedback(feedbackId) {
-            closeAdminPanel();
-            const reply = prompt('Введите ответ для этого сообщения:');
-            if (!reply) return;
-            // Здесь можно добавить отправку ответа через API
-            toast('✅ Ответ отправлен (в разработке)', 'success');
-        }
+        
+        showMenu();
     </script>
 </body>
 </html>
