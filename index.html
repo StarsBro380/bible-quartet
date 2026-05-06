@@ -1138,6 +1138,10 @@
         let adminChatModalOpen = false;
         let adminTabs = {};
 
+        // --- Хранилище сообщений для админа (клиентская часть) ---
+        let adminMessages = {}; // { roomCode: [ {from, text, time, read} ] }
+        let adminChats = {}; // { roomCode: { name: 'Игрок', lastMsg: '...', time: '...', unread: 0 } }
+
         function toast(msg, type) {
             const t = document.getElementById('toast');
             t.textContent = msg; t.className = 'toast ' + (type||'') + ' show';
@@ -1394,9 +1398,9 @@
             fetchState();
             function poll() {
                 fetchState();
-                pollTimer = setTimeout(poll, 300);
+                pollTimer = setTimeout(poll, 1000);
             }
-            pollTimer = setTimeout(poll, 300);
+            pollTimer = setTimeout(poll, 1000);
         }
         async function fetchState() {
             if(!roomCode||playerId===null)return;
