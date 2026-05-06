@@ -16,66 +16,8 @@ def after_request(response):
     return response
 
 rooms = {}
-# Хранилище сообщений для чата с поддержкой
-chat_messages = []
-chat_id_counter = 0
-CHAT_FILE = 'chat_messages.json'  # Файл для хранения сообщений
-FINISHED_GAMES_FILE = 'finished_games.json'  # Файл для хранения завершённых игр
 
 ADMIN_IDS = [39444699]  # ID администратора
-
-# ===== ЗАГРУЗКА СООБЩЕНИЙ ИЗ ФАЙЛА =====
-def load_chat_messages():
-    global chat_messages, chat_id_counter
-    try:
-        if os.path.exists(CHAT_FILE):
-            with open(CHAT_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                chat_messages = data.get('messages', [])
-                chat_id_counter = data.get('counter', 0)
-                print(f"[CHAT] Загружено {len(chat_messages)} сообщений из файла")
-        else:
-            chat_messages = []
-            chat_id_counter = 0
-            print("[CHAT] Файл сообщений не найден, создаём новый")
-    except Exception as e:
-        print(f"[CHAT] Ошибка загрузки сообщений: {e}")
-        chat_messages = []
-        chat_id_counter = 0
-
-# ===== СОХРАНЕНИЕ СООБЩЕНИЙ В ФАЙЛ =====
-def save_chat_messages():
-    try:
-        with open(CHAT_FILE, 'w', encoding='utf-8') as f:
-            json.dump({'messages': chat_messages, 'counter': chat_id_counter}, f, ensure_ascii=False, indent=2)
-        print(f"[CHAT] Сохранено {len(chat_messages)} сообщений в файл")
-    except Exception as e:
-        print(f"[CHAT] Ошибка сохранения сообщений: {e}")
-
-# ===== ЗАГРУЗКА ЗАВЕРШЁННЫХ ИГР ИЗ ФАЙЛА =====
-def load_finished_games():
-    try:
-        if os.path.exists(FINISHED_GAMES_FILE):
-            with open(FINISHED_GAMES_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        else:
-            return []
-    except Exception as e:
-        print(f"[FINISHED] Ошибка загрузки завершённых игр: {e}")
-        return []
-
-# ===== СОХРАНЕНИЕ ЗАВЕРШЁННЫХ ИГР В ФАЙЛ =====
-def save_finished_games(games):
-    try:
-        with open(FINISHED_GAMES_FILE, 'w', encoding='utf-8') as f:
-            json.dump(games, f, ensure_ascii=False, indent=2)
-        print(f"[FINISHED] Сохранено {len(games)} завершённых игр в файл")
-    except Exception as e:
-        print(f"[FINISHED] Ошибка сохранения завершённых игр: {e}")
-
-# Загружаем данные при старте
-load_chat_messages()
-finished_games = load_finished_games()
 
 def generate_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -122,7 +64,8 @@ def create_room():
         'maxPlayers': 4,
         'cardsPerPlayer': cards_count,
         'history': [],
-        'ownerId': 0
+        'ownerId': 0,
+        'missedTurns': {}  # {player_id: count}
     }
     
     rooms[code] = room
@@ -233,7 +176,8 @@ def get_state(code, player_id):
         'status': room['status'],
         'categories': room['categories'],
         'history': room['history'][-30:],
-        'ownerId': int(room['ownerId'])
+        'ownerId': int(room['ownerId']),
+        'missedTurns': room.get('missedTurns', {})
     })
 
 @app.route('/request', methods=['POST'])
@@ -273,6 +217,9 @@ def request_card():
     
     from_name = requester['name']
     to_name = target['name']
+    
+    # Сбрасываем счётчик пропусков для игрока, который сделал ход
+    room['missedTurns'][str(from_player)] = 0
     
     if card_index is not None:
         card = target['hand'].pop(card_index)
@@ -339,114 +286,163 @@ def check_quartets(room, player_id):
                 'type': 'ok'
             })
 
-# ===== ЧАТ С ПОДДЕРЖКОЙ =====
-@app.route('/chat/send', methods=['POST'])
-def send_chat_message():
-    global chat_id_counter
+# ===== НОВЫЙ ЭНДПОИНТ: ИСКЛЮЧЕНИЕ ИГРОКА =====
+@app.route('/exclude', methods=['POST'])
+def exclude_player():
     data = request.get_json()
-    code = data.get('code', '')
+    code = data.get('code', '').upper()
     player_id = int(data.get('playerId', -1))
-    name = data.get('name', 'Игрок')
-    message = data.get('message', '')
     
-    if not message:
-        return jsonify({'ok': False, 'error': 'Сообщение не может быть пустым'}), 400
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
     
-    # Уникальный ключ чата: ID игрока
-    chat_key = str(player_id)
+    room = rooms[code]
     
-    chat_id_counter += 1
-    chat_messages.append({
-        'id': chat_id_counter,
-        'from_player': player_id,
-        'from_name': name,
-        'to_player': None,
-        'room': chat_key,
-        'message': message,
+    # Находим игрока
+    player = None
+    for p in room['players']:
+        if p['id'] == player_id:
+            player = p
+            break
+    
+    if not player:
+        return jsonify({'ok': False, 'error': 'Игрок не найден'}), 404
+    
+    # Возвращаем карты в банк
+    room['deck'].extend(player['hand'])
+    player['hand'] = []
+    
+    # Удаляем игрока из комнаты
+    room['players'] = [p for p in room['players'] if p['id'] != player_id]
+    
+    # Если игроков нет — удаляем комнату
+    if len(room['players']) == 0:
+        del rooms[code]
+        print(f"[EXCLUDE] Комната {code} удалена (все игроки вышли)")
+        return jsonify({'ok': True})
+    
+    # Если исключён создатель — передаём владение случайному игроку
+    if room['ownerId'] == player_id:
+        room['ownerId'] = random.choice(room['players'])['id']
+        print(f"[EXCLUDE] Создатель исключён. Новый создатель: {room['ownerId']}")
+    
+    # Сбрасываем счётчик пропусков для этого игрока
+    if str(player_id) in room['missedTurns']:
+        del room['missedTurns'][str(player_id)]
+    
+    # Если ход был у исключённого — переходим к следующему
+    if room['currentPlayer'] == player_id:
+        room['currentPlayer'] = (player_id + 1) % len(room['players'])
+    
+    room['history'].append({
         'time': datetime.now().strftime('%H:%M'),
-        'read': False
+        'text': f'🚫 Игрок {player["name"]} был исключён из игры.',
+        'type': 'system'
     })
     
-    # Сохраняем в файл
-    save_chat_messages()
-    
-    print(f"[CHAT] Сообщение от {name} (ID {player_id}): {message}")
-    return jsonify({'ok': True, 'message_id': chat_id_counter})
+    print(f"[EXCLUDE] Игрок {player['name']} (ID {player_id}) исключён из комнаты {code}")
+    return jsonify({'ok': True})
 
-@app.route('/chat/list/<int:admin_id>', methods=['GET'])
-def get_chat_messages(admin_id):
-    if admin_id not in ADMIN_IDS:
-        return jsonify({'ok': False, 'error': 'Доступ только для администраторов'}), 403
-    
-    # Группируем сообщения по чатам (ключ = ID игрока)
-    chats = {}
-    for msg in chat_messages:
-        key = msg['room']
-        if key not in chats:
-            chats[key] = []
-        chats[key].append(msg)
-    
-    result = []
-    for chat_key, msgs in chats.items():
-        last_msg = msgs[-1]
-        # Имя игрока из первого сообщения
-        player_name = msgs[0]['from_name']
-        result.append({
-            'roomCode': chat_key,
-            'name': player_name,
-            'lastMsg': last_msg['message'],
-            'time': last_msg['time'],
-            'unread': sum(1 for m in msgs if not m['read'] and m['from_player'] != admin_id)
-        })
-    
-    return jsonify({'ok': True, 'chats': result})
-
-@app.route('/chat/messages/<int:player_id>/<chat_key>', methods=['GET'])
-def get_room_chat_messages(player_id, chat_key):
-    # Разрешаем доступ, если player_id совпадает с chat_key (свои сообщения)
-    # ИЛИ если это админ
-    if player_id != int(chat_key) and player_id not in ADMIN_IDS:
-        return jsonify({'ok': False, 'error': 'Доступ запрещён'}), 403
-    
-    room_messages = [m for m in chat_messages if m['room'] == chat_key]
-    
-    # Помечаем как прочитанные
-    for m in chat_messages:
-        if m['room'] == chat_key:
-            m['read'] = True
-    save_chat_messages()
-    
-    return jsonify({'ok': True, 'messages': room_messages})
-
-@app.route('/chat/reply', methods=['POST'])
-def reply_to_chat():
-    global chat_id_counter
+# ===== ОБНОВЛЁННЫЙ ВЫХОД ИЗ ИГРЫ =====
+@app.route('/leave', methods=['POST'])
+def leave_game():
     data = request.get_json()
-    admin_id = int(data.get('adminId', -1))
-    chat_key = data.get('roomCode', '')
-    message = data.get('message', '')
+    code = data.get('code', '').upper()
+    player_id = int(data.get('playerId', -1))
     
-    if admin_id not in ADMIN_IDS:
-        return jsonify({'ok': False, 'error': 'Доступ только для администраторов'}), 403
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
     
-    if not message:
-        return jsonify({'ok': False, 'error': 'Сообщение не может быть пустым'}), 400
+    room = rooms[code]
     
-    chat_id_counter += 1
-    chat_messages.append({
-        'id': chat_id_counter,
-        'from_player': admin_id,
-        'from_name': 'Администратор',
-        'to_player': None,
-        'room': chat_key,
-        'message': message,
+    # Находим игрока
+    player = None
+    for p in room['players']:
+        if p['id'] == player_id:
+            player = p
+            break
+    
+    if not player:
+        return jsonify({'ok': False, 'error': 'Игрок не найден'}), 404
+    
+    # Возвращаем карты в банк
+    room['deck'].extend(player['hand'])
+    player['hand'] = []
+    
+    # Удаляем игрока из комнаты
+    room['players'] = [p for p in room['players'] if p['id'] != player_id]
+    
+    # Если игроков нет — удаляем комнату
+    if len(room['players']) == 0:
+        del rooms[code]
+        print(f"[LEAVE] Комната {code} удалена (все игроки вышли)")
+        return jsonify({'ok': True})
+    
+    # Если ушёл создатель — передаём владение случайному игроку
+    if room['ownerId'] == player_id:
+        room['ownerId'] = random.choice(room['players'])['id']
+        print(f"[LEAVE] Создатель вышел. Новый создатель: {room['ownerId']}")
+    
+    # Сбрасываем счётчик пропусков для этого игрока
+    if str(player_id) in room['missedTurns']:
+        del room['missedTurns'][str(player_id)]
+    
+    # Если ход был у ушедшего — переходим к следующему
+    if room['currentPlayer'] == player_id:
+        room['currentPlayer'] = (player_id + 1) % len(room['players'])
+    
+    room['history'].append({
         'time': datetime.now().strftime('%H:%M'),
-        'read': False
+        'text': f'👋 Игрок {player["name"]} покинул игру.',
+        'type': 'system'
     })
-    save_chat_messages()
     
-    print(f"[CHAT] Ответ админа в чат {chat_key}: {message}")
-    return jsonify({'ok': True, 'message_id': chat_id_counter})
+    print(f"[LEAVE] Игрок {player['name']} (ID {player_id}) вышел из комнаты {code}")
+    return jsonify({'ok': True})
+
+# ===== ЗАВЕРШЕНИЕ ИГРЫ =====
+@app.route('/end_game', methods=['POST'])
+def end_game():
+    data = request.get_json()
+    code = data.get('code', '').upper()
+    player_id = int(data.get('playerId', -1))
+    
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
+    
+    room = rooms[code]
+    
+    if room['ownerId'] != player_id:
+        return jsonify({'ok': False, 'error': 'Только создатель может завершить игру'}), 400
+    
+    room['status'] = 'finished'
+    room['history'].append({
+        'time': datetime.now().strftime('%H:%M'),
+        'text': '🚫 Игра завершена создателем',
+        'type': 'system'
+    })
+    
+    print(f"[END] Игра в комнате {code} завершена создателем {player_id}")
+    return jsonify({'ok': True})
+
+# ===== ПЕРЕИМЕНОВАНИЕ =====
+@app.route('/rename', methods=['POST'])
+def rename_player():
+    data = request.get_json()
+    code = data.get('code', '').upper()
+    player_id = int(data.get('playerId', -1))
+    new_name = data.get('name', 'Игрок')
+    
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
+    
+    room = rooms[code]
+    for p in room['players']:
+        if p['id'] == player_id:
+            p['name'] = new_name
+            return jsonify({'ok': True})
+    
+    return jsonify({'ok': False, 'error': 'Игрок не найден'}), 404
 
 # ===== ДЛЯ АДМИНА: НАБЛЮДЕНИЕ =====
 @app.route('/observe/<code>/<int:admin_id>', methods=['POST'])
@@ -477,12 +473,10 @@ def admin_games(admin_id):
     
     result = []
     for code, room in rooms.items():
-        # Фильтруем только реальных игроков (не наблюдателей)
         players_info = []
         for p in room['players']:
             if p.get('is_observer', False):
                 continue
-            # Если игра не началась, показываем 0 квартетов и 0 карт
             if room['status'] == 'lobby':
                 players_info.append({
                     'id': p['id'],
@@ -497,8 +491,6 @@ def admin_games(admin_id):
                     'quartets': len(p['quartets']),
                     'handCount': len(p['hand'])
                 })
-        
-        # Добавляем только если есть игроки
         if players_info:
             result.append({
                 'code': code,
@@ -508,122 +500,6 @@ def admin_games(admin_id):
             })
     
     return jsonify({'ok': True, 'games': result})
-
-# ===== НОВЫЙ ЭНДПОИНТ: ЗАВЕРШЁННЫЕ ИГРЫ ИЗ ФАЙЛА =====
-@app.route('/admin/finished_games/<int:admin_id>', methods=['GET'])
-def admin_finished_games(admin_id):
-    if admin_id not in ADMIN_IDS:
-        return jsonify({'ok': False, 'error': 'Доступ только для администраторов'}), 403
-    
-    global finished_games
-    return jsonify({'ok': True, 'games': finished_games})
-
-# ===== ВЫХОД ИЗ ИГРЫ =====
-@app.route('/leave', methods=['POST'])
-def leave_game():
-    data = request.get_json()
-    code = data.get('code', '').upper()
-    player_id = int(data.get('playerId', -1))
-    
-    if code not in rooms:
-        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
-    
-    room = rooms[code]
-    
-    # Удаляем игрока
-    old_count = len(room['players'])
-    room['players'] = [p for p in room['players'] if p['id'] != player_id]
-    new_count = len(room['players'])
-    
-    print(f"[LEAVE] Игрок {player_id} вышел из комнаты {code}. Было {old_count}, стало {new_count}")
-    
-    # Если игроков нет — удаляем комнату
-    if new_count == 0:
-        del rooms[code]
-        print(f"[LEAVE] Комната {code} удалена (все игроки вышли)")
-    else:
-        # Если ушёл создатель — передаём создателя следующему
-        if room['ownerId'] == player_id:
-            room['ownerId'] = room['players'][0]['id']
-            print(f"[LEAVE] Создатель вышел. Новый создатель: {room['ownerId']}")
-    
-    return jsonify({'ok': True})
-
-# ===== ЗАВЕРШЕНИЕ ИГРЫ =====
-@app.route('/end_game', methods=['POST'])
-def end_game():
-    data = request.get_json()
-    code = data.get('code', '').upper()
-    player_id = int(data.get('playerId', -1))
-    
-    if code not in rooms:
-        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
-    
-    room = rooms[code]
-    
-    if room['ownerId'] != player_id:
-        return jsonify({'ok': False, 'error': 'Только создатель может завершить игру'}), 400
-    
-    room['status'] = 'finished'
-    room['history'].append({
-        'time': datetime.now().strftime('%H:%M'),
-        'text': '🚫 Игра завершена создателем',
-        'type': 'system'
-    })
-    
-    # Сохраняем статистику в файл
-    global finished_games
-    players_info = []
-    for p in room['players']:
-        if p.get('is_observer', False):
-            continue
-        players_info.append({
-            'id': p['id'],
-            'name': p['name'],
-            'quartets': len(p['quartets']),
-            'handCount': len(p['hand'])
-        })
-    
-    game_data = {
-        'code': code,
-        'status': 'finished',
-        'players': players_info,
-        'ownerId': room['ownerId'],
-        'ended_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    }
-    
-    finished_games.append(game_data)
-    save_finished_games(finished_games)
-    
-    # ✅ ПРИНУДИТЕЛЬНАЯ ПРОВЕРКА: сразу читаем файл
-    with open(FINISHED_GAMES_FILE, 'r', encoding='utf-8') as f:
-        saved_data = json.load(f)
-    print(f"[END] В файле сохранено {len(saved_data)} игр. Последняя: {saved_data[-1]['code']}")
-    
-    # Удаляем комнату из памяти
-    del rooms[code]
-    
-    print(f"[END] Игра в комнате {code} завершена создателем {player_id}, статистика сохранена")
-    return jsonify({'ok': True})
-
-# ===== ПЕРЕИМЕНОВАНИЕ =====
-@app.route('/rename', methods=['POST'])
-def rename_player():
-    data = request.get_json()
-    code = data.get('code', '').upper()
-    player_id = int(data.get('playerId', -1))
-    new_name = data.get('name', 'Игрок')
-    
-    if code not in rooms:
-        return jsonify({'ok': False, 'error': 'Комната не найдена'}), 404
-    
-    room = rooms[code]
-    for p in room['players']:
-        if p['id'] == player_id:
-            p['name'] = new_name
-            return jsonify({'ok': True})
-    
-    return jsonify({'ok': False, 'error': 'Игрок не найден'}), 404
 
 # ===== ОБРАТНАЯ СВЯЗЬ =====
 @app.route('/feedback', methods=['POST'])
@@ -649,7 +525,4 @@ def feedback_list(admin_id):
     return jsonify({'ok': True, 'feedback': []})
 
 if __name__ == '__main__':
-    # Очищаем комнаты при старте
-    rooms.clear()
-    print("[START] Сервер запущен, данные очищены")
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
