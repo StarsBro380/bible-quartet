@@ -1390,18 +1390,18 @@
                 } catch (e) {}
             }, 1000);
         }
-        function startPolling() {
-            if (pollTimer) {
-                clearTimeout(pollTimer);
-                pollTimer = null;
-            }
-            fetchState();
-            function poll() {
-                fetchState();
-                pollTimer = setTimeout(poll, 1000);
-            }
-            pollTimer = setTimeout(poll, 1000);
-        }
+function startPolling() {
+    if (pollTimer) {
+        clearTimeout(pollTimer);
+        pollTimer = null;
+    }
+    fetchState();
+    function poll() {
+        fetchState();
+        pollTimer = setTimeout(poll, 2000);
+    }
+    poll(); // запускаем первый раз
+}
         async function fetchState() {
             if(!roomCode||playerId===null)return;
             try {
