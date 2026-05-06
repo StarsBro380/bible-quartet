@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+\<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -1128,15 +1128,10 @@
         if (tg) { tg.expand(); tg.ready(); tg.setHeaderColor('#f5f0e8'); tg.setBackgroundColor('#f5f0e8'); }
         
         const API = 'https://bible-quartet-server.onrender.com';
-        const ADMIN_IDS = [39444699];
         let state = null, playerId = null, roomCode = null, selectedCard = null, selectedPlayerId = null;
         let playerName = tg?.initDataUnsafe?.user?.first_name || '';
         let pollTimer = null, historyOpen = false;
-        let feedbackOpen = false, rulesOpen = false, adminOpen = false;
-        let isObserver = false;
-        let chatModalOpen = false;
-        let adminChatModalOpen = false;
-        let adminTabs = {};
+        let rulesOpen = false;
 
         function toast(msg, type) {
             const t = document.getElementById('toast');
@@ -1159,7 +1154,7 @@
             const row = document.getElementById('action-row');
             const cp = parseInt(state?.currentPlayer);
             const pid = parseInt(playerId);
-            if (!state || cp !== pid || isObserver) {
+            if (!state || cp !== pid) {
                 row.innerHTML = '<span style="color:var(--text2);font-size:12px;">⏳ Ожидание хода другого игрока... (вы #'+pid+', ходит #'+cp+')</span>';
                 return;
             }
@@ -1174,7 +1169,6 @@
                 playerId = parseInt(tg.initDataUnsafe.user.id);
             }
             
-            const isAdmin = ADMIN_IDS.includes(parseInt(playerId));
             document.getElementById('app').innerHTML = `
                 <div class="menu-container">
                     <div class="menu-decoration"></div>
@@ -1211,11 +1205,6 @@
                         <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;" onclick="openRules()">
                             <span style="display:block;">📜 Правила</span>
                         </button>
-                        ${isAdmin ? `
-                        <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;background:rgba(123,75,42,0.15);border-color:var(--accent);" onclick="openAdminPanel()">
-                            <span style="display:block;">🛠 Админская<br>часть</span>
-                        </button>
-                        ` : ''}
                     </div>
                 </div>
             `;
@@ -1223,8 +1212,6 @@
                 const newName = document.getElementById('player-name').value.trim() || 'Игрок';
                 playerName = newName;
             };
-            // Проверяем, есть ли непрочитанные сообщения от админа
-            checkUnreadChats();
         }
         function saveNameAndCreate() { showCreate(); }
         function saveNameAndJoin() { showJoin(); }
@@ -1410,7 +1397,6 @@
                     d.bankCount=parseInt(d.bankCount);d.ownerId=parseInt(d.ownerId);
                     if(d.players)d.players.forEach(p=>{p.id=parseInt(p.id);p.handCount=parseInt(p.handCount);});
                     state=d;
-                    isObserver = d.is_observer || false;
                     renderGame();
                 }
             } catch(e){}
@@ -1418,18 +1404,6 @@
         function renderGame() {
             if(!state||state.status==='lobby'){showLobby();return;}
             document.getElementById('bottom-panel').classList.remove('hidden');
-            
-            if (isObserver) {
-                document.getElementById('app').innerHTML = `
-                    <div style="text-align:center;padding:20px;color:var(--text2);">
-                        <span style="font-size:24px;">👁</span>
-                        <p style="margin-top:8px;font-size:14px;">Вы наблюдаете за игрой как администратор</p>
-                        <button class="btn btn-secondary" onclick="leaveGame()" style="margin-top:12px;">🚪 Выйти из наблюдения</button>
-                    </div>
-                `;
-                return;
-            }
-            
             const me=state.players.find(p=>parseInt(p.id)===parseInt(playerId));
             if(!me)return;
             const isMyTurn = parseInt(state.currentPlayer) === parseInt(playerId);
@@ -1489,477 +1463,7 @@
                 document.getElementById('app').innerHTML=`<div class="header"><h1>🏆 Игра окончена!</h1></div>`+sorted.map((p,i)=>`<div class="score-item ${i===0&&sorted[0].quartets.length>0?'winner':''}"><span>${i===0?'👑 ':''}${p.name}</span><span style="color:var(--accent);font-weight:bold;">${p.quartets.length} квартетов</span></div>`).join('')+'<button class="btn btn-primary btn-full" onclick="showMenu()">В меню</button>';
             }
         }
-        async function leaveGame() {
-            try {
-                const r=await fetch(API+'/leave',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,playerId:parseInt(playerId)})});
-                const d=await r.json();
-                if(d.ok){
-                    toast('🚪 Вы покинули игру', '');
-                    clearInterval(pollTimer);
-                    document.getElementById('bottom-panel').classList.add('hidden');
-                    showMenu();
-                } else toast(d.error,'error');
-            } catch(e){toast('Ошибка','error');}
-        }
-        async function endGame() {
-            if (!confirm('Вы уверены, что хотите завершить игру?')) return;
-            try {
-                const r=await fetch(API+'/end_game',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,playerId:parseInt(playerId)})});
-                const d=await r.json();
-                if(d.ok){
-                    toast('🚫 Игра завершена', '');
-                    clearInterval(pollTimer);
-                    await fetchState();
-                } else toast(d.error,'error');
-            } catch(e){toast('Ошибка','error');}
-        }
         showMenu();
-
-        // ===== ЧАТ С ПОДДЕРЖКОЙ =====
-        function checkUnreadChats() {
-            const badge = document.getElementById('chat-badge');
-            if (!badge) return;
-            const unread = Object.values(adminChats).reduce((sum, chat) => sum + (chat.unread || 0), 0);
-            if (unread > 0) {
-                badge.classList.add('active');
-                badge.textContent = unread > 99 ? '99+' : unread;
-            } else {
-                badge.classList.remove('active');
-                badge.textContent = '';
-            }
-        }
-
-        function openChatModal() {
-            if (chatModalOpen) return;
-            chatModalOpen = true;
-            const modal = document.createElement('div');
-            modal.id = 'chat-modal';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <div class="chat-header">
-                        <h3>💬 Чат с поддержкой</h3>
-                        <button class="close-btn" onclick="closeChatModal()">✕</button>
-                    </div>
-                    <div class="chat-messages" id="chat-messages">
-                        <div class="chat-message received">
-                            Здравствуйте! Чем я могу вам помочь?
-                            <div class="msg-time">${new Date().toLocaleTimeString()}</div>
-                        </div>
-                    </div>
-                    <div class="chat-input">
-                        <input type="text" id="chat-input" placeholder="Напишите сообщение..." onkeydown="if(event.key==='Enter') sendChatMessage()">
-                        <button onclick="sendChatMessage()">➤</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            
-            // ✅ Загружаем историю сообщений
-            loadChatHistory();
-            
-            // Помечаем все сообщения как прочитанные при открытии
-            for (let key in adminChats) {
-                adminChats[key].unread = 0;
-            }
-            checkUnreadChats();
-            document.getElementById('chat-input').focus();
-        }
-
-        function closeChatModal() {
-            chatModalOpen = false;
-            const modal = document.getElementById('chat-modal');
-            if (modal) modal.remove();
-        }
-
-        async function sendChatMessage() {
-            const input = document.getElementById('chat-input');
-            const text = input.value.trim();
-            if (!text) return;
-            input.value = '';
-            
-            // Добавляем сообщение в чат
-            const messages = document.getElementById('chat-messages');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'chat-message sent';
-            msgDiv.innerHTML = `
-                ${text}
-                <div class="msg-time">${new Date().toLocaleTimeString()}</div>
-            `;
-            messages.appendChild(msgDiv);
-            messages.scrollTop = messages.scrollHeight;
-            
-            // Отправляем на сервер
-            try {
-                await fetch(API + '/chat/send', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        code: roomCode || 'menu',
-                        playerId: playerId,
-                        name: playerName,
-                        message: text
-                    })
-                });
-            } catch(e) {
-                // Пока просто игнорируем ошибку
-            }
-        }
-
-        async function loadChatHistory() {
-            try {
-                // Загружаем сообщения для этого игрока
-                const res = await fetch(API + '/chat/messages/' + playerId + '/' + playerId);
-                const d = await res.json();
-                if (d.ok && d.messages) {
-                    const messages = document.getElementById('chat-messages');
-                    // Очищаем
-                    messages.innerHTML = '';
-                    d.messages.forEach(msg => {
-                        const div = document.createElement('div');
-                        div.className = 'chat-message ' + (msg.from_player === playerId ? 'sent' : 'received');
-                        div.innerHTML = `
-                            ${msg.message}
-                            <div class="msg-time">${msg.time}</div>
-                        `;
-                        messages.appendChild(div);
-                    });
-                    messages.scrollTop = messages.scrollHeight;
-                }
-            } catch (e) {
-                // Игнорируем ошибки
-            }
-        }
-
-        // ===== АДМИНСКАЯ ПАНЕЛЬ =====
-        function openAdminPanel() {
-            if (adminOpen) return;
-            if (!ADMIN_IDS.includes(parseInt(playerId))) {
-                toast('Доступ только для администраторов', 'error');
-                return;
-            }
-            adminOpen = true;
-            
-            // Сначала открываем панель с заглушкой, потом загружаем данные
-            const modal = document.createElement('div');
-            modal.id = 'admin-modal';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <h3>📊 Панель администратора</h3>
-                    <div class="tabs">
-                        <button class="active" onclick="switchAdminTab('games')">🎮 Игры</button>
-                        <button onclick="switchAdminTab('chats')">💬 Чаты с игроками</button>
-                    </div>
-                    <div id="tab-games" class="tab-content active">
-                        <div class="section-title">Активные игры</div>
-                        <div id="admin-games-list">Загрузка...</div>
-                        <div class="section-title">Завершённые игры</div>
-                        <div id="admin-finished-games">Загрузка...</div>
-                    </div>
-                    <div id="tab-chats" class="tab-content">
-                        <div class="section-title">Чаты с игроками</div>
-                        <div id="admin-chats-list">Загрузка...</div>
-                    </div>
-                    <div class="btn-group">
-                        <button class="btn btn-secondary" onclick="closeAdminPanel()">← Закрыть</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            
-            // Загружаем данные
-            loadAdminData();
-        }
-
-        function closeAdminPanel() {
-            adminOpen = false;
-            const modal = document.getElementById('admin-modal');
-            if (modal) modal.remove();
-        }
-
-        function switchAdminTab(tab) {
-            document.querySelectorAll('#admin-modal .tabs button').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('#admin-modal .tab-content').forEach(c => c.classList.remove('active'));
-            const tabBtn = document.querySelector(`#admin-modal .tabs button[onclick*="${tab}"]`);
-            if (tabBtn) tabBtn.classList.add('active');
-            const tabContent = document.getElementById(`tab-${tab}`);
-            if (tabContent) tabContent.classList.add('active');
-        }
-
-        async function loadAdminData() {
-            try {
-                // Загружаем активные игры
-                const gamesRes = await fetch(API + '/admin/games/' + playerId);
-                const gamesData = await gamesRes.json();
-                
-                // Загружаем чаты
-                const chatsRes = await fetch(API + '/chat/list/' + playerId);
-                const chatsData = await chatsRes.json();
-                
-                // Обрабатываем активные игры
-                if (gamesData.ok) {
-                    const gamesList = document.getElementById('admin-games-list');
-                    if (gamesList) {
-                        const activeGames = gamesData.games.filter(g => g.status === 'playing');
-                        if (activeGames.length === 0) {
-                            gamesList.innerHTML = '<p style="font-size:13px;color:var(--text2);">Активных игр нет</p>';
-                        } else {
-                            gamesList.innerHTML = activeGames.map(game => `
-                                <div class="game-item">
-                                    <div>
-                                        <span class="status-indicator active"></span>
-                                        <strong>${game.code}</strong>
-                                        <span style="font-size:11px;color:var(--text2);margin-left:6px;">🟢</span>
-                                        <span style="font-size:11px;color:var(--text2);margin-left:6px;">👤 ${game.players.map(p => p.name).join(', ')}</span>
-                                    </div>
-                                    <button class="observe-btn" onclick="observeGame('${game.code}')">👁 Наблюдать</button>
-                                </div>
-                            `).join('');
-                        }
-                    }
-                }
-                
-                // ✅ ДОБАВЛЯЕМ ЗАГРУЗКУ АРХИВА ЗАВЕРШЁННЫХ ИГР (вставляем этот блок)
-                try {
-                    const archiveRes = await fetch(API + '/admin/finished_games/' + playerId);
-                    const archiveData = await archiveRes.json();
-                    const finishedList = document.getElementById('admin-finished-games');
-                    if (finishedList) {
-                        if (archiveData.ok) {
-                            const finishedGames = archiveData.games || [];
-                            if (finishedGames.length === 0) {
-                                finishedList.innerHTML = '<p style="font-size:13px;color:var(--text2);">Завершённых игр нет</p>';
-                            } else {
-                                finishedList.innerHTML = finishedGames.map(game => `
-                                    <div class="game-item">
-                                        <div>
-                                            <span class="status-indicator finished"></span>
-                                            <strong>${game.code}</strong>
-                                            <span style="font-size:11px;color:var(--text2);margin-left:6px;">🔴</span>
-                                            <span style="font-size:11px;color:var(--text2);margin-left:6px;">👤 ${game.players.map(p => p.name).join(', ')}</span>
-                                        </div>
-                                        <button class="observe-btn" onclick="openFinishedGameStats('${game.code}')">📊 Статистика</button>
-                                    </div>
-                                `).join('');
-                            }
-                        } else {
-                            finishedList.innerHTML = '<p style="font-size:13px;color:var(--text2);">Ошибка загрузки завершённых игр</p>';
-                        }
-                    }
-                } catch (e) {
-                    const finishedList = document.getElementById('admin-finished-games');
-                    if (finishedList) {
-                        finishedList.innerHTML = '<p style="font-size:13px;color:var(--text2);">Ошибка загрузки</p>';
-                    }
-                }
-                
-                // Обрабатываем чаты
-                if (chatsData.ok) {
-                    const chatsList = document.getElementById('admin-chats-list');
-                    if (chatsList) {
-                        if (chatsData.chats.length === 0) {
-                            chatsList.innerHTML = '<p style="font-size:13px;color:var(--text2);">Чатов пока нет</p>';
-                        } else {
-                            // Сохраняем в локальное хранилище
-                            adminChats = {};
-                            chatsData.chats.forEach(chat => {
-                                adminChats[chat.roomCode] = {
-                                    name: chat.name,
-                                    lastMsg: chat.lastMsg,
-                                    time: chat.time,
-                                    unread: chat.unread || 0
-                                };
-                            });
-                            chatsList.innerHTML = chatsData.chats.map(chat => `
-                                <div class="chat-item">
-                                    <div>
-                                        <div class="chat-name">${chat.name}</div>
-                                        <div class="chat-last">${chat.lastMsg || 'Нет сообщений'}</div>
-                                        ${chat.unread > 0 ? `<span style="color:#ff3b30;font-weight:600;font-size:10px;">${chat.unread} нов.</span>` : ''}
-                                    </div>
-                                    <button class="chat-btn" onclick="openAdminChat('${chat.roomCode}', '${chat.name}')">Открыть</button>
-                                </div>
-                            `).join('');
-                        }
-                    }
-                }
-            } catch (e) {
-                toast('Ошибка загрузки данных', 'error');
-            }
-        }
-
-        // ===== НАБЛЮДЕНИЕ =====
-        function observeGame(code) {
-            closeAdminPanel();
-            if (!ADMIN_IDS.includes(parseInt(playerId))) {
-                toast('Доступ только для администраторов', 'error');
-                return;
-            }
-            fetch(API + '/observe/' + code + '/' + playerId, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({})
-            })
-            .then(res => res.json())
-            .then(d => {
-                if (d.ok) {
-                    roomCode = d.roomCode;
-                    playerId = d.playerId;
-                    isObserver = true;
-                    startPolling();
-                    toast('👁 Вы вошли в игру как наблюдатель', 'success');
-                } else {
-                    toast('Ошибка: ' + d.error, 'error');
-                }
-            })
-            .catch(() => toast('Ошибка подключения', 'error'));
-        }
-
-        // ===== СТАТИСТИКА ЗАВЕРШЁННОЙ ИГРЫ =====
-        function openFinishedGameStats(code) {
-            closeAdminPanel();
-            // Загружаем данные из архива
-            fetch(API + '/admin/finished_games/' + playerId)
-                .then(res => res.json())
-                .then(d => {
-                    if (d.ok) {
-                        const game = d.games.find(g => g.code === code);
-                        if (game) {
-                            const players = game.players || [];
-                            const modal = document.createElement('div');
-                            modal.id = 'admin-modal';
-                            modal.innerHTML = `
-                                <div class="modal-content">
-                                    <h3>📊 Статистика игры #${code}</h3>
-                                    <div class="section-title">Игроки</div>
-                                    ${players.map(p => `
-                                        <div class="player-stat" onclick="openPlayerChat('${code}', '${p.name}')">
-                                            <span class="stat-name">${p.name}</span>
-                                            <span class="stat-info">🏆 ${p.quartets || 0} квартетов | 🃏 ${p.handCount || 0} карт</span>
-                                        </div>
-                                    `).join('')}
-                                    <div class="btn-group">
-                                        <button class="btn btn-secondary" onclick="closeAdminPanel()">← Закрыть</button>
-                                    </div>
-                                </div>
-                            `;
-                            document.body.appendChild(modal);
-                        } else {
-                            toast('Игра не найдена в архиве', 'error');
-                        }
-                    } else {
-                        toast('Ошибка загрузки статистики', 'error');
-                    }
-                })
-                .catch(() => toast('Ошибка соединения', 'error'));
-        }
-
-        function openPlayerChat(roomCode, playerName) {
-            // Открыть чат с игроком
-            closeAdminPanel();
-            openAdminChat(roomCode, playerName);
-        }
-
-        // ===== ЧАТ АДМИНА С ИГРОКОМ =====
-        function openAdminChat(roomCode, playerName) {
-            if (adminChatModalOpen) return;
-            adminChatModalOpen = true;
-            const modal = document.createElement('div');
-            modal.id = 'admin-chat-modal';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <div class="chat-header">
-                        <h3>💬 Чат с ${playerName}</h3>
-                        <button class="close-btn" onclick="closeAdminChat()">✕</button>
-                    </div>
-                    <div class="chat-messages" id="admin-chat-messages">
-                        <div class="chat-message sent">
-                            Здравствуйте! Есть вопрос по игре.
-                            <div class="msg-time">${new Date().toLocaleTimeString()}</div>
-                        </div>
-                    </div>
-                    <div class="chat-input">
-                        <input type="text" id="admin-chat-input" placeholder="Напишите сообщение..." onkeydown="if(event.key==='Enter') sendAdminChatMessage('${roomCode}')">
-                        <button onclick="sendAdminChatMessage('${roomCode}')">➤</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            document.getElementById('admin-chat-input').focus();
-            
-            // Загружаем историю сообщений с сервера
-            loadAdminChatHistory(roomCode);
-        }
-
-        function closeAdminChat() {
-            adminChatModalOpen = false;
-            const modal = document.getElementById('admin-chat-modal');
-            if (modal) modal.remove();
-        }
-
-        function sendAdminChatMessage(roomCode) {
-            const input = document.getElementById('admin-chat-input');
-            const text = input.value.trim();
-            if (!text) return;
-            input.value = '';
-            
-            const messages = document.getElementById('admin-chat-messages');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'chat-message sent';
-            msgDiv.innerHTML = `
-                ${text}
-                <div class="msg-time">${new Date().toLocaleTimeString()}</div>
-            `;
-            messages.appendChild(msgDiv);
-            messages.scrollTop = messages.scrollHeight;
-            
-            // Отправляем на сервер
-            fetch(API + '/chat/reply', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    adminId: playerId,
-                    roomCode: roomCode,
-                    message: text
-                })
-            })
-            .then(res => res.json())
-            .then(d => {
-                if (!d.ok) {
-                    toast('Ошибка отправки: ' + d.error, 'error');
-                } else {
-                    // ✅ Сбрасываем счётчик для этого чата
-                    if (adminChats[roomCode]) {
-                        adminChats[roomCode].unread = 0;
-                    }
-                    checkUnreadChats();
-                }
-            })
-            .catch(() => toast('Ошибка соединения', 'error'));
-        }
-
-        async function loadAdminChatHistory(roomCode) {
-            try {
-                const res = await fetch(API + '/chat/messages/' + playerId + '/' + roomCode);
-                const d = await res.json();
-                if (d.ok && d.messages) {
-                    const messages = document.getElementById('admin-chat-messages');
-                    // Очищаем
-                    messages.innerHTML = '';
-                    d.messages.forEach(msg => {
-                        const div = document.createElement('div');
-                        div.className = 'chat-message ' + (msg.from_player === playerId ? 'sent' : 'received');
-                        div.innerHTML = `
-                            ${msg.message}
-                            <div class="msg-time">${msg.time}</div>
-                        `;
-                        messages.appendChild(div);
-                    });
-                    messages.scrollTop = messages.scrollHeight;
-                }
-            } catch (e) {
-                // Игнорируем ошибки
-            }
-        }
 
         // ===== ПРАВИЛА =====
         function openRules() {
