@@ -1,4 +1,4 @@
-\<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -1197,14 +1197,10 @@
                     </button>
                     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1;margin-top:8px;">
                         <div class="chat-btn-wrapper">
-                            <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;" onclick="openChatModal()">
-                                <span style="display:block;">💬 Чат с<br>поддержкой</span>
+                            <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;" onclick="openRules()">
+                                <span style="display:block;">📜 Правила</span>
                             </button>
-                            <span class="badge-red" id="chat-badge"></span>
                         </div>
-                        <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;" onclick="openRules()">
-                            <span style="display:block;">📜 Правила</span>
-                        </button>
                     </div>
                 </div>
             `;
@@ -1261,25 +1257,58 @@
         }
         async function createGame(n) {
             try {
-                const r = await fetch(API+'/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:playerName,cards:n,playerId:parseInt(playerId)})});
+                const r = await fetch(API+'/create',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({
+                        name:playerName,
+                        cards:n
+                        // playerId убрали
+                    })
+                });
                 const d = await r.json();
-                if(d.ok){roomCode=d.code;playerId=parseInt(d.playerId);showLobby();} else toast(d.error,'error');
+                if(d.ok){
+                    roomCode=d.code;
+                    playerId=parseInt(d.playerId);
+                    showLobby();
+                } else toast(d.error,'error');
             } catch(e){toast('Ошибка соединения','error');}
         }
         async function joinGame() {
             const code=document.getElementById('join-code').value.trim().toUpperCase();
             if(!code){toast('Введите код','error');return;}
             try {
-                const r=await fetch(API+'/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,name:playerName,playerId:parseInt(playerId)})});
+                const r=await fetch(API+'/join',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({
+                        code:code,
+                        name:playerName,
+                        playerId:parseInt(playerId)
+                    })
+                });
                 const d=await r.json();
-                if(d.ok){roomCode=code;playerId=parseInt(d.playerId);startPolling();} else toast(d.error,'error');
+                if(d.ok){
+                    roomCode=code;
+                    playerId=parseInt(d.playerId);
+                    startPolling();
+                } else toast(d.error,'error');
             } catch(e){toast('Ошибка соединения','error');}
         }
         async function startGame() {
             try {
-                const r=await fetch(API+'/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,playerId})});
+                const r=await fetch(API+'/start',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({
+                        code:roomCode,
+                        playerId:playerId
+                    })
+                });
                 const d=await r.json();
-                if(d.ok){startPolling();} else toast(d.error,'error');
+                if(d.ok){
+                    startPolling();
+                } else toast(d.error,'error');
             } catch(e){toast('Ошибка соединения','error');}
         }
         function copyCode(){if(!roomCode)return;navigator.clipboard.writeText(roomCode).then(()=>toast('📋 Код скопирован!','success')).catch(()=>toast('Не удалось скопировать','error'));}
@@ -1328,12 +1357,17 @@
                         const r = await fetch(API+'/rename', {
                             method: 'POST',
                             headers: {'Content-Type':'application/json'},
-                            body: JSON.stringify({code: roomCode, playerId: playerId, name: newName})
+                            body: JSON.stringify({
+                                code: roomCode,
+                                playerId: playerId,
+                                name: newName
+                            })
                         });
                         const d = await r.json();
                         if(d.ok) {
                             playerName = newName;
                             toast('✅ Имя обновлено!', 'success');
+                            fetchState();
                         } else {
                             toast(d.error, 'error');
                         }
@@ -1439,7 +1473,17 @@
             const fromName = state.players.find(p => parseInt(p.id) === parseInt(playerId))?.name || 'Игрок';
             const toName = state.players.find(p => parseInt(p.id) === parseInt(toPlayer))?.name || 'Игрок';
             try {
-                const r=await fetch(API+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,fromPlayer:parseInt(playerId),toPlayer:parseInt(toPlayer),category:selectedCard.category,cardName:selectedCard.cardName})});
+                const r=await fetch(API+'/request',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({
+                        code:roomCode,
+                        fromPlayer:parseInt(playerId),
+                        toPlayer:parseInt(toPlayer),
+                        category:selectedCard.category,
+                        cardName:selectedCard.cardName
+                    })
+                });
                 const d=await r.json();
                 if(d.ok){
                     if(d.found){
