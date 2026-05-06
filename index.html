@@ -1138,10 +1138,6 @@
         let adminChatModalOpen = false;
         let adminTabs = {};
 
-        // --- Хранилище сообщений для админа (клиентская часть) ---
-        let adminMessages = {}; // { roomCode: [ {from, text, time, read} ] }
-        let adminChats = {}; // { roomCode: { name: 'Игрок', lastMsg: '...', time: '...', unread: 0 } }
-
         function toast(msg, type) {
             const t = document.getElementById('toast');
             t.textContent = msg; t.className = 'toast ' + (type||'') + ' show';
@@ -1227,8 +1223,6 @@
                 const newName = document.getElementById('player-name').value.trim() || 'Игрок';
                 playerName = newName;
             };
-            // Проверяем, есть ли непрочитанные сообщения от админа
-            checkUnreadChats();
         }
         function saveNameAndCreate() { showCreate(); }
         function saveNameAndJoin() { showJoin(); }
@@ -1419,6 +1413,21 @@
                 }
             } catch(e){}
         }
+        function renderGame() {
+            if(!state||state.status==='lobby'){showLobby();return;}
+            document.getElementById('bottom-panel').classList.remove('hidden');
+            
+            if (isObserver) {
+                document.getElementById('app').innerHTML = `
+                    <div style="text-align:center;padding:20px;color:var(--text2);">
+                        <span style="font-size:24px;">👁</span>
+                        <p style="margin-top:8px;font-size:14px;">Вы наблюдаете за игрой как администратор</p>
+                        <button class="btn btn-secondary" onclick="leaveGame()" style="margin-top:12px;">🚪 Выйти из наблюдения</button>
+                    </div>
+                `;
+                return;
+            }
+            
             const me=state.players.find(p=>parseInt(p.id)===parseInt(playerId));
             if(!me)return;
             const isMyTurn = parseInt(state.currentPlayer) === parseInt(playerId);
@@ -1505,7 +1514,7 @@
         showMenu();
 
         // ===== ЧАТ С ПОДДЕРЖКОЙ =====
-                function checkUnreadChats() {
+        function checkUnreadChats() {
             const badge = document.getElementById('chat-badge');
             if (!badge) return;
             const unread = Object.values(adminChats).reduce((sum, chat) => sum + (chat.unread || 0), 0);
@@ -1885,7 +1894,7 @@
             if (modal) modal.remove();
         }
 
-                function sendAdminChatMessage(roomCode) {
+        function sendAdminChatMessage(roomCode) {
             const input = document.getElementById('admin-chat-input');
             const text = input.value.trim();
             if (!text) return;
@@ -1950,7 +1959,7 @@
             }
         }
 
-                // ===== ПРАВИЛА =====
+        // ===== ПРАВИЛА =====
         function openRules() {
             if (rulesOpen) return;
             rulesOpen = true;
