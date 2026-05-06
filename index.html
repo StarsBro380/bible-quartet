@@ -763,14 +763,21 @@
         }
         .chat-btn-wrapper .badge-red {
             position: absolute;
-            top: -4px;
-            right: -4px;
-            width: 12px;
-            height: 12px;
+            top: -6px;
+            right: -6px;
+            min-width: 20px;
+            height: 20px;
             background: #ff3b30;
             border-radius: 50%;
             border: 2px solid #fff;
             display: none;
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 20px;
+            text-align: center;
+            padding: 0 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         .chat-btn-wrapper .badge-red.active {
             display: block;
@@ -1052,7 +1059,7 @@
             font-weight: 600;
             margin-left: 4px;
         }
-                #rules-modal {
+        #rules-modal {
             position: fixed;
             top: 0;
             left: 0;
@@ -1412,21 +1419,6 @@
                 }
             } catch(e){}
         }
-        function renderGame() {
-            if(!state||state.status==='lobby'){showLobby();return;}
-            document.getElementById('bottom-panel').classList.remove('hidden');
-            
-            if (isObserver) {
-                document.getElementById('app').innerHTML = `
-                    <div style="text-align:center;padding:20px;color:var(--text2);">
-                        <span style="font-size:24px;">👁</span>
-                        <p style="margin-top:8px;font-size:14px;">Вы наблюдаете за игрой как администратор</p>
-                        <button class="btn btn-secondary" onclick="leaveGame()" style="margin-top:12px;">🚪 Выйти из наблюдения</button>
-                    </div>
-                `;
-                return;
-            }
-            
             const me=state.players.find(p=>parseInt(p.id)===parseInt(playerId));
             if(!me)return;
             const isMyTurn = parseInt(state.currentPlayer) === parseInt(playerId);
@@ -1446,17 +1438,6 @@
             if(!active.length)html+='<p style="text-align:center;padding:40px;color:var(--text2);font-size:14px;">У вас нет карт</p>';
             else {html+=active.map(cat=>{const cards=allCats[cat]||[],cnt=grouped[cat].length,done=cnt===4;const catId=cat.replace(/[^a-zA-Zа-яА-Я0-9]/g,'_');return `<div class="cat-section"><div class="cat-header" onclick="toggleCat('${catId}')"><span class="title">${cat}</span><span class="badge ${done?'badge-full':'badge-partial'}">${cnt}/4${done?' ✅':''}</span><span class="arrow" id="arrow-${catId}">▼</span></div><div class="cards-row" id="row-${catId}">${cards.map(c=>{const o=c.owned;const s=selectedCard&&selectedCard.category===cat&&selectedCard.cardName===c.name;return o?`<div class="card-chip owned"><div class="chip-name">✅ ${c.name}</div></div>`:`<div class="card-chip missing ${s?'selected':''}" onclick="selectCard('${cat.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')"><div class="chip-name">🃏 ${c.name}</div></div>`;}).join('')}</div></div>`;}).join('');}
             document.getElementById('app').innerHTML=html;renderHistory(state.history);renderActions();checkWin();
-            
-            const bottom = document.getElementById('bottom-panel');
-            const exitBtn = document.createElement('div');
-            exitBtn.style.cssText = 'display:flex;gap:8px;padding:4px 10px;justify-content:center;';
-            exitBtn.innerHTML = `
-                <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;" onclick="leaveGame()">🚪 Покинуть игру</button>
-                ${parseInt(state.ownerId) === parseInt(playerId) ? `
-                <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;background:var(--red);color:#fff;border-color:var(--red);" onclick="endGame()">🚫 Завершить игру</button>
-                ` : ''}
-            `;
-            bottom.appendChild(exitBtn);
         }
         function toggleCat(id){document.getElementById('row-'+id).classList.toggle('collapsed');document.getElementById('arrow-'+id).classList.toggle('open');}
         function selectPlayer(pid){
@@ -1524,15 +1505,16 @@
         showMenu();
 
         // ===== ЧАТ С ПОДДЕРЖКОЙ =====
-        function checkUnreadChats() {
-            // Проверяем, есть ли непрочитанные сообщения от админа
+                function checkUnreadChats() {
             const badge = document.getElementById('chat-badge');
             if (!badge) return;
             const unread = Object.values(adminChats).reduce((sum, chat) => sum + (chat.unread || 0), 0);
             if (unread > 0) {
                 badge.classList.add('active');
+                badge.textContent = unread > 99 ? '99+' : unread;
             } else {
                 badge.classList.remove('active');
+                badge.textContent = '';
             }
         }
 
@@ -1903,7 +1885,7 @@
             if (modal) modal.remove();
         }
 
-        function sendAdminChatMessage(roomCode) {
+                function sendAdminChatMessage(roomCode) {
             const input = document.getElementById('admin-chat-input');
             const text = input.value.trim();
             if (!text) return;
@@ -1933,6 +1915,12 @@
             .then(d => {
                 if (!d.ok) {
                     toast('Ошибка отправки: ' + d.error, 'error');
+                } else {
+                    // ✅ Сбрасываем счётчик для этого чата
+                    if (adminChats[roomCode]) {
+                        adminChats[roomCode].unread = 0;
+                    }
+                    checkUnreadChats();
                 }
             })
             .catch(() => toast('Ошибка соединения', 'error'));
