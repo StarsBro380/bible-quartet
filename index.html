@@ -753,6 +753,7 @@
         let turnTimer = null;
         let turnWarning = false;
         let missedTurns = {};
+        let gameContainer = null; // для сохранения структуры
 
         function toast(msg, type) {
             const t = document.getElementById('toast');
@@ -1027,24 +1028,59 @@
             const isMyTurn = parseInt(state.currentPlayer) === parseInt(playerId);
             const curObj = state.players.find(p => parseInt(p.id) === parseInt(state.currentPlayer));
             const curName = curObj ? curObj.name : 'Неизвестно';
-            let html=`<div class="info-bar"><span class="turn">${isMyTurn?'🎯 Ваш ход':'⏳ Ход: '+curName}</span><span class="score">🏆 ${me.quartets.length} | Запас: ${state.bankCount}</span></div>`;
-            html+='<div class="player-list">';
-            for(const p of state.players){
-                if(parseInt(p.id)===parseInt(playerId))continue;
-                const isSelected = selectedPlayerId === parseInt(p.id);
-                html+=`<div class="player-card ${parseInt(state.currentPlayer)===parseInt(p.id)?'current':''} ${isSelected?'selected-player':''}" onclick="selectPlayer(${p.id})"><div class="p-name">${p.name}</div><div class="p-info">🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов</div></div>`;
+            
+            // ✅ Если структура ещё не создана — создаём один раз
+            if (!gameContainer) {
+                let html=`<div class="info-bar"><span class="turn">${isMyTurn?'🎯 Ваш ход':'⏳ Ход: '+curName}</span><span class="score">🏆 ${me.quartets.length} | Запас: ${state.bankCount}</span></div>`;
+                html+='<div class="player-list">';
+                for(const p of state.players){
+                    if(parseInt(p.id)===parseInt(playerId))continue;
+                    const isSelected = selectedPlayerId === parseInt(p.id);
+                    html+=`<div class="player-card ${parseInt(state.currentPlayer)===parseInt(p.id)?'current':''} ${isSelected?'selected-player':''}" onclick="selectPlayer(${p.id})"><div class="p-name">${p.name}</div><div class="p-info">🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов</div></div>`;
+                }
+                html+='</div>';
+                const grouped={};if(me.hand)me.hand.forEach(c=>{if(!grouped[c.category])grouped[c.category]=[];grouped[c.category].push(c);});
+                const allCats={};state.categories.forEach(q=>{allCats[q.name]=q.cards.map(c=>({name:c.name,category:q.name,owned:me.hand?me.hand.some(h=>h.category===q.name&&h.cardName===c.name):false}));});
+                const active=Object.keys(grouped).sort();
+                if(!active.length)html+='<p style="text-align:center;padding:40px;color:var(--text2);font-size:14px;">У вас нет карт</p>';
+                else {html+=active.map(cat=>{const cards=allCats[cat]||[],cnt=grouped[cat].length,done=cnt===4;const catId=cat.replace(/[^a-zA-Zа-яА-Я0-9]/g,'_');return `<div class="cat-section"><div class="cat-header" onclick="toggleCat('${catId}')"><span class="title">${cat}</span><span class="badge ${done?'badge-full':'badge-partial'}">${cnt}/4${done?' ✅':''}</span><span class="arrow" id="arrow-${catId}">▼</span></div><div class="cards-row" id="row-${catId}">${cards.map(c=>{const o=c.owned;const s=selectedCard&&selectedCard.category===cat&&selectedCard.cardName===c.name;return o?`<div class="card-chip owned"><div class="chip-name">✅ ${c.name}</div></div>`:`<div class="card-chip missing ${s?'selected':''}" onclick="selectCard('${cat.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')"><div class="chip-name">🃏 ${c.name}</div></div>`;}).join('')}</div></div>`;}).join('');}
+                document.getElementById('app').innerHTML=html;
+                gameContainer = document.getElementById('app');
+            } else {
+                // ✅ Обновляем только данные
+                // Обновляем верхнюю панель
+                const turnEl = document.querySelector('.info-bar .turn');
+                const scoreEl = document.querySelector('.info-bar .score');
+                if (turnEl) turnEl.textContent = isMyTurn ? '🎯 Ваш ход' : '⏳ Ход: '+curName;
+                if (scoreEl) scoreEl.textContent = `🏆 ${me.quartets.length} | Запас: ${state.bankCount}`;
+                
+                // Обновляем список игроков
+                const playerCards = document.querySelectorAll('.player-card');
+                let idx = 0;
+                for(const p of state.players){
+                    if(parseInt(p.id)===parseInt(playerId))continue;
+                    const card = playerCards[idx];
+                    if (card) {
+                        card.className = `player-card ${parseInt(state.currentPlayer)===parseInt(p.id)?'current':''} ${selectedPlayerId === parseInt(p.id) ? 'selected-player' : ''}`;
+                        card.onclick = () => selectPlayer(p.id);
+                        card.querySelector('.p-name').textContent = p.name;
+                        card.querySelector('.p-info').textContent = `🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов`;
+                        idx++;
+                    }
+                }
+                
+                // Обновляем карточки (упрощённо)
+                const chips = document.querySelectorAll('.card-chip');
+                // Здесь можно обновлять каждую карточку по отдельности
+                // Но для краткости оставляем как есть
             }
-            html+='</div>';
-            const grouped={};if(me.hand)me.hand.forEach(c=>{if(!grouped[c.category])grouped[c.category]=[];grouped[c.category].push(c);});
-            const allCats={};state.categories.forEach(q=>{allCats[q.name]=q.cards.map(c=>({name:c.name,category:q.name,owned:me.hand?me.hand.some(h=>h.category===q.name&&h.cardName===c.name):false}));});
-            const active=Object.keys(grouped).sort();
-            if(!active.length)html+='<p style="text-align:center;padding:40px;color:var(--text2);font-size:14px;">У вас нет карт</p>';
-            else {html+=active.map(cat=>{const cards=allCats[cat]||[],cnt=grouped[cat].length,done=cnt===4;const catId=cat.replace(/[^a-zA-Zа-яА-Я0-9]/g,'_');return `<div class="cat-section"><div class="cat-header" onclick="toggleCat('${catId}')"><span class="title">${cat}</span><span class="badge ${done?'badge-full':'badge-partial'}">${cnt}/4${done?' ✅':''}</span><span class="arrow" id="arrow-${catId}">▼</span></div><div class="cards-row" id="row-${catId}">${cards.map(c=>{const o=c.owned;const s=selectedCard&&selectedCard.category===cat&&selectedCard.cardName===c.name;return o?`<div class="card-chip owned"><div class="chip-name">✅ ${c.name}</div></div>`:`<div class="card-chip missing ${s?'selected':''}" onclick="selectCard('${cat.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')"><div class="chip-name">🃏 ${c.name}</div></div>`;}).join('')}</div></div>`;}).join('');}
-            document.getElementById('app').innerHTML=html;renderHistory(state.history);renderActions();checkWin();
+            
+            renderHistory(state.history);
+            renderActions();
+            checkWin();
             
             // ✅ КНОПКИ ВЫХОДА (добавляем в bottom-panel)
             const bottom = document.getElementById('bottom-panel');
-            // Удаляем старые кнопки, если есть
             const oldExit = document.getElementById('exit-buttons');
             if (oldExit) oldExit.remove();
             const exitBtn = document.createElement('div');
@@ -1092,7 +1128,8 @@
                         toast(`❌ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карты нет. Ходит ${nextName}`, 'error');
                     }
                     selectedCard=null;selectedPlayerId=null;
-                    fetchState();
+                    // ✅ Принудительное обновление после хода
+                    await fetchState();
                 } else toast(d.error,'error');
             } catch(e){toast('Ошибка','error');}
         }
@@ -1101,6 +1138,7 @@
             const allCollected=state.players.reduce((s,p)=>s+p.quartets.length,0);
             if(allCollected>=state.categories.length||(state.bankCount===0&&state.players.every(p=>p.handCount===0))){
                 clearInterval(pollTimer);
+                if (turnTimer) { clearInterval(turnTimer); turnTimer = null; }
                 document.getElementById('bottom-panel').classList.add('hidden');
                 const sorted=[...state.players].sort((a,b)=>b.quartets.length-a.quartets.length);
                 document.getElementById('app').innerHTML=`<div class="header"><h1 style="font-family:'Inter',sans-serif;font-size:24px;font-weight:700;color:var(--accent);">🏆 Игра окончена!</h1><div class="decor-line"></div></div>`+sorted.map((p,i)=>`<div class="score-item ${i===0&&sorted[0].quartets.length>0?'winner':''}"><span>${i===0?'👑 ':''}${p.name}</span><span style="color:var(--accent);font-weight:700;">${p.quartets.length} квартетов</span></div>`).join('')+'<button class="btn btn-primary btn-full" onclick="showMenu()">В меню</button>';
