@@ -24,7 +24,9 @@
             background: var(--bg);
             background: var(--gradient);
             color: var(--text);
-            min-height: 100vh; padding: 12px; padding-bottom: 160px;
+            min-height: 100vh;
+            padding: 12px;
+            padding-bottom: 160px;
             -webkit-tap-highlight-color: transparent; user-select: none;
             font-size: 14px; line-height: 1.5;
         }
@@ -1036,7 +1038,7 @@
                             <span class="logo-icon" style="font-size:28px;">📖</span>
                             <div class="logo-text-group">
                                 <span class="logo-text-main" style="font-size:18px;">Библейский квартет</span>
-                                <span class="logo-text-sub" style="font-size:8px;">Bible Quartet</span>
+                                <span class="logo-text-sub" style="font-size:10px;">BIBLE QUARTET</span>
                             </div>
                         </div>
                     </div>
@@ -1078,6 +1080,9 @@
                         if(d.ok) {
                             playerName = newName;
                             toast('✅ Имя обновлено!', 'success');
+                            // Обновляем имя создателя без перерисовки
+                            const creatorName = document.querySelector('.players-waiting .player-name');
+                            if (creatorName) creatorName.textContent = playerName;
                         } else {
                             toast(d.error, 'error');
                         }
@@ -1086,6 +1091,7 @@
                     }
                 }
             };
+            // Запускаем обновление списка игроков
             pollTimer = setInterval(async () => {
                 try {
                     const r = await fetch(`${API}/state/${roomCode}/${playerId}`);
@@ -1093,19 +1099,23 @@
                     if (d.ok) {
                         const container = document.getElementById('players-waiting');
                         if (container) {
+                            // Удаляем всех игроков, кроме первого (создателя)
                             while (container.children.length > 1) {
                                 container.removeChild(container.lastChild);
                             }
+                            // Добавляем новых игроков
                             d.players.forEach(p => {
                                 if (p.id === d.ownerId) return;
                                 const div = document.createElement('div');
                                 div.className = 'player-panel';
-                                div.style.marginTop = '4px';
+                                div.style.cssText = 'display:flex;align-items:center;gap:14px;padding:12px 18px;background:rgba(255,255,255,0.6);border-style:dashed;border-radius:14px;border:2px solid #d5c8b5;box-shadow:0 4px 16px rgba(0,0,0,0.06);margin:3px 0;width:100%;';
                                 div.innerHTML = `
-                                    <div class="player-avatar">👤</div>
-                                    <div class="player-info">
-                                        <span class="player-name">${p.name}</span>
-                                        <span class="player-role">Игрок</span>
+                                    <div class="player-avatar" style="font-size:28px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e8ddd0,#d5c8b5);border-radius:50%;border:2px solid #d5c8b5;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+                                        👤
+                                    </div>
+                                    <div class="player-info" style="flex:1;">
+                                        <span class="player-name" style="font-weight:700;font-size:16px;color:var(--accent);font-family:'Playfair Display',serif;">${p.name}</span>
+                                        <span class="player-role" style="font-size:12px;color:var(--text2);margin-top:2px;font-weight:500;">Игрок</span>
                                     </div>
                                 `;
                                 container.appendChild(div);
@@ -1362,8 +1372,6 @@
                         </ul>
                         <p><strong>Дополнительно:</strong></p>
                         <ul>
-                            <li>Если игрок не ходит более 1 минуты — ход переходит к следующему.</li>
-                            <li>Если игрок пропускает ход дважды — он автоматически покидает игру.</li>
                             <li>Создатель комнаты может завершить игру досрочно.</li>
                             <li>Игрок может покинуть игру в любой момент (кнопка «Покинуть игру»).</li>
                         </ul>
