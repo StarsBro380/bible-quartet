@@ -872,10 +872,11 @@
         if (tg) { tg.expand(); tg.ready(); tg.setHeaderColor('#f5f0e8'); tg.setBackgroundColor('#f5f0e8'); }
         
         const API = 'https://bible-quartet-server.onrender.com';
+        const ADMIN_IDS = [39444699];
         let state = null, playerId = null, roomCode = null, selectedCard = null, selectedPlayerId = null;
         let playerName = tg?.initDataUnsafe?.user?.first_name || '';
         let pollTimer = null, historyOpen = false;
-        let feedbackOpen = false, rulesOpen = false;
+        let feedbackOpen = false, rulesOpen = false, adminOpen = false;
         let isObserver = false;
         let turnTimer = null;
         let turnWarning = false;
@@ -918,6 +919,7 @@
                 playerId = parseInt(tg.initDataUnsafe.user.id);
             }
             
+            const isAdmin = ADMIN_IDS.includes(parseInt(playerId));
             document.getElementById('app').innerHTML = `
                 <div class="menu-container">
                     <div class="menu-decoration"></div>
@@ -945,12 +947,20 @@
                         <span class="btn-icon join-icon">🔗</span> Присоединиться
                     </button>
                     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1;margin-top:8px;">
-                        <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;" onclick="openFeedback()">
-                            <span style="display:block;">💬 Написать в<br>поддержку</span>
-                        </button>
+                        <div class="chat-btn-wrapper">
+                            <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;" onclick="openChatModal()">
+                                <span style="display:block;">💬 Чат с<br>поддержкой</span>
+                            </button>
+                            <span class="badge-red" id="chat-badge"></span>
+                        </div>
                         <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;" onclick="openRules()">
                             <span style="display:block;">📜 Правила</span>
                         </button>
+                        ${isAdmin ? `
+                        <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;background:rgba(123,75,42,0.15);border-color:var(--accent);" onclick="openAdminPanel()">
+                            <span style="display:block;">🛠 Админская<br>часть</span>
+                        </button>
+                        ` : ''}
                     </div>
                 </div>
             `;
@@ -1038,7 +1048,7 @@
                             <span class="logo-icon" style="font-size:28px;">📖</span>
                             <div class="logo-text-group">
                                 <span class="logo-text-main" style="font-size:18px;">Библейский квартет</span>
-                                <span class="logo-text-sub" style="font-size:10px;">BIBLE QUARTET</span>
+                                <span class="logo-text-sub" style="font-size:8px;">Bible Quartet</span>
                             </div>
                         </div>
                     </div>
@@ -1099,23 +1109,19 @@
                     if (d.ok) {
                         const container = document.getElementById('players-waiting');
                         if (container) {
-                            // Удаляем всех игроков, кроме первого (создателя)
                             while (container.children.length > 1) {
                                 container.removeChild(container.lastChild);
                             }
-                            // Добавляем новых игроков
                             d.players.forEach(p => {
                                 if (p.id === d.ownerId) return;
                                 const div = document.createElement('div');
                                 div.className = 'player-panel';
-                                div.style.cssText = 'display:flex;align-items:center;gap:14px;padding:12px 18px;background:rgba(255,255,255,0.6);border-style:dashed;border-radius:14px;border:2px solid #d5c8b5;box-shadow:0 4px 16px rgba(0,0,0,0.06);margin:3px 0;width:100%;';
+                                div.style.marginTop = '4px';
                                 div.innerHTML = `
-                                    <div class="player-avatar" style="font-size:28px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e8ddd0,#d5c8b5);border-radius:50%;border:2px solid #d5c8b5;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-                                        👤
-                                    </div>
-                                    <div class="player-info" style="flex:1;">
-                                        <span class="player-name" style="font-weight:700;font-size:16px;color:var(--accent);font-family:'Playfair Display',serif;">${p.name}</span>
-                                        <span class="player-role" style="font-size:12px;color:var(--text2);margin-top:2px;font-weight:500;">Игрок</span>
+                                    <div class="player-avatar">👤</div>
+                                    <div class="player-info">
+                                        <span class="player-name">${p.name}</span>
+                                        <span class="player-role">Игрок</span>
                                     </div>
                                 `;
                                 container.appendChild(div);
@@ -1192,11 +1198,7 @@
             
             // Добавляем кнопки выхода и завершения игры
             const bottom = document.getElementById('bottom-panel');
-            // Удаляем старые кнопки, если есть
-            const oldExit = document.getElementById('exit-buttons');
-            if (oldExit) oldExit.remove();
             const exitBtn = document.createElement('div');
-            exitBtn.id = 'exit-buttons';
             exitBtn.style.cssText = 'display:flex;gap:8px;padding:4px 10px;justify-content:center;';
             exitBtn.innerHTML = `
                 <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;" onclick="leaveGame()">🚪 Покинуть игру</button>
@@ -1223,7 +1225,7 @@
             renderGame();
         }
         function selectCard(cat,name){if(parseInt(state.currentPlayer)!==parseInt(playerId))return;selectedCard=(selectedCard&&selectedCard.category===cat&&selectedCard.cardName===name)?null:{category:cat,cardName:name};renderGame();}
-        async function requestCard(){
+        async function requestCard() {
             if(!selectedCard){toast('⚠️ Выберите карточку!','error');return;}
             const toPlayer=selectedPlayerId!==null?selectedPlayerId:state.players.find(p=>parseInt(p.id)!==parseInt(playerId))?.id;
             if(toPlayer===undefined){toast('⚠️ Выберите игрока!','error');return;}
@@ -1240,22 +1242,15 @@
                         toast(`❌ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карты нет. Ходит ${nextName}`, 'error');
                     }
                     selectedCard=null;selectedPlayerId=null;
-                    // 🔄 Сбрасываем таймер после хода
-                    if (turnTimer) {
-                        clearInterval(turnTimer);
-                        turnTimer = null;
-                        turnWarning = false;
-                    }
                     fetchState();
                 } else toast(d.error,'error');
             } catch(e){toast('Ошибка','error');}
         }
-        function checkWin(){
+        function checkWin() {
             if(!state)return;
             const allCollected=state.players.reduce((s,p)=>s+p.quartets.length,0);
             if(allCollected>=state.categories.length||(state.bankCount===0&&state.players.every(p=>p.handCount===0))){
                 clearInterval(pollTimer);
-                if (turnTimer) { clearInterval(turnTimer); turnTimer = null; }
                 document.getElementById('bottom-panel').classList.add('hidden');
                 const sorted=[...state.players].sort((a,b)=>b.quartets.length-a.quartets.length);
                 document.getElementById('app').innerHTML=`<div class="header"><h1 style="font-family:'Inter',sans-serif;font-size:24px;font-weight:700;color:var(--accent);">🏆 Игра окончена!</h1><div class="decor-line"></div></div>`+sorted.map((p,i)=>`<div class="score-item ${i===0&&sorted[0].quartets.length>0?'winner':''}"><span>${i===0?'👑 ':''}${p.name}</span><span style="color:var(--accent);font-weight:700;">${p.quartets.length} квартетов</span></div>`).join('')+'<button class="btn btn-primary btn-full" onclick="showMenu()">В меню</button>';
@@ -1389,78 +1384,124 @@
             if (modal) modal.remove();
         }
 
-        // ===== ТАЙМЕР ХОДА =====
-        function startTurnTimer() {
-            if (turnTimer) {
-                clearInterval(turnTimer);
-                turnTimer = null;
-                turnWarning = false;
-            }
-            
-            let secondsLeft = 60;
-            let warned = false;
-            
-            turnTimer = setInterval(async () => {
-                secondsLeft--;
-                
-                if (secondsLeft === 30 && !warned) {
-                    warned = true;
-                    toast('⏰ У вас осталось 30 секунд! Если не сделаете ход, он перейдёт к следующему игроку.', '');
-                }
-                
-                if (secondsLeft <= 0) {
-                    clearInterval(turnTimer);
-                    turnTimer = null;
-                    turnWarning = false;
-                    
-                    await skipTurn();
-                }
-            }, 1000);
-        }
-        
-        async function skipTurn() {
-            const currentPlayerId = state.currentPlayer;
-            if (!missedTurns[currentPlayerId]) {
-                missedTurns[currentPlayerId] = 0;
-            }
-            missedTurns[currentPlayerId]++;
-            
-            if (missedTurns[currentPlayerId] >= 3) {
-                toast(`⚠️ Игрок ${state.players.find(p => p.id === currentPlayerId)?.name || 'неизвестно'} исключён за 3 пропуска хода.`, 'error');
-                await excludePlayer(currentPlayerId);
+        // ----- Панель администратора -----
+        function openAdminPanel() {
+            if (adminOpen) return;
+            if (!ADMIN_IDS.includes(parseInt(playerId))) {
+                toast('Доступ только для администраторов', 'error');
                 return;
             }
+            adminOpen = true;
             
-            const nextPlayer = (currentPlayerId + 1) % state.players.length;
-            state.currentPlayer = nextPlayer;
-            toast(`⏰ Ход перешёл к ${state.players.find(p => p.id === nextPlayer)?.name || 'неизвестно'} (пропуск хода).`, '');
-            fetchState();
-        }
-        
-        async function excludePlayer(playerIdToExclude) {
-            try {
-                const r = await fetch(API + '/exclude', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        code: roomCode,
-                        playerId: parseInt(playerIdToExclude)
-                    })
+            fetch(API + '/feedback/list/' + playerId)
+                .then(res => res.json())
+                .then(d => {
+                    if (!d.ok) {
+                        toast('Ошибка загрузки: ' + d.error, 'error');
+                        adminOpen = false;
+                        return;
+                    }
+                    
+                    fetch(API + '/admin/games/' + playerId)
+                        .then(res => res.json())
+                        .then(g => {
+                            if (!g.ok) {
+                                toast('Ошибка загрузки игр: ' + g.error, 'error');
+                                adminOpen = false;
+                                return;
+                            }
+                            
+                            const modal = document.createElement('div');
+                            modal.id = 'admin-modal';
+                            let feedbackHtml = '';
+                            if (d.feedback && d.feedback.length > 0) {
+                                feedbackHtml = d.feedback.map(f => `
+                                    <div class="feedback-item" style="${f.read ? 'opacity:0.6;' : ''}">
+                                        <div class="feedback-header">
+                                            <span class="name">${f.name}</span>
+                                            <span class="time">${f.time}</span>
+                                            <span class="room">${f.room ? '#'+f.room : 'меню'}</span>
+                                        </div>
+                                        <div class="feedback-message">${f.message}</div>
+                                        <button class="reply-btn" onclick="replyToFeedback(${f.id})">Ответить</button>
+                                    </div>
+                                `).join('');
+                            } else {
+                                feedbackHtml = '<p style="font-size:13px;color:var(--text2);">Сообщений пока нет</p>';
+                            }
+                            
+                            let gamesHtml = '';
+                            if (g.games && g.games.length > 0) {
+                                gamesHtml = g.games.map(game => `
+                                    <div class="game-item">
+                                        <div>
+                                            <span class="status-indicator ${game.status === 'playing' ? 'active' : 'finished'}"></span>
+                                            <strong>${game.code}</strong>
+                                            <span style="font-size:11px;color:var(--text2);margin-left:6px;">${game.status === 'playing' ? '🟢' : '🔴'}</span>
+                                            <span style="font-size:11px;color:var(--text2);margin-left:6px;">👤 ${game.players.map(p => p.name).join(', ')}</span>
+                                        </div>
+                                        ${game.status === 'playing' ? `
+                                        <button class="observe-btn" onclick="observeGame('${game.code}')">👁 Наблюдать</button>
+                                        ` : '<span style="font-size:11px;color:var(--text2);">Завершена</span>'}
+                                    </div>
+                                `).join('');
+                            } else {
+                                gamesHtml = '<p style="font-size:13px;color:var(--text2);">Активных игр нет</p>';
+                            }
+                            
+                            modal.innerHTML = `
+                                <div class="modal-content">
+                                    <h3>📊 Панель администратора</h3>
+                                    <div class="section-title">📩 Сообщения</div>
+                                    ${feedbackHtml}
+                                    <div class="section-title">🎮 Игры</div>
+                                    ${gamesHtml}
+                                    <div class="btn-group" style="margin-top:12px;">
+                                        <button class="btn btn-secondary" onclick="closeAdminPanel()">← Закрыть</button>
+                                    </div>
+                                </div>
+                            `;
+                            document.body.appendChild(modal);
+                        });
                 });
-                const d = await r.json();
-                if (!d.ok) {
-                    toast('Ошибка при исключении игрока: ' + d.error, 'error');
-                } else {
-                    toast(`👢 Игрок ${state.players.find(p => p.id === playerIdToExclude)?.name || 'неизвестно'} был исключён.`, 'error');
-                    missedTurns[playerIdToExclude] = 0;
-                    fetchState();
-                }
-            } catch (e) {
-                toast('Ошибка соединения при исключении игрока', 'error');
-            }
         }
-        
-        showMenu();
+        function closeAdminPanel() {
+            adminOpen = false;
+            const modal = document.getElementById('admin-modal');
+            if (modal) modal.remove();
+        }
+        function observeGame(code) {
+            closeAdminPanel();
+            if (!ADMIN_IDS.includes(parseInt(playerId))) {
+                toast('Доступ только для администраторов', 'error');
+                return;
+            }
+            fetch(API + '/observe/' + code + '/' + playerId, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({})
+            })
+            .then(res => res.json())
+            .then(d => {
+                if (d.ok) {
+                    roomCode = d.roomCode;
+                    playerId = d.playerId;
+                    isObserver = true;
+                    startPolling();
+                    toast('👁 Вы вошли в игру как наблюдатель', 'success');
+                } else {
+                    toast('Ошибка: ' + d.error, 'error');
+                }
+            })
+            .catch(() => toast('Ошибка подключения', 'error'));
+        }
+        function replyToFeedback(feedbackId) {
+            closeAdminPanel();
+            const reply = prompt('Введите ответ для этого сообщения:');
+            if (!reply) return;
+            // Здесь можно добавить отправку ответа через API
+            toast('✅ Ответ отправлен (в разработке)', 'success');
+        }
     </script>
 </body>
 </html>
