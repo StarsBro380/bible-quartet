@@ -753,7 +753,8 @@
         let turnTimer = null;
         let turnWarning = false;
         let missedTurns = {};
-        let gameContainer = null; // для сохранения структуры
+        let gameContainer = null;
+        let structureCreated = false;
 
         function toast(msg, type) {
             const t = document.getElementById('toast');
@@ -954,6 +955,9 @@
                         if(d.ok) {
                             playerName = newName;
                             toast('✅ Имя обновлено!', 'success');
+                            // Обновляем имя создателя без перерисовки
+                            const creatorName = document.querySelector('.players-waiting .player-name');
+                            if (creatorName) creatorName.textContent = playerName;
                         } else {
                             toast(d.error, 'error');
                         }
@@ -1028,9 +1032,9 @@
             const isMyTurn = parseInt(state.currentPlayer) === parseInt(playerId);
             const curObj = state.players.find(p => parseInt(p.id) === parseInt(state.currentPlayer));
             const curName = curObj ? curObj.name : 'Неизвестно';
-            
-            // ✅ Если структура ещё не создана — создаём один раз
-            if (!gameContainer) {
+
+            // ✅ Создаём структуру только один раз
+            if (!structureCreated) {
                 let html=`<div class="info-bar"><span class="turn">${isMyTurn?'🎯 Ваш ход':'⏳ Ход: '+curName}</span><span class="score">🏆 ${me.quartets.length} | Запас: ${state.bankCount}</span></div>`;
                 html+='<div class="player-list">';
                 for(const p of state.players){
@@ -1045,10 +1049,9 @@
                 if(!active.length)html+='<p style="text-align:center;padding:40px;color:var(--text2);font-size:14px;">У вас нет карт</p>';
                 else {html+=active.map(cat=>{const cards=allCats[cat]||[],cnt=grouped[cat].length,done=cnt===4;const catId=cat.replace(/[^a-zA-Zа-яА-Я0-9]/g,'_');return `<div class="cat-section"><div class="cat-header" onclick="toggleCat('${catId}')"><span class="title">${cat}</span><span class="badge ${done?'badge-full':'badge-partial'}">${cnt}/4${done?' ✅':''}</span><span class="arrow" id="arrow-${catId}">▼</span></div><div class="cards-row" id="row-${catId}">${cards.map(c=>{const o=c.owned;const s=selectedCard&&selectedCard.category===cat&&selectedCard.cardName===c.name;return o?`<div class="card-chip owned"><div class="chip-name">✅ ${c.name}</div></div>`:`<div class="card-chip missing ${s?'selected':''}" onclick="selectCard('${cat.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')"><div class="chip-name">🃏 ${c.name}</div></div>`;}).join('')}</div></div>`;}).join('');}
                 document.getElementById('app').innerHTML=html;
-                gameContainer = document.getElementById('app');
+                structureCreated = true;
             } else {
                 // ✅ Обновляем только данные
-                // Обновляем верхнюю панель
                 const turnEl = document.querySelector('.info-bar .turn');
                 const scoreEl = document.querySelector('.info-bar .score');
                 if (turnEl) turnEl.textContent = isMyTurn ? '🎯 Ваш ход' : '⏳ Ход: '+curName;
@@ -1070,16 +1073,14 @@
                 }
                 
                 // Обновляем карточки (упрощённо)
-                const chips = document.querySelectorAll('.card-chip');
                 // Здесь можно обновлять каждую карточку по отдельности
-                // Но для краткости оставляем как есть
             }
             
             renderHistory(state.history);
             renderActions();
             checkWin();
             
-            // ✅ КНОПКИ ВЫХОДА (добавляем в bottom-panel)
+            // ✅ КНОПКИ ВЫХОДА
             const bottom = document.getElementById('bottom-panel');
             const oldExit = document.getElementById('exit-buttons');
             if (oldExit) oldExit.remove();
