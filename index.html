@@ -730,15 +730,19 @@
         }
 
         /* Фиксация кнопок в нижней панели - убираем пульсацию при наведении */
-        #exit-buttons .btn {
+        #exit-buttons .btn,
+        #action-row .btn {
+            transition: none !important;
             animation: none !important;
             transform: none !important;
         }
-        #exit-buttons .btn:hover {
+        #exit-buttons .btn:hover,
+        #action-row .btn:hover {
             transform: none !important;
             box-shadow: none !important;
         }
-        #exit-buttons .btn:active {
+        #exit-buttons .btn:active,
+        #action-row .btn:active {
             transform: scale(0.95) !important;
         }
     </style>
@@ -768,7 +772,8 @@
         let missedTurns = {};
         let gameContainer = null;
         let structureCreated = false;
-        let ownerId = null; // Добавляем для хранения ID создателя
+        let ownerId = null;
+        let isProcessingTurn = false; // Блокировка от двойных пропусков
 
         function toast(msg, type) {
             const t = document.getElementById('toast');
@@ -792,11 +797,16 @@
             const cp = parseInt(state?.currentPlayer);
             const pid = parseInt(playerId);
             if (!state || cp !== pid) {
-                row.innerHTML = '<span style="color:var(--text2);font-size:12px;">⏳ Ожидание хода другого игрока... (вы #'+pid+', ходит #'+cp+')</span>';
+                const currentPlayerObj = state?.players.find(p => parseInt(p.id) === cp);
+                const currentPlayerName = currentPlayerObj ? currentPlayerObj.name : 'Неизвестно';
+                row.innerHTML = `<span style="color:var(--text2);font-size:12px;">⏳ Ходит: ${currentPlayerName}</span>`;
                 return;
             }
-            if (selectedCard) { row.innerHTML = `<button class="btn btn-primary" onclick="requestCard()">❓ Просить "${selectedCard.cardName}"</button>`; }
-            else { row.innerHTML = '<span style="color:var(--text2);font-size:12px;">👆 Выберите карточку и игрока</span>'; }
+            if (selectedCard) { 
+                row.innerHTML = `<button class="btn btn-primary" onclick="requestCard()">❓ Просить "${selectedCard.cardName}"</button>`; 
+            } else { 
+                row.innerHTML = '<span style="color:var(--text2);font-size:12px;">👆 Выберите карточку и игрока</span>'; 
+            }
         }
         function showMenu() {
             clearInterval(pollTimer);
@@ -905,7 +915,6 @@
             const code = document.getElementById('join-code').value.trim().toUpperCase();
             if (!code) { toast('Введите код', 'error'); return; }
             
-            // Блокируем кнопку от повторных нажатий
             const joinBtn = document.querySelector('#app .btn-primary');
             if (joinBtn) {
                 joinBtn.disabled = true;
@@ -928,7 +937,6 @@
                 if (d.ok) {
                     roomCode = code;
                     playerId = parseInt(d.playerId);
-                    // Сбрасываем состояние структуры для корректного отображения
                     structureCreated = false;
                     selectedCard = null;
                     selectedPlayerId = null;
@@ -936,7 +944,6 @@
                     toast('✅ Подключение успешно!', 'success');
                 } else {
                     toast(d.error, 'error');
-                    // Разблокируем кнопку при ошибке
                     if (joinBtn) {
                         joinBtn.disabled = false;
                         joinBtn.style.opacity = '1';
@@ -973,7 +980,6 @@
                 const d = await r.json();
                 if (d.ok) {
                     toast(`👑 Теперь вы создатель комнаты!`, 'success');
-                    // Обновляем состояние
                     await fetchState();
                 } else {
                     toast('Не удалось передать права создателя', 'error');
@@ -1017,7 +1023,6 @@
                         </div>
                         <div id="other-players"></div>
                     </div>
-                    <!-- Кнопка "Начать игру" - отображается только если игрок является создателем -->
                     <div id="start-game-container" class="${parseInt(playerId) === parseInt(ownerId) ? '' : 'hidden'}">
                         <button class="btn btn-primary btn-full" onclick="startGame()" style="width:100%;max-width:300px;padding:12px;font-size:15px;border-radius:12px;">🎮 Начать игру</button>
                     </div>
@@ -1054,7 +1059,6 @@
                     const r = await fetch(`${API}/state/${roomCode}/${playerId}`);
                     const d = await r.json();
                     if (d.ok) {
-                        // Сохраняем ownerId
                         ownerId = parseInt(d.ownerId);
                         
                         const otherPlayersContainer = document.getElementById('other-players');
@@ -1062,7 +1066,6 @@
                             otherPlayersContainer.innerHTML = '';
                             d.players.forEach(p => {
                                 if (parseInt(p.id) === parseInt(d.ownerId)) {
-                                    // Обновляем имя создателя
                                     const ownerName = document.getElementById('owner-name');
                                     if (ownerName && ownerName.textContent !== p.name) {
                                         ownerName.textContent = p.name;
@@ -1070,7 +1073,6 @@
                                             playerName = p.name;
                                         }
                                     }
-                                    // Обновляем статус создателя
                                     const ownerStatus = document.getElementById('owner-status');
                                     if (ownerStatus) {
                                         ownerStatus.textContent = parseInt(p.id) === parseInt(playerId) ? '👑 Создатель (вы)' : '👑 Создатель';
@@ -1090,7 +1092,6 @@
                                 otherPlayersContainer.appendChild(div);
                             });
                             
-                            // Обновляем видимость кнопки "Начать игру"
                             const startBtnContainer = document.getElementById('start-game-container');
                             if (startBtnContainer) {
                                 if (parseInt(playerId) === parseInt(d.ownerId)) {
@@ -1130,9 +1131,26 @@
                     if(d.players)d.players.forEach(p=>{p.id=parseInt(p.id);p.handCount=parseInt(p.handCount);});
                     state=d;
                     ownerId = parseInt(d.ownerId);
+                    
+                    // Принудительно обновляем UI
+                    structureCreated = false;
                     renderGame();
                 }
             } catch(e){}
+        }
+        async function fetchStateSilent() {
+            if(!roomCode||playerId===null)return null;
+            try {
+                const r=await fetch(`${API}/state/${roomCode}/${playerId}`);
+                const d=await r.json();
+                if(d.ok){
+                    d.currentPlayer=parseInt(d.currentPlayer);d.playerId=parseInt(d.playerId);
+                    d.bankCount=parseInt(d.bankCount);d.ownerId=parseInt(d.ownerId);
+                    if(d.players)d.players.forEach(p=>{p.id=parseInt(p.id);p.handCount=parseInt(p.handCount);});
+                    return d;
+                }
+            } catch(e){}
+            return null;
         }
         function renderGame() {
             if(!state||state.status==='lobby'){showLobby();return;}
@@ -1140,7 +1158,6 @@
             const me=state.players.find(p=>parseInt(p.id)===parseInt(playerId));
             if(!me)return;
             
-            // Проверяем, изменилось ли имя
             if (me.name !== playerName) {
                 playerName = me.name;
                 const nameInput = document.getElementById('lobby-name');
@@ -1151,8 +1168,16 @@
             const curObj = state.players.find(p => parseInt(p.id) === parseInt(state.currentPlayer));
             const curName = curObj ? curObj.name : 'Неизвестно';
             const isOwner = parseInt(state.ownerId) === parseInt(playerId);
+            
+            // Проверяем, не устарел ли текущий ход
+            if (isMyTurn && !turnTimer && !isProcessingTurn) {
+                startTurnTimer();
+            } else if (!isMyTurn && turnTimer) {
+                clearInterval(turnTimer);
+                turnTimer = null;
+                turnWarning = false;
+            }
 
-            // ✅ Создаём структуру только один раз
             if (!structureCreated) {
                 let html=`<div class="info-bar"><span class="turn">${isMyTurn?'🎯 Ваш ход':'⏳ Ход: '+curName}</span><span class="score">🏆 ${me.quartets.length} | Запас: ${state.bankCount}</span></div>`;
                 html+='<div class="player-list">';
@@ -1170,13 +1195,11 @@
                 document.getElementById('app').innerHTML=html;
                 structureCreated = true;
             } else {
-                // ✅ Обновляем только данные
                 const turnEl = document.querySelector('.info-bar .turn');
                 const scoreEl = document.querySelector('.info-bar .score');
                 if (turnEl) turnEl.textContent = isMyTurn ? '🎯 Ваш ход' : '⏳ Ход: '+curName;
                 if (scoreEl) scoreEl.textContent = `🏆 ${me.quartets.length} | Запас: ${state.bankCount}`;
                 
-                // Обновляем список игроков
                 const playerCards = document.querySelectorAll('.player-card');
                 let idx = 0;
                 for(const p of state.players){
@@ -1196,7 +1219,6 @@
             renderActions();
             checkWin();
             
-            // ✅ КНОПКИ ВЫХОДА
             const bottom = document.getElementById('bottom-panel');
             const oldExit = document.getElementById('exit-buttons');
             if (oldExit) oldExit.remove();
@@ -1209,20 +1231,7 @@
                 <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;background:var(--red);color:#fff;border-color:var(--red);" onclick="endGame()">🚫 Завершить игру</button>
                 ` : ''}
             `;
-            // Добавляем стили для кнопок, чтобы они не пульсировали
-            exitBtn.querySelectorAll('.btn').forEach(btn => {
-                btn.style.animation = 'none !important';
-            });
             bottom.appendChild(exitBtn);
-            
-            // ✅ ТАЙМЕР ХОДА
-            if (isMyTurn && !turnTimer) {
-                startTurnTimer();
-            } else if (!isMyTurn && turnTimer) {
-                clearInterval(turnTimer);
-                turnTimer = null;
-                turnWarning = false;
-            }
         }
         function toggleCat(id){document.getElementById('row-'+id).classList.toggle('collapsed');document.getElementById('arrow-'+id).classList.toggle('open');}
         function selectPlayer(pid){
@@ -1249,7 +1258,6 @@
                         toast(`❌ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карты нет. Ходит ${nextName}`, 'error');
                     }
                     selectedCard=null;selectedPlayerId=null;
-                    // ✅ Принудительное обновление после хода
                     await fetchState();
                 } else toast(d.error,'error');
             } catch(e){toast('Ошибка','error');}
@@ -1267,7 +1275,6 @@
         }
         async function leaveGame() {
             try {
-                // Получаем имя уходящего игрока
                 const leavingPlayer = state.players.find(p => parseInt(p.id) === parseInt(playerId));
                 const playerNameLeaving = leavingPlayer ? leavingPlayer.name : 'Игрок';
                 
@@ -1281,11 +1288,9 @@
                 });
                 const d = await r.json();
                 if(d.ok){
-                    // Создаём уведомление о выходе
                     const message = `🚪 ${playerNameLeaving} покинул игру`;
                     toast(message, '');
                     
-                    // Добавляем в историю
                     if (state && state.history) {
                         state.history.push({
                             time: new Date().toLocaleTimeString(),
@@ -1441,7 +1446,21 @@
                     turnTimer = null;
                     turnWarning = false;
                     
-                    await skipTurn();
+                    // Проверяем, что ход действительно наш
+                    if (!isProcessingTurn) {
+                        isProcessingTurn = true;
+                        try {
+                            const currentState = await fetchStateSilent();
+                            if (currentState && parseInt(currentState.currentPlayer) === parseInt(playerId)) {
+                                await skipTurn();
+                            } else {
+                                await fetchState();
+                            }
+                        } catch (e) {
+                            console.error('Ошибка при пропуске хода:', e);
+                        }
+                        isProcessingTurn = false;
+                    }
                 }
             }, 1000);
         }
@@ -1456,7 +1475,6 @@
             if (missedTurns[currentPlayerId] >= 3) {
                 const playerName = state.players.find(p => p.id === currentPlayerId)?.name || 'неизвестно';
                 toast(`⚠️ Игрок ${playerName} исключён за 3 пропуска хода.`, 'error');
-                // Добавляем в историю
                 if (state && state.history) {
                     state.history.push({
                         time: new Date().toLocaleTimeString(),
@@ -1469,23 +1487,45 @@
                 return;
             }
             
-            const nextPlayer = (currentPlayerId + 1) % state.players.length;
-            const playerName = state.players.find(p => p.id === currentPlayerId)?.name || 'неизвестно';
-            const nextPlayerName = state.players.find(p => p.id === nextPlayer)?.name || 'неизвестно';
-            
-            toast(`⏰ Ход перешёл к ${nextPlayerName} (${playerName} пропустил ход).`, '');
-            // Добавляем в историю
-            if (state && state.history) {
-                state.history.push({
-                    time: new Date().toLocaleTimeString(),
-                    text: `⏰ ${playerName} пропустил ход, ходит ${nextPlayerName}`,
-                    type: 'system'
+            try {
+                const r = await fetch(API + '/skip_turn', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        code: roomCode,
+                        playerId: parseInt(currentPlayerId)
+                    })
                 });
-                renderHistory(state.history);
+                const d = await r.json();
+                if (!d.ok) {
+                    toast('Ошибка при пропуске хода: ' + d.error, 'error');
+                    return;
+                }
+                
+                if (turnTimer) {
+                    clearInterval(turnTimer);
+                    turnTimer = null;
+                    turnWarning = false;
+                }
+                
+                await fetchState();
+                
+                const playerName = state.players.find(p => p.id === currentPlayerId)?.name || 'неизвестно';
+                const nextPlayerId = state.currentPlayer;
+                const nextPlayerName = state.players.find(p => p.id === nextPlayerId)?.name || 'неизвестно';
+                
+                toast(`⏰ Ход перешёл к ${nextPlayerName} (${playerName} пропустил ход).`, '');
+                if (state && state.history) {
+                    state.history.push({
+                        time: new Date().toLocaleTimeString(),
+                        text: `⏰ ${playerName} пропустил ход, ходит ${nextPlayerName}`,
+                        type: 'system'
+                    });
+                    renderHistory(state.history);
+                }
+            } catch (e) {
+                toast('Ошибка при пропуске хода', 'error');
             }
-            
-            state.currentPlayer = nextPlayer;
-            fetchState();
         }
         
         async function excludePlayer(playerIdToExclude) {
@@ -1504,7 +1544,6 @@
                     toast('Ошибка при исключении игрока: ' + d.error, 'error');
                 } else {
                     toast(`👢 Игрок ${playerName} был исключён.`, 'error');
-                    // Добавляем в историю
                     if (state && state.history) {
                         state.history.push({
                             time: new Date().toLocaleTimeString(),
@@ -1514,7 +1553,7 @@
                         renderHistory(state.history);
                     }
                     missedTurns[playerIdToExclude] = 0;
-                    fetchState();
+                    await fetchState();
                 }
             } catch (e) {
                 toast('Ошибка соединения при исключении игрока', 'error');
