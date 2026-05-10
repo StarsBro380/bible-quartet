@@ -773,7 +773,7 @@
         let gameContainer = null;
         let structureCreated = false;
         let ownerId = null;
-        let isProcessingTurn = false; // Блокировка от двойных пропусков
+        let isProcessingTurn = false;
 
         function toast(msg, type) {
             const t = document.getElementById('toast');
@@ -1126,31 +1126,90 @@
                 const r=await fetch(`${API}/state/${roomCode}/${playerId}`);
                 const d=await r.json();
                 if(d.ok){
+                    // Сохраняем предыдущее состояние для сравнения
+                    const prevState = state;
+                    const prevCurrentPlayer = prevState ? prevState.currentPlayer : null;
+                    const prevPlayersCount = prevState ? prevState.players.length : 0;
+                    
                     d.currentPlayer=parseInt(d.currentPlayer);d.playerId=parseInt(d.playerId);
                     d.bankCount=parseInt(d.bankCount);d.ownerId=parseInt(d.ownerId);
                     if(d.players)d.players.forEach(p=>{p.id=parseInt(p.id);p.handCount=parseInt(p.handCount);});
                     state=d;
                     ownerId = parseInt(d.ownerId);
                     
-                    // Принудительно обновляем UI
-                    structureCreated = false;
-                    renderGame();
+                    // Обновляем UI только если изменился ход или состав игроков
+                    const currentPlayerChanged = prevCurrentPlayer !== state.currentPlayer;
+                    const playersCountChanged = prevPlayersCount !== state.players.length;
+                    
+                    if (currentPlayerChanged || playersCountChanged) {
+                        structureCreated = false;
+                        renderGame();
+                    } else {
+                        // Только обновляем данные без перерисовки
+                        updateGameData();
+                    }
                 }
             } catch(e){}
         }
-        async function fetchStateSilent() {
-            if(!roomCode||playerId===null)return null;
-            try {
-                const r=await fetch(`${API}/state/${roomCode}/${playerId}`);
-                const d=await r.json();
-                if(d.ok){
-                    d.currentPlayer=parseInt(d.currentPlayer);d.playerId=parseInt(d.playerId);
-                    d.bankCount=parseInt(d.bankCount);d.ownerId=parseInt(d.ownerId);
-                    if(d.players)d.players.forEach(p=>{p.id=parseInt(p.id);p.handCount=parseInt(p.handCount);});
-                    return d;
+        function updateGameData() {
+            if(!state||state.status==='lobby'){showLobby();return;}
+            const me=state.players.find(p=>parseInt(p.id)===parseInt(playerId));
+            if(!me)return;
+            
+            const isMyTurn = parseInt(state.currentPlayer) === parseInt(playerId);
+            const curObj = state.players.find(p => parseInt(p.id) === parseInt(state.currentPlayer));
+            const curName = curObj ? curObj.name : 'Неизвестно';
+            
+            // Обновляем верхнюю панель
+            const turnEl = document.querySelector('.info-bar .turn');
+            const scoreEl = document.querySelector('.info-bar .score');
+            if (turnEl) turnEl.textContent = isMyTurn ? '🎯 Ваш ход' : '⏳ Ход: '+curName;
+            if (scoreEl) scoreEl.textContent = `🏆 ${me.quartets.length} | Запас: ${state.bankCount}`;
+            
+            // Обновляем список игроков
+            const playerCards = document.querySelectorAll('.player-card');
+            let idx = 0;
+            for(const p of state.players){
+                if(parseInt(p.id)===parseInt(playerId))continue;
+                const card = playerCards[idx];
+                if (card) {
+                    card.className = `player-card ${parseInt(state.currentPlayer)===parseInt(p.id)?'current':''} ${selectedPlayerId === parseInt(p.id) ? 'selected-player' : ''}`;
+                    card.onclick = () => selectPlayer(p.id);
+                    card.querySelector('.p-name').textContent = p.name;
+                    card.querySelector('.p-info').textContent = `🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов`;
+                    idx++;
                 }
-            } catch(e){}
-            return null;
+            }
+            
+            renderHistory(state.history);
+            renderActions();
+            
+            // Обновляем кнопки выхода
+            const isOwner = parseInt(state.ownerId) === parseInt(playerId);
+            const bottom = document.getElementById('bottom-panel');
+            const oldExit = document.getElementById('exit-buttons');
+            if (oldExit) oldExit.remove();
+            const exitBtn = document.createElement('div');
+            exitBtn.id = 'exit-buttons';
+            exitBtn.style.cssText = 'display:flex;gap:8px;padding:4px 10px;justify-content:center;';
+            exitBtn.innerHTML = `
+                <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;" onclick="leaveGame()">🚪 Покинуть игру</button>
+                ${isOwner ? `
+                <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;background:var(--red);color:#fff;border-color:var(--red);" onclick="endGame()">🚫 Завершить игру</button>
+                ` : ''}
+            `;
+            bottom.appendChild(exitBtn);
+            
+            // Проверяем таймер
+            if (isMyTurn && !turnTimer && !isProcessingTurn) {
+                startTurnTimer();
+            } else if (!isMyTurn && turnTimer) {
+                clearInterval(turnTimer);
+                turnTimer = null;
+                turnWarning = false;
+            }
+            
+            checkWin();
         }
         function renderGame() {
             if(!state||state.status==='lobby'){showLobby();return;}
@@ -1195,24 +1254,9 @@
                 document.getElementById('app').innerHTML=html;
                 structureCreated = true;
             } else {
-                const turnEl = document.querySelector('.info-bar .turn');
-                const scoreEl = document.querySelector('.info-bar .score');
-                if (turnEl) turnEl.textContent = isMyTurn ? '🎯 Ваш ход' : '⏳ Ход: '+curName;
-                if (scoreEl) scoreEl.textContent = `🏆 ${me.quartets.length} | Запас: ${state.bankCount}`;
-                
-                const playerCards = document.querySelectorAll('.player-card');
-                let idx = 0;
-                for(const p of state.players){
-                    if(parseInt(p.id)===parseInt(playerId))continue;
-                    const card = playerCards[idx];
-                    if (card) {
-                        card.className = `player-card ${parseInt(state.currentPlayer)===parseInt(p.id)?'current':''} ${selectedPlayerId === parseInt(p.id) ? 'selected-player' : ''}`;
-                        card.onclick = () => selectPlayer(p.id);
-                        card.querySelector('.p-name').textContent = p.name;
-                        card.querySelector('.p-info').textContent = `🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов`;
-                        idx++;
-                    }
-                }
+                // Если структура уже создана, просто обновляем данные
+                updateGameData();
+                return;
             }
             
             renderHistory(state.history);
@@ -1558,6 +1602,21 @@
             } catch (e) {
                 toast('Ошибка соединения при исключении игрока', 'error');
             }
+        }
+        
+        async function fetchStateSilent() {
+            if(!roomCode||playerId===null)return null;
+            try {
+                const r=await fetch(`${API}/state/${roomCode}/${playerId}`);
+                const d=await r.json();
+                if(d.ok){
+                    d.currentPlayer=parseInt(d.currentPlayer);d.playerId=parseInt(d.playerId);
+                    d.bankCount=parseInt(d.bankCount);d.ownerId=parseInt(d.ownerId);
+                    if(d.players)d.players.forEach(p=>{p.id=parseInt(p.id);p.handCount=parseInt(p.handCount);});
+                    return d;
+                }
+            } catch(e){}
+            return null;
         }
         
         showMenu();
