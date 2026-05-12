@@ -9,7 +9,7 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 
 app = Flask(__name__)
 CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
 
 # Отключаем кэширование
 @app.after_request
@@ -103,7 +103,6 @@ def start_game():
         'type': 'system'
     })
     
-    # Уведомляем всех игроков в комнате
     socketio.emit('game_started', {'code': code}, room=code)
     
     print(f"[START] Игра в комнате {code} началась! Игроков: {len(room['players'])}")
@@ -144,7 +143,6 @@ def join_room():
         'type': 'system'
     })
     
-    # Уведомляем всех игроков в комнате
     socketio.emit('player_joined', {
         'code': code,
         'player': {'id': new_id, 'name': player_name}
@@ -250,7 +248,6 @@ def request_card():
             'type': 'ok'
         })
         
-        # Уведомляем всех игроков
         socketio.emit('game_update', {'code': code}, room=code)
         
         return jsonify({
@@ -280,7 +277,6 @@ def request_card():
                 'type': 'no'
             })
         
-        # Уведомляем всех игроков
         socketio.emit('game_update', {'code': code}, room=code)
         
         return jsonify({
@@ -352,7 +348,6 @@ def exclude_player():
         'type': 'system'
     })
     
-    # Уведомляем всех игроков
     socketio.emit('game_update', {'code': code}, room=code)
     
     print(f"[EXCLUDE] Игрок {player['name']} (ID {player_id}) исключён из комнаты {code}")
@@ -404,7 +399,6 @@ def leave_game():
         'type': 'system'
     })
     
-    # Уведомляем всех игроков
     socketio.emit('game_update', {'code': code}, room=code)
     
     print(f"[LEAVE] Игрок {player['name']} (ID {player_id}) вышел из комнаты {code}")
@@ -431,7 +425,6 @@ def end_game():
         'type': 'system'
     })
     
-    # Уведомляем всех игроков
     socketio.emit('game_ended', {'code': code}, room=code)
     
     print(f"[END] Игра в комнате {code} завершена создателем {player_id}")
@@ -455,6 +448,61 @@ def rename_player():
     
     return jsonify({'ok': False, 'error': 'Игрок не найден'}), 404
 
+@app.route('/observe/<code>/<int:admin_id>', methods=['POST'])
+def observe_game(code, admin_id):
+    if admin_id not in ADMIN_IDS:
+        return jsonify({'ok': False, 'error': 'Доступ только для администраторов'}), 403
+    
+    if code not in rooms:
+        return jsonify({'ok': False, 'error': 'Игра не найдена'}), 404
+    
+    room = rooms[code]
+    observer_id = max([p['id'] for p in room['players']] + [-1]) + 1
+    room['players'].append({
+        'id': observer_id,
+        'name': 'Наблюдатель',
+        'hand': [],
+        'quartets': [],
+        'is_observer': True
+    })
+    
+    return jsonify({'ok': True, 'roomCode': code, 'playerId': observer_id})
+
+@app.route('/admin/games/<int:admin_id>', methods=['GET'])
+def admin_games(admin_id):
+    if admin_id not in ADMIN_IDS:
+        return jsonify({'ok': False, 'error': 'Доступ только для администраторов'}), 403
+    
+    result = []
+    for code, room in rooms.items():
+        players_info = []
+        for p in room['players']:
+            if p.get('is_observer', False):
+                continue
+            if room['status'] == 'lobby':
+                players_info.append({
+                    'id': p['id'],
+                    'name': p['name'],
+                    'quartets': 0,
+                    'handCount': 0
+                })
+            else:
+                players_info.append({
+                    'id': p['id'],
+                    'name': p['name'],
+                    'quartets': len(p['quartets']),
+                    'handCount': len(p['hand'])
+                })
+        if players_info:
+            result.append({
+                'code': code,
+                'status': room['status'],
+                'players': players_info,
+                'ownerId': room['ownerId']
+            })
+    
+    return jsonify({'ok': True, 'games': result})
+
 @app.route('/feedback', methods=['POST'])
 def feedback():
     data = request.get_json()
@@ -468,6 +516,13 @@ def feedback():
     
     print(f"[FEEDBACK] {name} (ID {player_id}, комната {code}): {message}")
     return jsonify({'ok': True})
+
+@app.route('/feedback/list/<int:admin_id>', methods=['GET'])
+def feedback_list(admin_id):
+    if admin_id not in ADMIN_IDS:
+        return jsonify({'ok': False, 'error': 'Доступ только для администраторов'}), 403
+    
+    return jsonify({'ok': True, 'feedback': []})
 
 # ===== SOCKETIO СОБЫТИЯ =====
 
@@ -494,4 +549,4 @@ def handle_leave_room(data):
         print(f'Клиент {request.sid} покинул комнату {code}')
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
