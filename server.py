@@ -9,7 +9,10 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+
+# ⚡ ИСПРАВЛЕНИЕ: убрали async_mode='eventlet'
+socketio = SocketIO(app, cors_allowed_origins="*")
+
 # Отключаем кэширование
 @app.after_request
 def after_request(response):
