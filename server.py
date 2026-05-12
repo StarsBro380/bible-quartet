@@ -489,4 +489,4 @@ def handle_leave_room(data):
         print(f'Клиент {request.sid} покинул комнату {code}')
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
+    socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False, allow_unsafe_werkzeug=True)
