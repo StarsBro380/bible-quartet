@@ -1137,15 +1137,22 @@
                     state=d;
                     ownerId = parseInt(d.ownerId);
                     
-                    // Обновляем UI только если изменился ход или состав игроков
+                    // Получаем текущую руку игрока для сравнения
+                    const me = state.players.find(p => parseInt(p.id) === parseInt(playerId));
+                    const currentHand = me ? me.hand : null;
+                    const prevMe = prevState ? prevState.players.find(p => parseInt(p.id) === parseInt(playerId)) : null;
+                    const prevHand = prevMe ? prevMe.hand : null;
+                    
+                    const handChanged = JSON.stringify(prevHand) !== JSON.stringify(currentHand);
+                    
+                    // Обновляем UI если изменился ход, состав игроков ИЛИ рука
                     const currentPlayerChanged = prevCurrentPlayer !== state.currentPlayer;
                     const playersCountChanged = prevPlayersCount !== state.players.length;
                     
-                    if (currentPlayerChanged || playersCountChanged) {
+                    if (currentPlayerChanged || playersCountChanged || handChanged) {
                         structureCreated = false;
                         renderGame();
                     } else {
-                        // Только обновляем данные без перерисовки
                         updateGameData();
                     }
                 }
@@ -1291,25 +1298,46 @@
             if(toPlayer===undefined){toast('⚠️ Выберите игрока!','error');return;}
             const fromName = state.players.find(p => parseInt(p.id) === parseInt(playerId))?.name || 'Игрок';
             const toName = state.players.find(p => parseInt(p.id) === parseInt(toPlayer))?.name || 'Игрок';
+            
+            // Блокируем кнопку
+            const actionBtn = document.querySelector('#action-row .btn');
+            if (actionBtn) {
+                actionBtn.disabled = true;
+                actionBtn.style.opacity = '0.7';
+            }
+            
             try {
                 const r=await fetch(API+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,fromPlayer:parseInt(playerId),toPlayer:parseInt(toPlayer),category:selectedCard.category,cardName:selectedCard.cardName})});
                 const d=await r.json();
                 if(d.ok){
                     if(d.found){
-                        toast(`✅ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карта есть! Переходит к ${fromName}`, 'success');
+                        toast(`✅ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карта есть!`, 'success');
                     }else{
                         const nextName = state.players.find(p => parseInt(p.id) === parseInt(d.nextPlayer))?.name || 'неизвестно';
                         toast(`❌ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карты нет. Ходит ${nextName}`, 'error');
                     }
-                    selectedCard=null;selectedPlayerId=null;
+                    selectedCard=null;
+                    selectedPlayerId=null;
+                    
+                    // ВАЖНО: Принудительное обновление состояния
+                    await new Promise(resolve => setTimeout(resolve, 200));
                     await fetchState();
-                } else toast(d.error,'error');
-            } catch(e){toast('Ошибка','error');}
+                } else {
+                    toast(d.error,'error');
+                }
+            } catch(e){
+                toast('Ошибка при запросе','error');
+            } finally {
+                if (actionBtn) {
+                    actionBtn.disabled = false;
+                    actionBtn.style.opacity = '1';
+                }
+            }
         }
         function checkWin() {
             if(!state)return;
             const allCollected=state.players.reduce((s,p)=>s+p.quartets.length,0);
-            if(allCollected>=state.categories.length||(state.bankCount===0&&state.players.every(p=>p.handCount===0))){
+            if(allCollected>=state.categories.length||(state.bankCount===0&&state.players.every(p=>p.handCount===0)){
                 clearInterval(pollTimer);
                 if (turnTimer) { clearInterval(turnTimer); turnTimer = null; }
                 document.getElementById('bottom-panel').classList.add('hidden');
