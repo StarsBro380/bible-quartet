@@ -1232,13 +1232,22 @@
             const curName = curObj ? curObj.name : 'Неизвестно';
             const isOwner = parseInt(state.ownerId) === parseInt(playerId);
             
-            // Проверяем, не устарел ли текущий ход
-            if (isMyTurn && !turnTimer && !isProcessingTurn) {
-                startTurnTimer();
-            } else if (!isMyTurn && turnTimer) {
+            // Проверяем синхронизацию хода
+            const currentPlayerFromState = state.currentPlayer;
+            const myPlayerId = parseInt(playerId);
+            
+            // Если ход не мой, но таймер запущен - останавливаем
+            if (currentPlayerFromState !== myPlayerId && turnTimer) {
                 clearInterval(turnTimer);
                 turnTimer = null;
                 turnWarning = false;
+                console.log('Таймер остановлен - ход не мой');
+            }
+            
+            // Если ход мой, но таймер не запущен - запускаем
+            if (currentPlayerFromState === myPlayerId && !turnTimer && !isProcessingTurn) {
+                console.log('Запуск таймера - мой ход');
+                startTurnTimer();
             }
 
             if (!structureCreated) {
@@ -1503,6 +1512,19 @@
                 if (secondsLeft === 30 && !warned) {
                     warned = true;
                     toast('⏰ У вас осталось 30 секунд! Если не сделаете ход, он перейдёт к следующему игроку.', '');
+                }
+                
+                // КАЖДУЮ СЕКУНДУ ПРОВЕРЯЕМ, ЧТО ХОД ВСЁ ЕЩЁ НАШ
+                if (secondsLeft > 0) {
+                    const currentState = await fetchStateSilent();
+                    if (currentState && parseInt(currentState.currentPlayer) !== parseInt(playerId)) {
+                        // Ход перешёл к другому - останавливаем таймер
+                        clearInterval(turnTimer);
+                        turnTimer = null;
+                        turnWarning = false;
+                        await fetchState();
+                        return;
+                    }
                 }
                 
                 if (secondsLeft <= 0) {
