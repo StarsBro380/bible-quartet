@@ -1,43 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Библейский квартет</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>Тест</title>
 </head>
 <body>
-    <div id="app">
-        <h1 style="text-align:center;color:#7b4b2a;margin-top:50px;">Загрузка...</h1>
-    </div>
-
-    <script>
-        console.log('Скрипт начал работу');
-        
-        try {
-            const tg = window.Telegram.WebApp;
-            tg.expand();
-            tg.ready();
-            console.log('Telegram WebApp загружен');
-            
-            document.getElementById('app').innerHTML = `
-                <div style="font-family: sans-serif; max-width: 400px; margin: 0 auto; padding: 20px;">
-                    <h1 style="text-align:center;color:#7b4b2a;">📖 Библейский квартет</h1>
-                    <p style="text-align:center;color:#8a7568;">Telegram Mini App работает!</p>
-                    <button onclick="alert('IT WORKS!')" style="width:100%;padding:12px;background:#7b4b2a;color:#fff;border:none;border-radius:12px;font-size:16px;margin-top:20px;">
-                        Проверка
-                    </button>
-                </div>
-            `;
-        } catch (e) {
-            console.error('Ошибка:', e);
-            document.getElementById('app').innerHTML = `
-                <div style="text-align:center;color:red;padding:20px;">
-                    <h2>Ошибка</h2>
-                    <p>${e.message}</p>
-                </div>
-            `;
-        }
-    </script>
+    <h1 style="color:red;text-align:center;margin-top:50px;">Если вы видите этот текст - всё работает!</h1>
 </body>
 </html>
