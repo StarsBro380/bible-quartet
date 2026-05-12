@@ -1139,9 +1139,9 @@
                     
                     // Получаем текущую руку игрока для сравнения
                     const me = state.players.find(p => parseInt(p.id) === parseInt(playerId));
-                    const currentHand = me ? me.hand : null;
+                    const currentHand = me && me.hand ? me.hand : null;
                     const prevMe = prevState ? prevState.players.find(p => parseInt(p.id) === parseInt(playerId)) : null;
-                    const prevHand = prevMe ? prevMe.hand : null;
+                    const prevHand = prevMe && prevMe.hand ? prevMe.hand : null;
                     
                     const handChanged = JSON.stringify(prevHand) !== JSON.stringify(currentHand);
                     
@@ -1156,7 +1156,9 @@
                         updateGameData();
                     }
                 }
-            } catch(e){}
+            } catch(e){
+                console.error('Ошибка в fetchState:', e);
+            }
         }
         function updateGameData() {
             if(!state||state.status==='lobby'){showLobby();return;}
@@ -1169,8 +1171,8 @@
             
             // Обновляем верхнюю панель
             const turnEl = document.querySelector('.info-bar .turn');
-            const scoreEl = document.querySelector('.info-bar .score');
             if (turnEl) turnEl.textContent = isMyTurn ? '🎯 Ваш ход' : '⏳ Ход: '+curName;
+            const scoreEl = document.querySelector('.info-bar .score');
             if (scoreEl) scoreEl.textContent = `🏆 ${me.quartets.length} | Запас: ${state.bankCount}`;
             
             // Обновляем список игроков
