@@ -3,11 +3,11 @@ import json
 import random
 import string
 from datetime import datetime
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
 
@@ -36,7 +36,7 @@ def create_deck():
 
 @app.route('/')
 def home():
-    return 'OK'
+    return send_from_directory('.', 'index.html')
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -448,61 +448,6 @@ def rename_player():
     
     return jsonify({'ok': False, 'error': 'Игрок не найден'}), 404
 
-@app.route('/observe/<code>/<int:admin_id>', methods=['POST'])
-def observe_game(code, admin_id):
-    if admin_id not in ADMIN_IDS:
-        return jsonify({'ok': False, 'error': 'Доступ только для администраторов'}), 403
-    
-    if code not in rooms:
-        return jsonify({'ok': False, 'error': 'Игра не найдена'}), 404
-    
-    room = rooms[code]
-    observer_id = max([p['id'] for p in room['players']] + [-1]) + 1
-    room['players'].append({
-        'id': observer_id,
-        'name': 'Наблюдатель',
-        'hand': [],
-        'quartets': [],
-        'is_observer': True
-    })
-    
-    return jsonify({'ok': True, 'roomCode': code, 'playerId': observer_id})
-
-@app.route('/admin/games/<int:admin_id>', methods=['GET'])
-def admin_games(admin_id):
-    if admin_id not in ADMIN_IDS:
-        return jsonify({'ok': False, 'error': 'Доступ только для администраторов'}), 403
-    
-    result = []
-    for code, room in rooms.items():
-        players_info = []
-        for p in room['players']:
-            if p.get('is_observer', False):
-                continue
-            if room['status'] == 'lobby':
-                players_info.append({
-                    'id': p['id'],
-                    'name': p['name'],
-                    'quartets': 0,
-                    'handCount': 0
-                })
-            else:
-                players_info.append({
-                    'id': p['id'],
-                    'name': p['name'],
-                    'quartets': len(p['quartets']),
-                    'handCount': len(p['hand'])
-                })
-        if players_info:
-            result.append({
-                'code': code,
-                'status': room['status'],
-                'players': players_info,
-                'ownerId': room['ownerId']
-            })
-    
-    return jsonify({'ok': True, 'games': result})
-
 @app.route('/feedback', methods=['POST'])
 def feedback():
     data = request.get_json()
@@ -516,13 +461,6 @@ def feedback():
     
     print(f"[FEEDBACK] {name} (ID {player_id}, комната {code}): {message}")
     return jsonify({'ok': True})
-
-@app.route('/feedback/list/<int:admin_id>', methods=['GET'])
-def feedback_list(admin_id):
-    if admin_id not in ADMIN_IDS:
-        return jsonify({'ok': False, 'error': 'Доступ только для администраторов'}), 403
-    
-    return jsonify({'ok': True, 'feedback': []})
 
 # ===== SOCKETIO СОБЫТИЯ =====
 
