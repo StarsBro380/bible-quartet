@@ -759,909 +759,944 @@
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        if (tg) { tg.expand(); tg.ready(); tg.setHeaderColor('#f5f0e8'); tg.setBackgroundColor('#f5f0e8'); }
-        
-        const API = 'https://bible-quartet-server.onrender.com';
-        let state = null, playerId = null, roomCode = null, selectedCard = null, selectedPlayerId = null;
-        let playerName = tg?.initDataUnsafe?.user?.first_name || '';
-        let pollTimer = null, historyOpen = false;
-        let feedbackOpen = false, rulesOpen = false;
-        let turnTimer = null;
-        let turnWarning = false;
-        let missedTurns = {};
-        let gameContainer = null;
-        let structureCreated = false;
-        let ownerId = null;
-        let isProcessingTurn = false;
+        // Глобальная обработка ошибок
+        window.onerror = function(msg, url, line, col, error) {
+            console.error('Глобальная ошибка:', msg, error);
+            const app = document.getElementById('app');
+            if (app) {
+                app.innerHTML = `
+                    <div style="padding:20px;text-align:center;color:var(--red);">
+                        <h3>⚠️ Ошибка загрузки</h3>
+                        <p>${msg}</p>
+                        <button onclick="location.reload()" style="padding:10px 20px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer;margin-top:10px;">Перезагрузить</button>
+                    </div>
+                `;
+            }
+            return true;
+        };
 
-        function toast(msg, type) {
-            const t = document.getElementById('toast');
-            t.textContent = msg; t.className = 'toast ' + (type||'') + ' show';
-            clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2500);
-        }
-        function toggleHistory() {
-            historyOpen = !historyOpen;
-            const c = document.getElementById('history-container');
-            const t = document.getElementById('history-toggle');
-            if (historyOpen) { c.classList.add('open'); t.textContent = '📜 Свернуть ▲'; }
-            else { c.classList.remove('open'); t.textContent = '📜 История ▼'; }
-        }
-        function renderHistory(history) {
-            const list = document.getElementById('history-list');
-            if (!history || !history.length) { list.innerHTML = '<div class="history-item system"><span class="h-text">История пуста</span></div>'; return; }
-            list.innerHTML = history.slice().reverse().map(h => `<div class="history-item ${h.type||'system'}"><span class="h-time">${h.time}</span><span class="h-text">${h.text}</span></div>`).join('');
-        }
-        function renderActions() {
-            const row = document.getElementById('action-row');
-            const cp = parseInt(state?.currentPlayer);
-            const pid = parseInt(playerId);
-            if (!state || cp !== pid) {
-                const currentPlayerObj = state?.players.find(p => parseInt(p.id) === cp);
-                const currentPlayerName = currentPlayerObj ? currentPlayerObj.name : 'Неизвестно';
-                row.innerHTML = `<span style="color:var(--text2);font-size:12px;">⏳ Ходит: ${currentPlayerName}</span>`;
-                return;
-            }
-            if (selectedCard) { 
-                row.innerHTML = `<button class="btn btn-primary" onclick="requestCard()">❓ Просить "${selectedCard.cardName}"</button>`; 
-            } else { 
-                row.innerHTML = '<span style="color:var(--text2);font-size:12px;">👆 Выберите карточку и игрока</span>'; 
-            }
-        }
-        function showMenu() {
-            clearInterval(pollTimer);
-            if (turnTimer) { clearInterval(turnTimer); turnTimer = null; }
-            document.getElementById('bottom-panel').classList.add('hidden');
-            
-            if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                playerId = parseInt(tg.initDataUnsafe.user.id);
-            }
-            
+        // Проверка наличия Telegram WebApp
+        const tg = window.Telegram?.WebApp;
+        if (!tg) {
+            console.error('Telegram WebApp не найден');
             document.getElementById('app').innerHTML = `
-                <div class="menu-container">
-                    <div class="menu-decoration"></div>
-                    <div class="menu-decoration-2"></div>
-                    <div class="logo-container" style="position:relative;z-index:1;">
-                        <span class="logo-icon">📖</span>
-                        <div class="logo-text-group">
-                            <span class="logo-text-main">Библейский квартет</span>
-                            <span class="logo-text-sub">Bible Quartet</span>
+                <div style="padding:20px;text-align:center;color:var(--red);">
+                    <h3>⚠️ Ошибка</h3>
+                    <p>Приложение должно запускаться в Telegram Mini App</p>
+                    <button onclick="location.reload()" style="padding:10px 20px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer;margin-top:10px;">Перезагрузить</button>
+                </div>
+            `;
+        } else {
+            // Инициализация Telegram
+            tg.expand();
+            tg.ready();
+            tg.setHeaderColor('#f5f0e8');
+            tg.setBackgroundColor('#f5f0e8');
+            
+            console.log('Telegram WebApp загружен успешно');
+            
+            // Начало основного кода
+            const API = 'https://bible-quartet-server.onrender.com';
+            let state = null, playerId = null, roomCode = null, selectedCard = null, selectedPlayerId = null;
+            let playerName = tg?.initDataUnsafe?.user?.first_name || '';
+            let pollTimer = null, historyOpen = false;
+            let feedbackOpen = false, rulesOpen = false;
+            let turnTimer = null;
+            let turnWarning = false;
+            let missedTurns = {};
+            let gameContainer = null;
+            let structureCreated = false;
+            let ownerId = null;
+            let isProcessingTurn = false;
+
+            function toast(msg, type) {
+                const t = document.getElementById('toast');
+                t.textContent = msg; t.className = 'toast ' + (type||'') + ' show';
+                clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2500);
+            }
+            function toggleHistory() {
+                historyOpen = !historyOpen;
+                const c = document.getElementById('history-container');
+                const t = document.getElementById('history-toggle');
+                if (historyOpen) { c.classList.add('open'); t.textContent = '📜 Свернуть ▲'; }
+                else { c.classList.remove('open'); t.textContent = '📜 История ▼'; }
+            }
+            function renderHistory(history) {
+                const list = document.getElementById('history-list');
+                if (!history || !history.length) { list.innerHTML = '<div class="history-item system"><span class="h-text">История пуста</span></div>'; return; }
+                list.innerHTML = history.slice().reverse().map(h => `<div class="history-item ${h.type||'system'}"><span class="h-time">${h.time}</span><span class="h-text">${h.text}</span></div>`).join('');
+            }
+            function renderActions() {
+                const row = document.getElementById('action-row');
+                const cp = parseInt(state?.currentPlayer);
+                const pid = parseInt(playerId);
+                if (!state || cp !== pid) {
+                    const currentPlayerObj = state?.players.find(p => parseInt(p.id) === cp);
+                    const currentPlayerName = currentPlayerObj ? currentPlayerObj.name : 'Неизвестно';
+                    row.innerHTML = `<span style="color:var(--text2);font-size:12px;">⏳ Ходит: ${currentPlayerName}</span>`;
+                    return;
+                }
+                if (selectedCard) { 
+                    row.innerHTML = `<button class="btn btn-primary" onclick="requestCard()">❓ Просить "${selectedCard.cardName}"</button>`; 
+                } else { 
+                    row.innerHTML = '<span style="color:var(--text2);font-size:12px;">👆 Выберите карточку и игрока</span>'; 
+                }
+            }
+            function showMenu() {
+                clearInterval(pollTimer);
+                if (turnTimer) { clearInterval(turnTimer); turnTimer = null; }
+                document.getElementById('bottom-panel').classList.add('hidden');
+                
+                if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                    playerId = parseInt(tg.initDataUnsafe.user.id);
+                }
+                
+                document.getElementById('app').innerHTML = `
+                    <div class="menu-container">
+                        <div class="menu-decoration"></div>
+                        <div class="menu-decoration-2"></div>
+                        <div class="logo-container" style="position:relative;z-index:1;">
+                            <span class="logo-icon">📖</span>
+                            <div class="logo-text-group">
+                                <span class="logo-text-main">Библейский квартет</span>
+                                <span class="logo-text-sub">Bible Quartet</span>
+                            </div>
+                        </div>
+                        <div style="text-align:center;color:var(--text2);font-size:12px;line-height:1.5;max-width:300px;margin:0 auto;position:relative;z-index:1;">
+                            <p>Здесь вы можете играть в Библейский квартет онлайн с другими людьми.</p>
+                            <p style="margin-top:4px;opacity:0.7;">Если вы заметили ошибки или хотите что-то добавить, напишите в поддержку.</p>
+                        </div>
+                        <div class="name-section" style="width:100%;position:relative;z-index:1;">
+                            <label style="text-align:center;display:block;font-size:13px;color:var(--text2);font-weight:500;">Ваше имя</label>
+                            <input class="input input-name" id="player-name" value="${playerName}" maxlength="20" style="text-align:center;"
+                                   onblur="saveNameFromMenu()" onkeydown="if(event.key==='Enter') saveNameFromMenu()">
+                        </div>
+                        <button class="btn btn-primary" style="position:relative;z-index:1;" onclick="saveNameAndCreate()">
+                            <span class="btn-icon">🎮</span> Создать игру
+                        </button>
+                        <button class="btn btn-secondary" style="position:relative;z-index:1;" onclick="saveNameAndJoin()">
+                            <span class="btn-icon join-icon">🔗</span> Присоединиться
+                        </button>
+                        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1;margin-top:8px;">
+                            <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;" onclick="openFeedback()">
+                                <span style="display:block;">💬 Написать в<br>поддержку</span>
+                            </button>
+                            <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;" onclick="openRules()">
+                                <span style="display:block;">📜 Правила</span>
+                            </button>
                         </div>
                     </div>
-                    <div style="text-align:center;color:var(--text2);font-size:12px;line-height:1.5;max-width:300px;margin:0 auto;position:relative;z-index:1;">
-                        <p>Здесь вы можете играть в Библейский квартет онлайн с другими людьми.</p>
-                        <p style="margin-top:4px;opacity:0.7;">Если вы заметили ошибки или хотите что-то добавить, напишите в поддержку.</p>
-                    </div>
-                    <div class="name-section" style="width:100%;position:relative;z-index:1;">
-                        <label style="text-align:center;display:block;font-size:13px;color:var(--text2);font-weight:500;">Ваше имя</label>
-                        <input class="input input-name" id="player-name" value="${playerName}" maxlength="20" style="text-align:center;"
-                               onblur="saveNameFromMenu()" onkeydown="if(event.key==='Enter') saveNameFromMenu()">
-                    </div>
-                    <button class="btn btn-primary" style="position:relative;z-index:1;" onclick="saveNameAndCreate()">
-                        <span class="btn-icon">🎮</span> Создать игру
-                    </button>
-                    <button class="btn btn-secondary" style="position:relative;z-index:1;" onclick="saveNameAndJoin()">
-                        <span class="btn-icon join-icon">🔗</span> Присоединиться
-                    </button>
-                    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1;margin-top:8px;">
-                        <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;" onclick="openFeedback()">
-                            <span style="display:block;">💬 Написать в<br>поддержку</span>
-                        </button>
-                        <button class="btn btn-secondary" style="max-width:300px;padding:12px 16px;font-size:12px;flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;" onclick="openRules()">
-                            <span style="display:block;">📜 Правила</span>
-                        </button>
-                    </div>
-                </div>
-            `;
-            window.saveNameFromMenu = function() {
-                const newName = document.getElementById('player-name').value.trim() || 'Игрок';
-                playerName = newName;
-            };
-        }
-        function saveNameAndCreate() { showCreate(); }
-        function saveNameAndJoin() { showJoin(); }
-        function showCreate() {
-            document.getElementById('app').innerHTML = `
-                <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:400px;margin:0 auto;padding-top:10px;">
-                    <div class="header" style="width:100%;">
-                        <h2 style="text-align:center;color:var(--accent);font-family:'Inter',sans-serif;font-weight:700;font-size:18px;">Создание игры</h2>
-                        <div class="decor-line"></div>
-                    </div>
-                    <div style="width:100%;display:flex;flex-direction:column;gap:8px;">
-                        <button class="btn btn-primary btn-full" onclick="createGame(7)" style="width:100%;border-radius:12px;">
-                            <div style="display:flex;flex-direction:column;align-items:center;">
-                                <span style="font-size:15px;font-weight:700;">🃏 7 карт</span>
-                                <span style="font-size:11px;opacity:0.8;margin-top:2px;">👥 3–21 игрок</span>
-                            </div>
-                        </button>
-                        <button class="btn btn-primary btn-full" onclick="createGame(10)" style="width:100%;border-radius:12px;">
-                            <div style="display:flex;flex-direction:column;align-items:center;">
-                                <span style="font-size:15px;font-weight:700;">🃏 10 карт</span>
-                                <span style="font-size:11px;opacity:0.8;margin-top:2px;">👥 3–14 игроков</span>
-                            </div>
-                        </button>
-                        <button class="btn btn-primary btn-full" onclick="createGame(15)" style="width:100%;border-radius:12px;">
-                            <div style="display:flex;flex-direction:column;align-items:center;">
-                                <span style="font-size:15px;font-weight:700;">🃏 15 карт</span>
-                                <span style="font-size:11px;opacity:0.8;margin-top:2px;">👥 3–9 игроков</span>
-                            </div>
-                        </button>
-                        <button class="btn btn-secondary btn-full" onclick="showMenu()" style="width:100%;border-radius:12px;">← Назад</button>
-                    </div>
-                </div>
-            `;
-        }
-        function showJoin() {
-            document.getElementById('app').innerHTML = `
-                <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:400px;margin:0 auto;padding-top:10px;">
-                    <div class="header" style="width:100%;">
-                        <h2 style="text-align:center;color:var(--accent);font-family:'Inter',sans-serif;font-weight:700;font-size:18px;">Подключение</h2>
-                        <div class="decor-line"></div>
-                    </div>
-                    <input class="input input-code" id="join-code" placeholder="ABC123" maxlength="6" style="width:100%;max-width:300px;text-align:center;">
-                    <button class="btn btn-primary btn-full" onclick="joinGame()" style="width:100%;max-width:300px;">🔗 Присоединиться</button>
-                    <button class="btn btn-secondary btn-full" onclick="showMenu()" style="width:100%;max-width:300px;">← Назад</button>
-                </div>
-            `;
-        }
-        async function createGame(n) {
-            try {
-                const r = await fetch(API+'/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:playerName,cards:n,playerId:parseInt(playerId)})});
-                const d = await r.json();
-                if(d.ok){roomCode=d.code;playerId=parseInt(d.playerId);ownerId=parseInt(d.playerId);showLobby();} else toast(d.error,'error');
-            } catch(e){toast('Ошибка соединения','error');}
-        }
-        async function joinGame() {
-            const code = document.getElementById('join-code').value.trim().toUpperCase();
-            if (!code) { toast('Введите код', 'error'); return; }
-            
-            const joinBtn = document.querySelector('#app .btn-primary');
-            if (joinBtn) {
-                joinBtn.disabled = true;
-                joinBtn.style.opacity = '0.7';
-                joinBtn.textContent = '⏳ Подключение...';
+                `;
+                window.saveNameFromMenu = function() {
+                    const newName = document.getElementById('player-name').value.trim() || 'Игрок';
+                    playerName = newName;
+                };
             }
-            
-            try {
-                const r = await fetch(API+'/join', {
-                    method: 'POST',
-                    headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({
-                        code: code,
-                        name: playerName,
-                        playerId: parseInt(playerId)
-                    })
-                });
-                const d = await r.json();
+            function saveNameAndCreate() { showCreate(); }
+            function saveNameAndJoin() { showJoin(); }
+            function showCreate() {
+                document.getElementById('app').innerHTML = `
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:400px;margin:0 auto;padding-top:10px;">
+                        <div class="header" style="width:100%;">
+                            <h2 style="text-align:center;color:var(--accent);font-family:'Inter',sans-serif;font-weight:700;font-size:18px;">Создание игры</h2>
+                            <div class="decor-line"></div>
+                        </div>
+                        <div style="width:100%;display:flex;flex-direction:column;gap:8px;">
+                            <button class="btn btn-primary btn-full" onclick="createGame(7)" style="width:100%;border-radius:12px;">
+                                <div style="display:flex;flex-direction:column;align-items:center;">
+                                    <span style="font-size:15px;font-weight:700;">🃏 7 карт</span>
+                                    <span style="font-size:11px;opacity:0.8;margin-top:2px;">👥 3–21 игрок</span>
+                                </div>
+                            </button>
+                            <button class="btn btn-primary btn-full" onclick="createGame(10)" style="width:100%;border-radius:12px;">
+                                <div style="display:flex;flex-direction:column;align-items:center;">
+                                    <span style="font-size:15px;font-weight:700;">🃏 10 карт</span>
+                                    <span style="font-size:11px;opacity:0.8;margin-top:2px;">👥 3–14 игроков</span>
+                                </div>
+                            </button>
+                            <button class="btn btn-primary btn-full" onclick="createGame(15)" style="width:100%;border-radius:12px;">
+                                <div style="display:flex;flex-direction:column;align-items:center;">
+                                    <span style="font-size:15px;font-weight:700;">🃏 15 карт</span>
+                                    <span style="font-size:11px;opacity:0.8;margin-top:2px;">👥 3–9 игроков</span>
+                                </div>
+                            </button>
+                            <button class="btn btn-secondary btn-full" onclick="showMenu()" style="width:100%;border-radius:12px;">← Назад</button>
+                        </div>
+                    </div>
+                `;
+            }
+            function showJoin() {
+                document.getElementById('app').innerHTML = `
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:400px;margin:0 auto;padding-top:10px;">
+                        <div class="header" style="width:100%;">
+                            <h2 style="text-align:center;color:var(--accent);font-family:'Inter',sans-serif;font-weight:700;font-size:18px;">Подключение</h2>
+                            <div class="decor-line"></div>
+                        </div>
+                        <input class="input input-code" id="join-code" placeholder="ABC123" maxlength="6" style="width:100%;max-width:300px;text-align:center;">
+                        <button class="btn btn-primary btn-full" onclick="joinGame()" style="width:100%;max-width:300px;">🔗 Присоединиться</button>
+                        <button class="btn btn-secondary btn-full" onclick="showMenu()" style="width:100%;max-width:300px;">← Назад</button>
+                    </div>
+                `;
+            }
+            async function createGame(n) {
+                try {
+                    const r = await fetch(API+'/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:playerName,cards:n,playerId:parseInt(playerId)})});
+                    const d = await r.json();
+                    if(d.ok){roomCode=d.code;playerId=parseInt(d.playerId);ownerId=parseInt(d.playerId);showLobby();} else toast(d.error,'error');
+                } catch(e){toast('Ошибка соединения','error');}
+            }
+            async function joinGame() {
+                const code = document.getElementById('join-code').value.trim().toUpperCase();
+                if (!code) { toast('Введите код', 'error'); return; }
                 
-                if (d.ok) {
-                    roomCode = code;
-                    playerId = parseInt(d.playerId);
-                    structureCreated = false;
-                    selectedCard = null;
-                    selectedPlayerId = null;
-                    startPolling();
-                    toast('✅ Подключение успешно!', 'success');
-                } else {
-                    toast(d.error, 'error');
+                const joinBtn = document.querySelector('#app .btn-primary');
+                if (joinBtn) {
+                    joinBtn.disabled = true;
+                    joinBtn.style.opacity = '0.7';
+                    joinBtn.textContent = '⏳ Подключение...';
+                }
+                
+                try {
+                    const r = await fetch(API+'/join', {
+                        method: 'POST',
+                        headers: {'Content-Type':'application/json'},
+                        body: JSON.stringify({
+                            code: code,
+                            name: playerName,
+                            playerId: parseInt(playerId)
+                        })
+                    });
+                    const d = await r.json();
+                    
+                    if (d.ok) {
+                        roomCode = code;
+                        playerId = parseInt(d.playerId);
+                        structureCreated = false;
+                        selectedCard = null;
+                        selectedPlayerId = null;
+                        startPolling();
+                        toast('✅ Подключение успешно!', 'success');
+                    } else {
+                        toast(d.error, 'error');
+                        if (joinBtn) {
+                            joinBtn.disabled = false;
+                            joinBtn.style.opacity = '1';
+                            joinBtn.textContent = '🔗 Присоединиться';
+                        }
+                    }
+                } catch(e){
+                    toast('Ошибка соединения','error');
                     if (joinBtn) {
                         joinBtn.disabled = false;
                         joinBtn.style.opacity = '1';
                         joinBtn.textContent = '🔗 Присоединиться';
                     }
                 }
-            } catch(e){
-                toast('Ошибка соединения','error');
-                if (joinBtn) {
-                    joinBtn.disabled = false;
-                    joinBtn.style.opacity = '1';
-                    joinBtn.textContent = '🔗 Присоединиться';
-                }
             }
-        }
-        async function startGame() {
-            try {
-                const r=await fetch(API+'/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,playerId})});
-                const d=await r.json();
-                if(d.ok){startPolling();} else toast(d.error,'error');
-            } catch(e){toast('Ошибка соединения','error');}
-        }
-        function copyCode(){if(!roomCode)return;navigator.clipboard.writeText(roomCode).then(()=>toast('📋 Код скопирован!','success')).catch(()=>toast('Не удалось скопировать','error'));}
-        async function transferOwnership() {
-            try {
-                const r = await fetch(API + '/transfer_ownership', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        code: roomCode,
-                        currentPlayerId: parseInt(playerId)
-                    })
-                });
-                const d = await r.json();
-                if (d.ok) {
-                    toast(`👑 Теперь вы создатель комнаты!`, 'success');
-                    await fetchState();
-                } else {
-                    toast('Не удалось передать права создателя', 'error');
-                }
-            } catch (e) {
-                toast('Ошибка при передаче прав', 'error');
-            }
-        }
-        function showLobby() {
-            clearInterval(pollTimer);
-            document.getElementById('app').innerHTML = `
-                <div style="display:flex;flex-direction:column;align-items:center;gap:8px;max-width:400px;margin:0 auto;">
-                    <div class="header" style="width:100%;padding:6px 0 4px;">
-                        <div class="logo-container">
-                            <span class="logo-icon" style="font-size:28px;">📖</span>
-                            <div class="logo-text-group">
-                                <span class="logo-text-main" style="font-size:18px;">Библейский квартет</span>
-                                <span class="logo-text-sub" style="font-size:8px;">Bible Quartet</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="name-section" style="width:100%;margin-bottom:4px;">
-                        <label style="text-align:center;display:block;font-size:13px;color:var(--text2);font-weight:500;">Ваше имя</label>
-                        <input class="input input-name" id="lobby-name" value="${playerName}" maxlength="20" 
-                               style="text-align:center;padding:10px 14px;font-size:15px;border-radius:10px;"
-                               onblur="autoUpdateName()" onkeydown="if(event.key==='Enter') autoUpdateName()">
-                    </div>
-                    <div class="code-display" onclick="copyCode()" style="width:100%;padding:12px;margin:4px 0;">
-                        <div class="running-border"></div>
-                        <div class="code" style="font-size:32px;letter-spacing:8px;font-family:'Playfair Display',serif;color:var(--accent);font-weight:700;">${roomCode}</div>
-                        <p class="copy-hint" style="font-size:11px;color:var(--text2);margin-top:6px;">📋 Нажмите, чтобы скопировать</p>
-                        <p class="waiting" style="font-size:11px;color:var(--text2);margin-top:4px;">Поделитесь кодом с другими игроками</p>
-                    </div>
-                    <div class="players-waiting" id="players-waiting" style="width:100%;margin:4px 0;">
-                        <div class="player-panel" id="owner-panel">
-                            <div class="player-avatar creator">👤</div>
-                            <div class="player-info">
-                                <span class="player-name" id="owner-name">${playerName}</span>
-                                <span class="player-role creator-role" id="owner-status">👑 Создатель</span>
-                            </div>
-                        </div>
-                        <div id="other-players"></div>
-                    </div>
-                    <div id="start-game-container" class="${parseInt(playerId) === parseInt(ownerId) ? '' : 'hidden'}">
-                        <button class="btn btn-primary btn-full" onclick="startGame()" style="width:100%;max-width:300px;padding:12px;font-size:15px;border-radius:12px;">🎮 Начать игру</button>
-                    </div>
-                    <button class="btn btn-secondary btn-full" onclick="clearInterval(pollTimer);showMenu();" style="width:100%;max-width:300px;padding:12px;font-size:15px;border-radius:12px;">← Отмена</button>
-                </div>
-            `;
-            
-            window.autoUpdateName = async function() {
-                const newName = document.getElementById('lobby-name').value.trim() || 'Игрок';
-                if (newName !== playerName) {
-                    try {
-                        const r = await fetch(API+'/rename', {
-                            method: 'POST',
-                            headers: {'Content-Type':'application/json'},
-                            body: JSON.stringify({code: roomCode, playerId: playerId, name: newName})
-                        });
-                        const d = await r.json();
-                        if(d.ok) {
-                            playerName = newName;
-                            toast('✅ Имя обновлено!', 'success');
-                            const ownerName = document.getElementById('owner-name');
-                            if (ownerName) ownerName.textContent = playerName;
-                        } else {
-                            toast(d.error, 'error');
-                        }
-                    } catch(e) {
-                        toast('Ошибка при обновлении имени', 'error');
-                    }
-                }
-            };
-            
-            pollTimer = setInterval(async () => {
+            async function startGame() {
                 try {
-                    const r = await fetch(`${API}/state/${roomCode}/${playerId}`);
+                    const r=await fetch(API+'/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,playerId})});
+                    const d=await r.json();
+                    if(d.ok){startPolling();} else toast(d.error,'error');
+                } catch(e){toast('Ошибка соединения','error');}
+            }
+            function copyCode(){if(!roomCode)return;navigator.clipboard.writeText(roomCode).then(()=>toast('📋 Код скопирован!','success')).catch(()=>toast('Не удалось скопировать','error'));}
+            async function transferOwnership() {
+                try {
+                    const r = await fetch(API + '/transfer_ownership', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            code: roomCode,
+                            currentPlayerId: parseInt(playerId)
+                        })
+                    });
                     const d = await r.json();
                     if (d.ok) {
-                        ownerId = parseInt(d.ownerId);
-                        
-                        const otherPlayersContainer = document.getElementById('other-players');
-                        if (otherPlayersContainer) {
-                            otherPlayersContainer.innerHTML = '';
-                            d.players.forEach(p => {
-                                if (parseInt(p.id) === parseInt(d.ownerId)) {
-                                    const ownerName = document.getElementById('owner-name');
-                                    if (ownerName && ownerName.textContent !== p.name) {
-                                        ownerName.textContent = p.name;
-                                        if (parseInt(p.id) === parseInt(playerId)) {
-                                            playerName = p.name;
-                                        }
-                                    }
-                                    const ownerStatus = document.getElementById('owner-status');
-                                    if (ownerStatus) {
-                                        ownerStatus.textContent = parseInt(p.id) === parseInt(playerId) ? '👑 Создатель (вы)' : '👑 Создатель';
-                                    }
-                                    return;
-                                }
-                                const div = document.createElement('div');
-                                div.className = 'player-panel';
-                                div.style.marginTop = '4px';
-                                div.innerHTML = `
-                                    <div class="player-avatar">👤</div>
-                                    <div class="player-info">
-                                        <span class="player-name">${p.name}</span>
-                                        <span class="player-role">Игрок</span>
-                                    </div>
-                                `;
-                                otherPlayersContainer.appendChild(div);
+                        toast(`👑 Теперь вы создатель комнаты!`, 'success');
+                        await fetchState();
+                    } else {
+                        toast('Не удалось передать права создателя', 'error');
+                    }
+                } catch (e) {
+                    toast('Ошибка при передаче прав', 'error');
+                }
+            }
+            function showLobby() {
+                clearInterval(pollTimer);
+                document.getElementById('app').innerHTML = `
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;max-width:400px;margin:0 auto;">
+                        <div class="header" style="width:100%;padding:6px 0 4px;">
+                            <div class="logo-container">
+                                <span class="logo-icon" style="font-size:28px;">📖</span>
+                                <div class="logo-text-group">
+                                    <span class="logo-text-main" style="font-size:18px;">Библейский квартет</span>
+                                    <span class="logo-text-sub" style="font-size:8px;">Bible Quartet</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="name-section" style="width:100%;margin-bottom:4px;">
+                            <label style="text-align:center;display:block;font-size:13px;color:var(--text2);font-weight:500;">Ваше имя</label>
+                            <input class="input input-name" id="lobby-name" value="${playerName}" maxlength="20" 
+                                   style="text-align:center;padding:10px 14px;font-size:15px;border-radius:10px;"
+                                   onblur="autoUpdateName()" onkeydown="if(event.key==='Enter') autoUpdateName()">
+                        </div>
+                        <div class="code-display" onclick="copyCode()" style="width:100%;padding:12px;margin:4px 0;">
+                            <div class="running-border"></div>
+                            <div class="code" style="font-size:32px;letter-spacing:8px;font-family:'Playfair Display',serif;color:var(--accent);font-weight:700;">${roomCode}</div>
+                            <p class="copy-hint" style="font-size:11px;color:var(--text2);margin-top:6px;">📋 Нажмите, чтобы скопировать</p>
+                            <p class="waiting" style="font-size:11px;color:var(--text2);margin-top:4px;">Поделитесь кодом с другими игроками</p>
+                        </div>
+                        <div class="players-waiting" id="players-waiting" style="width:100%;margin:4px 0;">
+                            <div class="player-panel" id="owner-panel">
+                                <div class="player-avatar creator">👤</div>
+                                <div class="player-info">
+                                    <span class="player-name" id="owner-name">${playerName}</span>
+                                    <span class="player-role creator-role" id="owner-status">👑 Создатель</span>
+                                </div>
+                            </div>
+                            <div id="other-players"></div>
+                        </div>
+                        <div id="start-game-container" class="${parseInt(playerId) === parseInt(ownerId) ? '' : 'hidden'}">
+                            <button class="btn btn-primary btn-full" onclick="startGame()" style="width:100%;max-width:300px;padding:12px;font-size:15px;border-radius:12px;">🎮 Начать игру</button>
+                        </div>
+                        <button class="btn btn-secondary btn-full" onclick="clearInterval(pollTimer);showMenu();" style="width:100%;max-width:300px;padding:12px;font-size:15px;border-radius:12px;">← Отмена</button>
+                    </div>
+                `;
+                
+                window.autoUpdateName = async function() {
+                    const newName = document.getElementById('lobby-name').value.trim() || 'Игрок';
+                    if (newName !== playerName) {
+                        try {
+                            const r = await fetch(API+'/rename', {
+                                method: 'POST',
+                                headers: {'Content-Type':'application/json'},
+                                body: JSON.stringify({code: roomCode, playerId: playerId, name: newName})
                             });
+                            const d = await r.json();
+                            if(d.ok) {
+                                playerName = newName;
+                                toast('✅ Имя обновлено!', 'success');
+                                const ownerName = document.getElementById('owner-name');
+                                if (ownerName) ownerName.textContent = playerName;
+                            } else {
+                                toast(d.error, 'error');
+                            }
+                        } catch(e) {
+                            toast('Ошибка при обновлении имени', 'error');
+                        }
+                    }
+                };
+                
+                pollTimer = setInterval(async () => {
+                    try {
+                        const r = await fetch(`${API}/state/${roomCode}/${playerId}`);
+                        const d = await r.json();
+                        if (d.ok) {
+                            ownerId = parseInt(d.ownerId);
                             
-                            const startBtnContainer = document.getElementById('start-game-container');
-                            if (startBtnContainer) {
-                                if (parseInt(playerId) === parseInt(d.ownerId)) {
-                                    startBtnContainer.classList.remove('hidden');
-                                } else {
-                                    startBtnContainer.classList.add('hidden');
+                            const otherPlayersContainer = document.getElementById('other-players');
+                            if (otherPlayersContainer) {
+                                otherPlayersContainer.innerHTML = '';
+                                d.players.forEach(p => {
+                                    if (parseInt(p.id) === parseInt(d.ownerId)) {
+                                        const ownerName = document.getElementById('owner-name');
+                                        if (ownerName && ownerName.textContent !== p.name) {
+                                            ownerName.textContent = p.name;
+                                            if (parseInt(p.id) === parseInt(playerId)) {
+                                                playerName = p.name;
+                                            }
+                                        }
+                                        const ownerStatus = document.getElementById('owner-status');
+                                        if (ownerStatus) {
+                                            ownerStatus.textContent = parseInt(p.id) === parseInt(playerId) ? '👑 Создатель (вы)' : '👑 Создатель';
+                                        }
+                                        return;
+                                    }
+                                    const div = document.createElement('div');
+                                    div.className = 'player-panel';
+                                    div.style.marginTop = '4px';
+                                    div.innerHTML = `
+                                        <div class="player-avatar">👤</div>
+                                        <div class="player-info">
+                                            <span class="player-name">${p.name}</span>
+                                            <span class="player-role">Игрок</span>
+                                        </div>
+                                    `;
+                                    otherPlayersContainer.appendChild(div);
+                                });
+                                
+                                const startBtnContainer = document.getElementById('start-game-container');
+                                if (startBtnContainer) {
+                                    if (parseInt(playerId) === parseInt(d.ownerId)) {
+                                        startBtnContainer.classList.remove('hidden');
+                                    } else {
+                                        startBtnContainer.classList.add('hidden');
+                                    }
                                 }
                             }
+                            if (d.status === 'playing') {
+                                fetchState();
+                            }
                         }
-                        if (d.status === 'playing') {
-                            fetchState();
-                        }
-                    }
-                } catch (e) {}
-            }, 1000);
-        }
-        function startPolling() {
-            if (pollTimer) {
-                clearTimeout(pollTimer);
-                pollTimer = null;
+                    } catch (e) {}
+                }, 1000);
             }
-            fetchState();
-            function poll() {
+            function startPolling() {
+                if (pollTimer) {
+                    clearTimeout(pollTimer);
+                    pollTimer = null;
+                }
                 fetchState();
+                function poll() {
+                    fetchState();
+                    pollTimer = setTimeout(poll, 300);
+                }
                 pollTimer = setTimeout(poll, 300);
             }
-            pollTimer = setTimeout(poll, 300);
-        }
-        async function fetchState() {
-            if(!roomCode||playerId===null)return;
-            try {
-                const r=await fetch(`${API}/state/${roomCode}/${playerId}`);
-                const d=await r.json();
-                if(d.ok){
-                    // Сохраняем предыдущее состояние для сравнения
-                    const prevState = state;
-                    const prevCurrentPlayer = prevState ? prevState.currentPlayer : null;
-                    const prevPlayersCount = prevState ? prevState.players.length : 0;
-                    const prevHand = prevState ? prevState.players.find(p => parseInt(p.id) === parseInt(playerId))?.hand : null;
-                    
-                    d.currentPlayer=parseInt(d.currentPlayer);d.playerId=parseInt(d.playerId);
-                    d.bankCount=parseInt(d.bankCount);d.ownerId=parseInt(d.ownerId);
-                    if(d.players)d.players.forEach(p=>{p.id=parseInt(p.id);p.handCount=parseInt(p.handCount);});
-                    state=d;
-                    ownerId = parseInt(d.ownerId);
-                    
-                    // Получаем текущую руку игрока
-                    const currentHand = state.players.find(p => parseInt(p.id) === parseInt(playerId))?.hand;
-                    const handChanged = JSON.stringify(prevHand) !== JSON.stringify(currentHand);
-                    
-                    // Обновляем UI если изменился ход, состав игроков или рука
-                    const currentPlayerChanged = prevCurrentPlayer !== state.currentPlayer;
-                    const playersCountChanged = prevPlayersCount !== state.players.length;
-                    
-                    if (currentPlayerChanged || playersCountChanged || handChanged) {
-                        structureCreated = false;
-                        renderGame();
-                    } else {
-                        updateGameData();
+            async function fetchState() {
+                if(!roomCode||playerId===null)return;
+                try {
+                    const r=await fetch(`${API}/state/${roomCode}/${playerId}`);
+                    const d=await r.json();
+                    if(d.ok){
+                        // Сохраняем предыдущее состояние для сравнения
+                        const prevState = state;
+                        const prevCurrentPlayer = prevState ? prevState.currentPlayer : null;
+                        const prevPlayersCount = prevState ? prevState.players.length : 0;
+                        const prevHand = prevState ? prevState.players.find(p => parseInt(p.id) === parseInt(playerId))?.hand : null;
+                        
+                        d.currentPlayer=parseInt(d.currentPlayer);d.playerId=parseInt(d.playerId);
+                        d.bankCount=parseInt(d.bankCount);d.ownerId=parseInt(d.ownerId);
+                        if(d.players)d.players.forEach(p=>{p.id=parseInt(p.id);p.handCount=parseInt(p.handCount);});
+                        state=d;
+                        ownerId = parseInt(d.ownerId);
+                        
+                        // Получаем текущую руку игрока
+                        const currentHand = state.players.find(p => parseInt(p.id) === parseInt(playerId))?.hand;
+                        const handChanged = JSON.stringify(prevHand) !== JSON.stringify(currentHand);
+                        
+                        // Обновляем UI если изменился ход, состав игроков или рука
+                        const currentPlayerChanged = prevCurrentPlayer !== state.currentPlayer;
+                        const playersCountChanged = prevPlayersCount !== state.players.length;
+                        
+                        if (currentPlayerChanged || playersCountChanged || handChanged) {
+                            structureCreated = false;
+                            renderGame();
+                        } else {
+                            updateGameData();
+                        }
                     }
-                }
-            } catch(e){}
-        }
-        function updateGameData() {
-            if(!state||state.status==='lobby'){showLobby();return;}
-            const me=state.players.find(p=>parseInt(p.id)===parseInt(playerId));
-            if(!me)return;
-            
-            const isMyTurn = parseInt(state.currentPlayer) === parseInt(playerId);
-            const curObj = state.players.find(p => parseInt(p.id) === parseInt(state.currentPlayer));
-            const curName = curObj ? curObj.name : 'Неизвестно';
-            
-            // Обновляем верхнюю панель
-            const turnEl = document.querySelector('.info-bar .turn');
-            const scoreEl = document.querySelector('.info-bar .score');
-            if (turnEl) turnEl.textContent = isMyTurn ? '🎯 Ваш ход' : '⏳ Ход: '+curName;
-            if (scoreEl) scoreEl.textContent = `🏆 ${me.quartets.length} | Запас: ${state.bankCount}`;
-            
-            // Обновляем список игроков
-            const playerCards = document.querySelectorAll('.player-card');
-            let idx = 0;
-            for(const p of state.players){
-                if(parseInt(p.id)===parseInt(playerId))continue;
-                const card = playerCards[idx];
-                if (card) {
-                    card.className = `player-card ${parseInt(state.currentPlayer)===parseInt(p.id)?'current':''} ${selectedPlayerId === parseInt(p.id) ? 'selected-player' : ''}`;
-                    card.onclick = () => selectPlayer(p.id);
-                    card.querySelector('.p-name').textContent = p.name;
-                    card.querySelector('.p-info').textContent = `🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов`;
-                    idx++;
-                }
+                } catch(e){}
             }
-            
-            renderHistory(state.history);
-            renderActions();
-            
-            // Обновляем кнопки выхода
-            const isOwner = parseInt(state.ownerId) === parseInt(playerId);
-            const bottom = document.getElementById('bottom-panel');
-            const oldExit = document.getElementById('exit-buttons');
-            if (oldExit) oldExit.remove();
-            const exitBtn = document.createElement('div');
-            exitBtn.id = 'exit-buttons';
-            exitBtn.style.cssText = 'display:flex;gap:8px;padding:4px 10px;justify-content:center;';
-            exitBtn.innerHTML = `
-                <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;" onclick="leaveGame()">🚪 Покинуть игру</button>
-                ${isOwner ? `
-                <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;background:var(--red);color:#fff;border-color:var(--red);" onclick="endGame()">🚫 Завершить игру</button>
-                ` : ''}
-            `;
-            bottom.appendChild(exitBtn);
-            
-            // Проверяем таймер
-            if (isMyTurn && !turnTimer && !isProcessingTurn) {
-                startTurnTimer();
-            } else if (!isMyTurn && turnTimer) {
-                clearInterval(turnTimer);
-                turnTimer = null;
-                turnWarning = false;
-            }
-            
-            checkWin();
-        }
-        function renderGame() {
-            if(!state||state.status==='lobby'){showLobby();return;}
-            document.getElementById('bottom-panel').classList.remove('hidden');
-            const me=state.players.find(p=>parseInt(p.id)===parseInt(playerId));
-            if(!me)return;
-            
-            if (me.name !== playerName) {
-                playerName = me.name;
-                const nameInput = document.getElementById('lobby-name');
-                if (nameInput) nameInput.value = playerName;
-            }
-            
-            const isMyTurn = parseInt(state.currentPlayer) === parseInt(playerId);
-            const curObj = state.players.find(p => parseInt(p.id) === parseInt(state.currentPlayer));
-            const curName = curObj ? curObj.name : 'Неизвестно';
-            const isOwner = parseInt(state.ownerId) === parseInt(playerId);
-            
-            // Проверяем синхронизацию хода
-            const currentPlayerFromState = state.currentPlayer;
-            const myPlayerId = parseInt(playerId);
-            
-            // Если ход не мой, но таймер запущен - останавливаем
-            if (currentPlayerFromState !== myPlayerId && turnTimer) {
-                clearInterval(turnTimer);
-                turnTimer = null;
-                turnWarning = false;
-                console.log('Таймер остановлен - ход не мой');
-            }
-            
-            // Если ход мой, но таймер не запущен - запускаем
-            if (currentPlayerFromState === myPlayerId && !turnTimer && !isProcessingTurn) {
-                console.log('Запуск таймера - мой ход');
-                startTurnTimer();
-            }
-
-            if (!structureCreated) {
-                let html=`<div class="info-bar"><span class="turn">${isMyTurn?'🎯 Ваш ход':'⏳ Ход: '+curName}</span><span class="score">🏆 ${me.quartets.length} | Запас: ${state.bankCount}</span></div>`;
-                html+='<div class="player-list">';
+            function updateGameData() {
+                if(!state||state.status==='lobby'){showLobby();return;}
+                const me=state.players.find(p=>parseInt(p.id)===parseInt(playerId));
+                if(!me)return;
+                
+                const isMyTurn = parseInt(state.currentPlayer) === parseInt(playerId);
+                const curObj = state.players.find(p => parseInt(p.id) === parseInt(state.currentPlayer));
+                const curName = curObj ? curObj.name : 'Неизвестно';
+                
+                // Обновляем верхнюю панель
+                const turnEl = document.querySelector('.info-bar .turn');
+                const scoreEl = document.querySelector('.info-bar .score');
+                if (turnEl) turnEl.textContent = isMyTurn ? '🎯 Ваш ход' : '⏳ Ход: '+curName;
+                if (scoreEl) scoreEl.textContent = `🏆 ${me.quartets.length} | Запас: ${state.bankCount}`;
+                
+                // Обновляем список игроков
+                const playerCards = document.querySelectorAll('.player-card');
+                let idx = 0;
                 for(const p of state.players){
                     if(parseInt(p.id)===parseInt(playerId))continue;
-                    const isSelected = selectedPlayerId === parseInt(p.id);
-                    html+=`<div class="player-card ${parseInt(state.currentPlayer)===parseInt(p.id)?'current':''} ${isSelected?'selected-player':''}" onclick="selectPlayer(${p.id})"><div class="p-name">${p.name}</div><div class="p-info">🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов</div></div>`;
-                }
-                html+='</div>';
-                const grouped={};if(me.hand)me.hand.forEach(c=>{if(!grouped[c.category])grouped[c.category]=[];grouped[c.category].push(c);});
-                const allCats={};state.categories.forEach(q=>{allCats[q.name]=q.cards.map(c=>({name:c.name,category:q.name,owned:me.hand?me.hand.some(h=>h.category===q.name&&h.cardName===c.name):false}));});
-                const active=Object.keys(grouped).sort();
-                if(!active.length)html+='<p style="text-align:center;padding:40px;color:var(--text2);font-size:14px;">У вас нет карт</p>';
-                else {html+=active.map(cat=>{const cards=allCats[cat]||[],cnt=grouped[cat].length,done=cnt===4;const catId=cat.replace(/[^a-zA-Zа-яА-Я0-9]/g,'_');return `<div class="cat-section"><div class="cat-header" onclick="toggleCat('${catId}')"><span class="title">${cat}</span><span class="badge ${done?'badge-full':'badge-partial'}">${cnt}/4${done?' ✅':''}</span><span class="arrow" id="arrow-${catId}">▼</span></div><div class="cards-row" id="row-${catId}">${cards.map(c=>{const o=c.owned;const s=selectedCard&&selectedCard.category===cat&&selectedCard.cardName===c.name;return o?`<div class="card-chip owned"><div class="chip-name">✅ ${c.name}</div></div>`:`<div class="card-chip missing ${s?'selected':''}" onclick="selectCard('${cat.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')"><div class="chip-name">🃏 ${c.name}</div></div>`;}).join('')}</div></div>`;}).join('');}
-                document.getElementById('app').innerHTML=html;
-                structureCreated = true;
-            } else {
-                // Если структура уже создана, просто обновляем данные
-                updateGameData();
-                return;
-            }
-            
-            renderHistory(state.history);
-            renderActions();
-            checkWin();
-            
-            const bottom = document.getElementById('bottom-panel');
-            const oldExit = document.getElementById('exit-buttons');
-            if (oldExit) oldExit.remove();
-            const exitBtn = document.createElement('div');
-            exitBtn.id = 'exit-buttons';
-            exitBtn.style.cssText = 'display:flex;gap:8px;padding:4px 10px;justify-content:center;';
-            exitBtn.innerHTML = `
-                <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;" onclick="leaveGame()">🚪 Покинуть игру</button>
-                ${isOwner ? `
-                <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;background:var(--red);color:#fff;border-color:var(--red);" onclick="endGame()">🚫 Завершить игру</button>
-                ` : ''}
-            `;
-            bottom.appendChild(exitBtn);
-        }
-        function toggleCat(id){document.getElementById('row-'+id).classList.toggle('collapsed');document.getElementById('arrow-'+id).classList.toggle('open');}
-        function selectPlayer(pid){
-            selectedPlayerId = parseInt(pid);
-            const p = state.players.find(p => parseInt(p.id) === parseInt(pid));
-            if (p) toast(`Выбран: ${p.name}`,'');
-            renderGame();
-        }
-        function selectCard(cat,name){if(parseInt(state.currentPlayer)!==parseInt(playerId))return;selectedCard=(selectedCard&&selectedCard.category===cat&&selectedCard.cardName===name)?null:{category:cat,cardName:name};renderGame();}
-        async function requestCard() {
-            if(!selectedCard){toast('⚠️ Выберите карточку!','error');return;}
-            const toPlayer=selectedPlayerId!==null?selectedPlayerId:state.players.find(p=>parseInt(p.id)!==parseInt(playerId))?.id;
-            if(toPlayer===undefined){toast('⚠️ Выберите игрока!','error');return;}
-            const fromName = state.players.find(p => parseInt(p.id) === parseInt(playerId))?.name || 'Игрок';
-            const toName = state.players.find(p => parseInt(p.id) === parseInt(toPlayer))?.name || 'Игрок';
-            
-            // Блокируем кнопку от повторных нажатий
-            const actionBtn = document.querySelector('#action-row .btn');
-            if (actionBtn) {
-                actionBtn.disabled = true;
-                actionBtn.style.opacity = '0.7';
-            }
-            
-            try {
-                const r=await fetch(API+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,fromPlayer:parseInt(playerId),toPlayer:parseInt(toPlayer),category:selectedCard.category,cardName:selectedCard.cardName})});
-                const d=await r.json();
-                if(d.ok){
-                    if(d.found){
-                        toast(`✅ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карта есть! Переходит к ${fromName}`, 'success');
-                    }else{
-                        const nextName = state.players.find(p => parseInt(p.id) === parseInt(d.nextPlayer))?.name || 'неизвестно';
-                        toast(`❌ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карты нет. Ходит ${nextName}`, 'error');
-                    }
-                    selectedCard=null;selectedPlayerId=null;
-                    
-                    // Принудительное обновление с задержкой
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                    await fetchState();
-                } else toast(d.error,'error');
-            } catch(e){toast('Ошибка','error');} finally {
-                if (actionBtn) {
-                    actionBtn.disabled = false;
-                    actionBtn.style.opacity = '1';
-                }
-            }
-        }
-        function checkWin() {
-            if(!state)return;
-            const allCollected=state.players.reduce((s,p)=>s+p.quartets.length,0);
-            if(allCollected>=state.categories.length||(state.bankCount===0&&state.players.every(p=>p.handCount===0)){
-                clearInterval(pollTimer);
-                if (turnTimer) { clearInterval(turnTimer); turnTimer = null; }
-                document.getElementById('bottom-panel').classList.add('hidden');
-                const sorted=[...state.players].sort((a,b)=>b.quartets.length-a.quartets.length);
-                document.getElementById('app').innerHTML=`<div class="header"><h1 style="font-family:'Inter',sans-serif;font-size:24px;font-weight:700;color:var(--accent);">🏆 Игра окончена!</h1><div class="decor-line"></div></div>`+sorted.map((p,i)=>`<div class="score-item ${i===0&&sorted[0].quartets.length>0?'winner':''}"><span>${i===0?'👑 ':''}${p.name}</span><span style="color:var(--accent);font-weight:700;">${p.quartets.length} квартетов</span></div>`).join('')+'<button class="btn btn-primary btn-full" onclick="showMenu()">В меню</button>';
-            }
-        }
-        async function leaveGame() {
-            try {
-                const leavingPlayer = state.players.find(p => parseInt(p.id) === parseInt(playerId));
-                const playerNameLeaving = leavingPlayer ? leavingPlayer.name : 'Игрок';
-                
-                const r = await fetch(API+'/leave', {
-                    method: 'POST',
-                    headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({
-                        code: roomCode,
-                        playerId: parseInt(playerId)
-                    })
-                });
-                const d = await r.json();
-                if(d.ok){
-                    const message = `🚪 ${playerNameLeaving} покинул игру`;
-                    toast(message, '');
-                    
-                    if (state && state.history) {
-                        state.history.push({
-                            time: new Date().toLocaleTimeString(),
-                            text: message,
-                            type: 'system'
-                        });
-                        renderHistory(state.history);
-                    }
-                    
-                    if (turnTimer) {
-                        clearInterval(turnTimer);
-                        turnTimer = null;
-                        turnWarning = false;
-                    }
-                    clearInterval(pollTimer);
-                    document.getElementById('bottom-panel').classList.add('hidden');
-                    showMenu();
-                } else toast(d.error,'error');
-            } catch(e){toast('Ошибка при выходе','error');}
-        }
-        async function endGame() {
-            if (!confirm('Вы уверены, что хотите завершить игру?')) return;
-            try {
-                const r=await fetch(API+'/end_game',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,playerId:parseInt(playerId)})});
-                const d=await r.json();
-                if(d.ok){
-                    toast('🚫 Игра завершена', '');
-                    if (turnTimer) {
-                        clearInterval(turnTimer);
-                        turnTimer = null;
-                        turnWarning = false;
-                    }
-                    clearInterval(pollTimer);
-                    await fetchState();
-                } else toast(d.error,'error');
-            } catch(e){toast('Ошибка','error');}
-        }
-        showMenu();
-
-        // ----- Обратная связь -----
-        function openFeedback() {
-            if (feedbackOpen) return;
-            feedbackOpen = true;
-            const modal = document.createElement('div');
-            modal.id = 'feedback-modal';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <h3>💬 Обратная связь</h3>
-                    <p>Напишите, что хотите сообщить: ошибки, идеи, предложения.</p>
-                    <textarea id="feedback-message" placeholder="Ваше сообщение..."></textarea>
-                    <div class="btn-group">
-                        <button class="btn btn-primary" onclick="sendFeedback()">📤 Отправить</button>
-                        <button class="btn btn-secondary" onclick="closeFeedback()">← Назад</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
-        function closeFeedback() {
-            feedbackOpen = false;
-            const modal = document.getElementById('feedback-modal');
-            if (modal) modal.remove();
-        }
-        function sendFeedback() {
-            const message = document.getElementById('feedback-message').value.trim();
-            if (!message) {
-                toast('Напишите сообщение', 'error');
-                return;
-            }
-            fetch(API + '/feedback', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    code: roomCode || 'menu',
-                    playerId: playerId,
-                    name: playerName,
-                    message: message
-                })
-            })
-            .then(res => res.json())
-            .then(d => {
-                if (d.ok) {
-                    toast('✅ Сообщение отправлено в поддержку!', 'success');
-                    closeFeedback();
-                } else {
-                    toast('❌ ' + d.error, 'error');
-                }
-            })
-            .catch(() => toast('Ошибка отправки', 'error'));
-        }
-
-        // ----- Правила -----
-        function openRules() {
-            if (rulesOpen) return;
-            rulesOpen = true;
-            const modal = document.createElement('div');
-            modal.id = 'rules-modal';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <h3>📜 Правила игры</h3>
-                    <div class="rules-text">
-                        <p><strong>Цель игры:</strong> Собрать как можно больше квартетов (4 карты одной категории).</p>
-                        <ul>
-                            <li>В игре 37 квартетов, всего 148 карт.</li>
-                            <li>Каждому игроку раздаётся одинаковое количество карт (7, 10 или 15).</li>
-                            <li>Остальные карты образуют «запас» (банк).</li>
-                            <li>Игроки ходят по очереди. В свой ход можно <strong>попросить</strong> у любого другого игрока конкретную карту из категории, которая уже есть у вас в руке.</li>
-                            <li>Если у соперника есть эта карта — он отдаёт её вам, и вы ходите снова.</li>
-                            <li>Если у соперника нет этой карты — вы берёте одну карту из запаса, и ход переходит к следующему игроку.</li>
-                            <li>Если вы собрали 4 карты одной категории — они выкладываются на стол (квартет), и вы получаете 1 очко.</li>
-                            <li>Игра заканчивается, когда все квартеты собраны или когда запас пуст, и у всех игроков нет карт.</li>
-                        </ul>
-                        <p><strong>Дополнительно:</strong></p>
-                        <ul>
-                            <li>Создатель комнаты может завершить игру досрочно.</li>
-                            <li>Игрок может покинуть игру в любой момент (кнопка «Покинуть игру»).</li>
-                        </ul>
-                    </div>
-                    <div class="btn-group">
-                        <button class="btn btn-secondary" onclick="closeRules()">← Закрыть</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
-        function closeRules() {
-            rulesOpen = false;
-            const modal = document.getElementById('rules-modal');
-            if (modal) modal.remove();
-        }
-
-        // ===== ТАЙМЕР ХОДА =====
-        function startTurnTimer() {
-            if (turnTimer) {
-                clearInterval(turnTimer);
-                turnTimer = null;
-                turnWarning = false;
-            }
-            
-            let secondsLeft = 60;
-            let warned = false;
-            
-            turnTimer = setInterval(async () => {
-                secondsLeft--;
-                
-                if (secondsLeft === 30 && !warned) {
-                    warned = true;
-                    toast('⏰ У вас осталось 30 секунд! Если не сделаете ход, он перейдёт к следующему игроку.', '');
-                }
-                
-                // КАЖДУЮ СЕКУНДУ ПРОВЕРЯЕМ, ЧТО ХОД ВСЁ ЕЩЁ НАШ
-                if (secondsLeft > 0) {
-                    const currentState = await fetchStateSilent();
-                    if (currentState && parseInt(currentState.currentPlayer) !== parseInt(playerId)) {
-                        // Ход перешёл к другому - останавливаем таймер
-                        clearInterval(turnTimer);
-                        turnTimer = null;
-                        turnWarning = false;
-                        await fetchState();
-                        return;
+                    const card = playerCards[idx];
+                    if (card) {
+                        card.className = `player-card ${parseInt(state.currentPlayer)===parseInt(p.id)?'current':''} ${selectedPlayerId === parseInt(p.id) ? 'selected-player' : ''}`;
+                        card.onclick = () => selectPlayer(p.id);
+                        card.querySelector('.p-name').textContent = p.name;
+                        card.querySelector('.p-info').textContent = `🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов`;
+                        idx++;
                     }
                 }
                 
-                if (secondsLeft <= 0) {
+                renderHistory(state.history);
+                renderActions();
+                
+                // Обновляем кнопки выхода
+                const isOwner = parseInt(state.ownerId) === parseInt(playerId);
+                const bottom = document.getElementById('bottom-panel');
+                const oldExit = document.getElementById('exit-buttons');
+                if (oldExit) oldExit.remove();
+                const exitBtn = document.createElement('div');
+                exitBtn.id = 'exit-buttons';
+                exitBtn.style.cssText = 'display:flex;gap:8px;padding:4px 10px;justify-content:center;';
+                exitBtn.innerHTML = `
+                    <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;" onclick="leaveGame()">🚪 Покинуть игру</button>
+                    ${isOwner ? `
+                    <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;background:var(--red);color:#fff;border-color:var(--red);" onclick="endGame()">🚫 Завершить игру</button>
+                    ` : ''}
+                `;
+                bottom.appendChild(exitBtn);
+                
+                // Проверяем таймер
+                if (isMyTurn && !turnTimer && !isProcessingTurn) {
+                    startTurnTimer();
+                } else if (!isMyTurn && turnTimer) {
                     clearInterval(turnTimer);
                     turnTimer = null;
                     turnWarning = false;
-                    
-                    // Проверяем, что ход действительно наш
-                    if (!isProcessingTurn) {
-                        isProcessingTurn = true;
-                        try {
-                            const currentState = await fetchStateSilent();
-                            if (currentState && parseInt(currentState.currentPlayer) === parseInt(playerId)) {
-                                await skipTurn();
-                            } else {
-                                await fetchState();
-                            }
-                        } catch (e) {
-                            console.error('Ошибка при пропуске хода:', e);
-                        }
-                        isProcessingTurn = false;
+                }
+                
+                checkWin();
+            }
+            function renderGame() {
+                if(!state||state.status==='lobby'){showLobby();return;}
+                document.getElementById('bottom-panel').classList.remove('hidden');
+                const me=state.players.find(p=>parseInt(p.id)===parseInt(playerId));
+                if(!me)return;
+                
+                if (me.name !== playerName) {
+                    playerName = me.name;
+                    const nameInput = document.getElementById('lobby-name');
+                    if (nameInput) nameInput.value = playerName;
+                }
+                
+                const isMyTurn = parseInt(state.currentPlayer) === parseInt(playerId);
+                const curObj = state.players.find(p => parseInt(p.id) === parseInt(state.currentPlayer));
+                const curName = curObj ? curObj.name : 'Неизвестно';
+                const isOwner = parseInt(state.ownerId) === parseInt(playerId);
+                
+                // Проверяем синхронизацию хода
+                const currentPlayerFromState = state.currentPlayer;
+                const myPlayerId = parseInt(playerId);
+                
+                // Если ход не мой, но таймер запущен - останавливаем
+                if (currentPlayerFromState !== myPlayerId && turnTimer) {
+                    clearInterval(turnTimer);
+                    turnTimer = null;
+                    turnWarning = false;
+                    console.log('Таймер остановлен - ход не мой');
+                }
+                
+                // Если ход мой, но таймер не запущен - запускаем
+                if (currentPlayerFromState === myPlayerId && !turnTimer && !isProcessingTurn) {
+                    console.log('Запуск таймера - мой ход');
+                    startTurnTimer();
+                }
+
+                if (!structureCreated) {
+                    let html=`<div class="info-bar"><span class="turn">${isMyTurn?'🎯 Ваш ход':'⏳ Ход: '+curName}</span><span class="score">🏆 ${me.quartets.length} | Запас: ${state.bankCount}</span></div>`;
+                    html+='<div class="player-list">';
+                    for(const p of state.players){
+                        if(parseInt(p.id)===parseInt(playerId))continue;
+                        const isSelected = selectedPlayerId === parseInt(p.id);
+                        html+=`<div class="player-card ${parseInt(state.currentPlayer)===parseInt(p.id)?'current':''} ${isSelected?'selected-player':''}" onclick="selectPlayer(${p.id})"><div class="p-name">${p.name}</div><div class="p-info">🃏 ${p.handCount} карт | 🏆 ${p.quartets.length} квартетов</div></div>`;
                     }
-                }
-            }, 1000);
-        }
-        
-        async function skipTurn() {
-            const currentPlayerId = state.currentPlayer;
-            if (!missedTurns[currentPlayerId]) {
-                missedTurns[currentPlayerId] = 0;
-            }
-            missedTurns[currentPlayerId]++;
-            
-            if (missedTurns[currentPlayerId] >= 3) {
-                const playerName = state.players.find(p => p.id === currentPlayerId)?.name || 'неизвестно';
-                toast(`⚠️ Игрок ${playerName} исключён за 3 пропуска хода.`, 'error');
-                if (state && state.history) {
-                    state.history.push({
-                        time: new Date().toLocaleTimeString(),
-                        text: `⚠️ Игрок ${playerName} исключён за 3 пропуска хода`,
-                        type: 'system'
-                    });
-                    renderHistory(state.history);
-                }
-                await excludePlayer(currentPlayerId);
-                return;
-            }
-            
-            try {
-                const r = await fetch(API + '/skip_turn', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        code: roomCode,
-                        playerId: parseInt(currentPlayerId)
-                    })
-                });
-                const d = await r.json();
-                if (!d.ok) {
-                    toast('Ошибка при пропуске хода: ' + d.error, 'error');
+                    html+='</div>';
+                    const grouped={};if(me.hand)me.hand.forEach(c=>{if(!grouped[c.category])grouped[c.category]=[];grouped[c.category].push(c);});
+                    const allCats={};state.categories.forEach(q=>{allCats[q.name]=q.cards.map(c=>({name:c.name,category:q.name,owned:me.hand?me.hand.some(h=>h.category===q.name&&h.cardName===c.name):false}));});
+                    const active=Object.keys(grouped).sort();
+                    if(!active.length)html+='<p style="text-align:center;padding:40px;color:var(--text2);font-size:14px;">У вас нет карт</p>';
+                    else {html+=active.map(cat=>{const cards=allCats[cat]||[],cnt=grouped[cat].length,done=cnt===4;const catId=cat.replace(/[^a-zA-Zа-яА-Я0-9]/g,'_');return `<div class="cat-section"><div class="cat-header" onclick="toggleCat('${catId}')"><span class="title">${cat}</span><span class="badge ${done?'badge-full':'badge-partial'}">${cnt}/4${done?' ✅':''}</span><span class="arrow" id="arrow-${catId}">▼</span></div><div class="cards-row" id="row-${catId}">${cards.map(c=>{const o=c.owned;const s=selectedCard&&selectedCard.category===cat&&selectedCard.cardName===c.name;return o?`<div class="card-chip owned"><div class="chip-name">✅ ${c.name}</div></div>`:`<div class="card-chip missing ${s?'selected':''}" onclick="selectCard('${cat.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')"><div class="chip-name">🃏 ${c.name}</div></div>`;}).join('')}</div></div>`;}).join('');}
+                    document.getElementById('app').innerHTML=html;
+                    structureCreated = true;
+                } else {
+                    // Если структура уже создана, просто обновляем данные
+                    updateGameData();
                     return;
                 }
                 
+                renderHistory(state.history);
+                renderActions();
+                checkWin();
+                
+                const bottom = document.getElementById('bottom-panel');
+                const oldExit = document.getElementById('exit-buttons');
+                if (oldExit) oldExit.remove();
+                const exitBtn = document.createElement('div');
+                exitBtn.id = 'exit-buttons';
+                exitBtn.style.cssText = 'display:flex;gap:8px;padding:4px 10px;justify-content:center;';
+                exitBtn.innerHTML = `
+                    <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;" onclick="leaveGame()">🚪 Покинуть игру</button>
+                    ${isOwner ? `
+                    <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;background:var(--red);color:#fff;border-color:var(--red);" onclick="endGame()">🚫 Завершить игру</button>
+                    ` : ''}
+                `;
+                bottom.appendChild(exitBtn);
+            }
+            function toggleCat(id){document.getElementById('row-'+id).classList.toggle('collapsed');document.getElementById('arrow-'+id).classList.toggle('open');}
+            function selectPlayer(pid){
+                selectedPlayerId = parseInt(pid);
+                const p = state.players.find(p => parseInt(p.id) === parseInt(pid));
+                if (p) toast(`Выбран: ${p.name}`,'');
+                renderGame();
+            }
+            function selectCard(cat,name){if(parseInt(state.currentPlayer)!==parseInt(playerId))return;selectedCard=(selectedCard&&selectedCard.category===cat&&selectedCard.cardName===name)?null:{category:cat,cardName:name};renderGame();}
+            async function requestCard() {
+                if(!selectedCard){toast('⚠️ Выберите карточку!','error');return;}
+                const toPlayer=selectedPlayerId!==null?selectedPlayerId:state.players.find(p=>parseInt(p.id)!==parseInt(playerId))?.id;
+                if(toPlayer===undefined){toast('⚠️ Выберите игрока!','error');return;}
+                const fromName = state.players.find(p => parseInt(p.id) === parseInt(playerId))?.name || 'Игрок';
+                const toName = state.players.find(p => parseInt(p.id) === parseInt(toPlayer))?.name || 'Игрок';
+                
+                // Блокируем кнопку от повторных нажатий
+                const actionBtn = document.querySelector('#action-row .btn');
+                if (actionBtn) {
+                    actionBtn.disabled = true;
+                    actionBtn.style.opacity = '0.7';
+                }
+                
+                try {
+                    const r=await fetch(API+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,fromPlayer:parseInt(playerId),toPlayer:parseInt(toPlayer),category:selectedCard.category,cardName:selectedCard.cardName})});
+                    const d=await r.json();
+                    if(d.ok){
+                        if(d.found){
+                            toast(`✅ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карта есть! Переходит к ${fromName}`, 'success');
+                        }else{
+                            const nextName = state.players.find(p => parseInt(p.id) === parseInt(d.nextPlayer))?.name || 'неизвестно';
+                            toast(`❌ ${fromName} запросил(а) "${selectedCard.cardName}" у ${toName}. Карты нет. Ходит ${nextName}`, 'error');
+                        }
+                        selectedCard=null;selectedPlayerId=null;
+                        
+                        // Принудительное обновление с задержкой
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        await fetchState();
+                    } else toast(d.error,'error');
+                } catch(e){toast('Ошибка','error');} finally {
+                    if (actionBtn) {
+                        actionBtn.disabled = false;
+                        actionBtn.style.opacity = '1';
+                    }
+                }
+            }
+            function checkWin() {
+                if(!state)return;
+                const allCollected=state.players.reduce((s,p)=>s+p.quartets.length,0);
+                if(allCollected>=state.categories.length||(state.bankCount===0&&state.players.every(p=>p.handCount===0)){
+                    clearInterval(pollTimer);
+                    if (turnTimer) { clearInterval(turnTimer); turnTimer = null; }
+                    document.getElementById('bottom-panel').classList.add('hidden');
+                    const sorted=[...state.players].sort((a,b)=>b.quartets.length-a.quartets.length);
+                    document.getElementById('app').innerHTML=`<div class="header"><h1 style="font-family:'Inter',sans-serif;font-size:24px;font-weight:700;color:var(--accent);">🏆 Игра окончена!</h1><div class="decor-line"></div></div>`+sorted.map((p,i)=>`<div class="score-item ${i===0&&sorted[0].quartets.length>0?'winner':''}"><span>${i===0?'👑 ':''}${p.name}</span><span style="color:var(--accent);font-weight:700;">${p.quartets.length} квартетов</span></div>`).join('')+'<button class="btn btn-primary btn-full" onclick="showMenu()">В меню</button>';
+                }
+            }
+            async function leaveGame() {
+                try {
+                    const leavingPlayer = state.players.find(p => parseInt(p.id) === parseInt(playerId));
+                    const playerNameLeaving = leavingPlayer ? leavingPlayer.name : 'Игрок';
+                    
+                    const r = await fetch(API+'/leave', {
+                        method: 'POST',
+                        headers: {'Content-Type':'application/json'},
+                        body: JSON.stringify({
+                            code: roomCode,
+                            playerId: parseInt(playerId)
+                        })
+                    });
+                    const d = await r.json();
+                    if(d.ok){
+                        const message = `🚪 ${playerNameLeaving} покинул игру`;
+                        toast(message, '');
+                        
+                        if (state && state.history) {
+                            state.history.push({
+                                time: new Date().toLocaleTimeString(),
+                                text: message,
+                                type: 'system'
+                            });
+                            renderHistory(state.history);
+                        }
+                        
+                        if (turnTimer) {
+                            clearInterval(turnTimer);
+                            turnTimer = null;
+                            turnWarning = false;
+                        }
+                        clearInterval(pollTimer);
+                        document.getElementById('bottom-panel').classList.add('hidden');
+                        showMenu();
+                    } else toast(d.error,'error');
+                } catch(e){toast('Ошибка при выходе','error');}
+            }
+            async function endGame() {
+                if (!confirm('Вы уверены, что хотите завершить игру?')) return;
+                try {
+                    const r=await fetch(API+'/end_game',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,playerId:parseInt(playerId)})});
+                    const d=await r.json();
+                    if(d.ok){
+                        toast('🚫 Игра завершена', '');
+                        if (turnTimer) {
+                            clearInterval(turnTimer);
+                            turnTimer = null;
+                            turnWarning = false;
+                        }
+                        clearInterval(pollTimer);
+                        await fetchState();
+                    } else toast(d.error,'error');
+                } catch(e){toast('Ошибка','error');}
+            }
+
+            // ----- Обратная связь -----
+            function openFeedback() {
+                if (feedbackOpen) return;
+                feedbackOpen = true;
+                const modal = document.createElement('div');
+                modal.id = 'feedback-modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <h3>💬 Обратная связь</h3>
+                        <p>Напишите, что хотите сообщить: ошибки, идеи, предложения.</p>
+                        <textarea id="feedback-message" placeholder="Ваше сообщение..."></textarea>
+                        <div class="btn-group">
+                            <button class="btn btn-primary" onclick="sendFeedback()">📤 Отправить</button>
+                            <button class="btn btn-secondary" onclick="closeFeedback()">← Назад</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            function closeFeedback() {
+                feedbackOpen = false;
+                const modal = document.getElementById('feedback-modal');
+                if (modal) modal.remove();
+            }
+            function sendFeedback() {
+                const message = document.getElementById('feedback-message').value.trim();
+                if (!message) {
+                    toast('Напишите сообщение', 'error');
+                    return;
+                }
+                fetch(API + '/feedback', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        code: roomCode || 'menu',
+                        playerId: playerId,
+                        name: playerName,
+                        message: message
+                    })
+                })
+                .then(res => res.json())
+                .then(d => {
+                    if (d.ok) {
+                        toast('✅ Сообщение отправлено в поддержку!', 'success');
+                        closeFeedback();
+                    } else {
+                        toast('❌ ' + d.error, 'error');
+                    }
+                })
+                .catch(() => toast('Ошибка отправки', 'error'));
+            }
+
+            // ----- Правила -----
+            function openRules() {
+                if (rulesOpen) return;
+                rulesOpen = true;
+                const modal = document.createElement('div');
+                modal.id = 'rules-modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <h3>📜 Правила игры</h3>
+                        <div class="rules-text">
+                            <p><strong>Цель игры:</strong> Собрать как можно больше квартетов (4 карты одной категории).</p>
+                            <ul>
+                                <li>В игре 37 квартетов, всего 148 карт.</li>
+                                <li>Каждому игроку раздаётся одинаковое количество карт (7, 10 или 15).</li>
+                                <li>Остальные карты образуют «запас» (банк).</li>
+                                <li>Игроки ходят по очереди. В свой ход можно <strong>попросить</strong> у любого другого игрока конкретную карту из категории, которая уже есть у вас в руке.</li>
+                                <li>Если у соперника есть эта карта — он отдаёт её вам, и вы ходите снова.</li>
+                                <li>Если у соперника нет этой карты — вы берёте одну карту из запаса, и ход переходит к следующему игроку.</li>
+                                <li>Если вы собрали 4 карты одной категории — они выкладываются на стол (квартет), и вы получаете 1 очко.</li>
+                                <li>Игра заканчивается, когда все квартеты собраны или когда запас пуст, и у всех игроков нет карт.</li>
+                            </ul>
+                            <p><strong>Дополнительно:</strong></p>
+                            <ul>
+                                <li>Создатель комнаты может завершить игру досрочно.</li>
+                                <li>Игрок может покинуть игру в любой момент (кнопка «Покинуть игру»).</li>
+                            </ul>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary" onclick="closeRules()">← Закрыть</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            function closeRules() {
+                rulesOpen = false;
+                const modal = document.getElementById('rules-modal');
+                if (modal) modal.remove();
+            }
+
+            // ===== ТАЙМЕР ХОДА =====
+            function startTurnTimer() {
                 if (turnTimer) {
                     clearInterval(turnTimer);
                     turnTimer = null;
                     turnWarning = false;
                 }
                 
-                await fetchState();
+                let secondsLeft = 60;
+                let warned = false;
                 
-                const playerName = state.players.find(p => p.id === currentPlayerId)?.name || 'неизвестно';
-                const nextPlayerId = state.currentPlayer;
-                const nextPlayerName = state.players.find(p => p.id === nextPlayerId)?.name || 'неизвестно';
-                
-                toast(`⏰ Ход перешёл к ${nextPlayerName} (${playerName} пропустил ход).`, '');
-                if (state && state.history) {
-                    state.history.push({
-                        time: new Date().toLocaleTimeString(),
-                        text: `⏰ ${playerName} пропустил ход, ходит ${nextPlayerName}`,
-                        type: 'system'
-                    });
-                    renderHistory(state.history);
-                }
-            } catch (e) {
-                toast('Ошибка при пропуске хода', 'error');
+                turnTimer = setInterval(async () => {
+                    secondsLeft--;
+                    
+                    if (secondsLeft === 30 && !warned) {
+                        warned = true;
+                        toast('⏰ У вас осталось 30 секунд! Если не сделаете ход, он перейдёт к следующему игроку.', '');
+                    }
+                    
+                    // КАЖДУЮ СЕКУНДУ ПРОВЕРЯЕМ, ЧТО ХОД ВСЁ ЕЩЁ НАШ
+                    if (secondsLeft > 0) {
+                        const currentState = await fetchStateSilent();
+                        if (currentState && parseInt(currentState.currentPlayer) !== parseInt(playerId)) {
+                            // Ход перешёл к другому - останавливаем таймер
+                            clearInterval(turnTimer);
+                            turnTimer = null;
+                            turnWarning = false;
+                            await fetchState();
+                            return;
+                        }
+                    }
+                    
+                    if (secondsLeft <= 0) {
+                        clearInterval(turnTimer);
+                        turnTimer = null;
+                        turnWarning = false;
+                        
+                        // Проверяем, что ход действительно наш
+                        if (!isProcessingTurn) {
+                            isProcessingTurn = true;
+                            try {
+                                const currentState = await fetchStateSilent();
+                                if (currentState && parseInt(currentState.currentPlayer) === parseInt(playerId)) {
+                                    await skipTurn();
+                                } else {
+                                    await fetchState();
+                                }
+                            } catch (e) {
+                                console.error('Ошибка при пропуске хода:', e);
+                            }
+                            isProcessingTurn = false;
+                        }
+                    }
+                }, 1000);
             }
-        }
-        
-        async function excludePlayer(playerIdToExclude) {
-            try {
-                const playerName = state.players.find(p => p.id === playerIdToExclude)?.name || 'неизвестно';
-                const r = await fetch(API + '/exclude', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        code: roomCode,
-                        playerId: parseInt(playerIdToExclude)
-                    })
-                });
-                const d = await r.json();
-                if (!d.ok) {
-                    toast('Ошибка при исключении игрока: ' + d.error, 'error');
-                } else {
-                    toast(`👢 Игрок ${playerName} был исключён.`, 'error');
+            
+            async function skipTurn() {
+                const currentPlayerId = state.currentPlayer;
+                if (!missedTurns[currentPlayerId]) {
+                    missedTurns[currentPlayerId] = 0;
+                }
+                missedTurns[currentPlayerId]++;
+                
+                if (missedTurns[currentPlayerId] >= 3) {
+                    const playerName = state.players.find(p => p.id === currentPlayerId)?.name || 'неизвестно';
+                    toast(`⚠️ Игрок ${playerName} исключён за 3 пропуска хода.`, 'error');
                     if (state && state.history) {
                         state.history.push({
                             time: new Date().toLocaleTimeString(),
-                            text: `👢 Игрок ${playerName} был исключён за 3 пропуска хода`,
+                            text: `⚠️ Игрок ${playerName} исключён за 3 пропуска хода`,
                             type: 'system'
                         });
                         renderHistory(state.history);
                     }
-                    missedTurns[playerIdToExclude] = 0;
+                    await excludePlayer(currentPlayerId);
+                    return;
+                }
+                
+                try {
+                    const r = await fetch(API + '/skip_turn', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            code: roomCode,
+                            playerId: parseInt(currentPlayerId)
+                        })
+                    });
+                    const d = await r.json();
+                    if (!d.ok) {
+                        toast('Ошибка при пропуске хода: ' + d.error, 'error');
+                        return;
+                    }
+                    
+                    if (turnTimer) {
+                        clearInterval(turnTimer);
+                        turnTimer = null;
+                        turnWarning = false;
+                    }
+                    
                     await fetchState();
+                    
+                    const playerName = state.players.find(p => p.id === currentPlayerId)?.name || 'неизвестно';
+                    const nextPlayerId = state.currentPlayer;
+                    const nextPlayerName = state.players.find(p => p.id === nextPlayerId)?.name || 'неизвестно';
+                    
+                    toast(`⏰ Ход перешёл к ${nextPlayerName} (${playerName} пропустил ход).`, '');
+                    if (state && state.history) {
+                        state.history.push({
+                            time: new Date().toLocaleTimeString(),
+                            text: `⏰ ${playerName} пропустил ход, ходит ${nextPlayerName}`,
+                            type: 'system'
+                        });
+                        renderHistory(state.history);
+                    }
+                } catch (e) {
+                    toast('Ошибка при пропуске хода', 'error');
                 }
-            } catch (e) {
-                toast('Ошибка соединения при исключении игрока', 'error');
             }
-        }
-        
-        async function fetchStateSilent() {
-            if(!roomCode||playerId===null)return null;
-            try {
-                const r=await fetch(`${API}/state/${roomCode}/${playerId}`);
-                const d=await r.json();
-                if(d.ok){
-                    d.currentPlayer=parseInt(d.currentPlayer);d.playerId=parseInt(d.playerId);
-                    d.bankCount=parseInt(d.bankCount);d.ownerId=parseInt(d.ownerId);
-                    if(d.players)d.players.forEach(p=>{p.id=parseInt(p.id);p.handCount=parseInt(p.handCount);});
-                    return d;
+            
+            async function excludePlayer(playerIdToExclude) {
+                try {
+                    const playerName = state.players.find(p => p.id === playerIdToExclude)?.name || 'неизвестно';
+                    const r = await fetch(API + '/exclude', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            code: roomCode,
+                            playerId: parseInt(playerIdToExclude)
+                        })
+                    });
+                    const d = await r.json();
+                    if (!d.ok) {
+                        toast('Ошибка при исключении игрока: ' + d.error, 'error');
+                    } else {
+                        toast(`👢 Игрок ${playerName} был исключён.`, 'error');
+                        if (state && state.history) {
+                            state.history.push({
+                                time: new Date().toLocaleTimeString(),
+                                text: `👢 Игрок ${playerName} был исключён за 3 пропуска хода`,
+                                type: 'system'
+                            });
+                            renderHistory(state.history);
+                        }
+                        missedTurns[playerIdToExclude] = 0;
+                        await fetchState();
+                    }
+                } catch (e) {
+                    toast('Ошибка соединения при исключении игрока', 'error');
                 }
-            } catch(e){}
-            return null;
+            }
+            
+            async function fetchStateSilent() {
+                if(!roomCode||playerId===null)return null;
+                try {
+                    const r=await fetch(`${API}/state/${roomCode}/${playerId}`);
+                    const d=await r.json();
+                    if(d.ok){
+                        d.currentPlayer=parseInt(d.currentPlayer);d.playerId=parseInt(d.playerId);
+                        d.bankCount=parseInt(d.bankCount);d.ownerId=parseInt(d.ownerId);
+                        if(d.players)d.players.forEach(p=>{p.id=parseInt(p.id);p.handCount=parseInt(p.handCount);});
+                        return d;
+                    }
+                } catch(e){}
+                return null;
+            }
+            
+            // Запуск приложения
+            showMenu();
         }
-        
-        showMenu();
     </script>
 </body>
 </html>
