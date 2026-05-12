@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Библейский квартет</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -758,6 +757,9 @@
         <div class="action-row" id="action-row"></div>
     </div>
 
+    <!-- ⚠️ ИСПРАВЛЕНИЕ: Telegram SDK загружается в конце body -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
     <script>
         const tg = window.Telegram.WebApp;
         if (tg) { tg.expand(); tg.ready(); tg.setHeaderColor('#f5f0e8'); tg.setBackgroundColor('#f5f0e8'); }
