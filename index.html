@@ -1358,7 +1358,7 @@
         function checkWin() {
             if(!state)return;
             const allCollected=state.players.reduce((s,p)=>s+p.quartets.length,0);
-            if(allCollected>=state.categories.length||(state.bankCount===0&&state.players.every(p=>p.handCount===0)){
+            if(allCollected>=state.categories.length||(state.bankCount===0&&state.players.every(p=>p.handCount===0))){
                 clearInterval(pollTimer);
                 if (turnTimer) { clearInterval(turnTimer); turnTimer = null; }
                 document.getElementById('bottom-panel').classList.add('hidden');
