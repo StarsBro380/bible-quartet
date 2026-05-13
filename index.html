@@ -794,14 +794,14 @@
                 }
             });
             
+            // 👇 ИСПРАВЛЕНИЕ: при старте игры принудительно обновляем интерфейс
             socket.on('game_started', (data) => {
                 if (data.code === roomCode) {
                     console.log('📡 Получено game_started');
-                    // 👇 Принудительное обновление после старта игры
                     setTimeout(() => {
-                        fetchState();
+                        structureCreated = false;
                         renderGame();
-                    }, 500);
+                    }, 200);
                 }
             });
             
@@ -1256,14 +1256,10 @@
                                 }
                             }
                         }
+                        // 👇 ИСПРАВЛЕНИЕ: принудительный переход в игру для второго игрока
                         if (d.status === 'playing') {
-                            // 👇 При старте игры принудительно обновляем состояние
-                            const me = d.players.find(p => p.id === playerId);
-                            if (me && me.hand) {
-                                renderGame();
-                            } else {
-                                fetchState();
-                            }
+                            structureCreated = false;
+                            renderGame();
                         }
                     }
                 } catch (e) {}
@@ -1307,7 +1303,9 @@
                         updateGameData();
                     }
                 }
-            } catch(e){}
+            } catch(e){
+                console.error(e);
+            }
         }
         function updateGameData() {
             if(!state||state.status==='lobby'){showLobby();return;}
