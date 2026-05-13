@@ -761,7 +761,6 @@
         const urlParams = new URLSearchParams(window.location.search);
         const codeFromUrl = urlParams.get('code');
         if (codeFromUrl) {
-            // Небольшая задержка, чтобы DOM успел загрузиться
             setTimeout(() => {
                 document.getElementById('join-code').value = codeFromUrl.toUpperCase();
                 joinGame();
@@ -798,7 +797,11 @@
             socket.on('game_started', (data) => {
                 if (data.code === roomCode) {
                     console.log('📡 Получено game_started');
-                    fetchState();
+                    // 👇 Принудительное обновление после старта игры
+                    setTimeout(() => {
+                        fetchState();
+                        renderGame();
+                    }, 500);
                 }
             });
             
@@ -981,30 +984,22 @@
                 </div>
             `;
             
-            // Инициализируем сканер QR-кода
             const html5QrCode = new Html5Qrcode("qr-reader");
             
             const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-                // Извлекаем код из ссылки
                 let code = decodedText;
-                // Если ссылка содержит ?code=..., извлекаем значение
                 if (decodedText.includes('?code=')) {
                     const urlParams = new URLSearchParams(decodedText.split('?')[1]);
                     code = urlParams.get('code');
                 } else if (decodedText.includes('/join/')) {
-                    // Если ссылка вида .../join/ABC123
                     code = decodedText.split('/').pop();
                 }
                 if (code) {
                     code = code.toUpperCase().trim();
-                    // Вставляем код в поле ввода
                     document.getElementById('join-code').value = code;
-                    // Останавливаем сканер
                     html5QrCode.stop().then(() => {
-                        // Подключаемся к игре
                         joinGame();
-                    }).catch((err) => {
-                        // Если не удалось остановить, всё равно подключаемся
+                    }).catch(() => {
                         joinGame();
                     });
                 } else {
@@ -1012,18 +1007,12 @@
                 }
             };
             
-            const config = {
-                fps: 10,
-                qrbox: { width: 250, height: 250 }
-            };
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
             
-            html5QrCode.start(
-                { facingMode: "environment" },
-                config,
-                qrCodeSuccessCallback
-            ).catch(err => {
-                toast('⚠️ Не удалось запустить камеру. Введите код вручную.', 'error');
-            });
+            html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+                .catch(err => {
+                    toast('⚠️ Не удалось запустить камеру. Введите код вручную.', 'error');
+                });
         }
         
         async function joinGame() {
@@ -1075,7 +1064,6 @@
             }
         }
         
-        // ===== ДОБАВЛЕНА ФУНКЦИЯ createGame =====
         async function createGame(n) {
             try {
                 const r = await fetch(API+'/create', {
@@ -1269,7 +1257,13 @@
                             }
                         }
                         if (d.status === 'playing') {
-                            fetchState();
+                            // 👇 При старте игры принудительно обновляем состояние
+                            const me = d.players.find(p => p.id === playerId);
+                            if (me && me.hand) {
+                                renderGame();
+                            } else {
+                                fetchState();
+                            }
                         }
                     }
                 } catch (e) {}
@@ -1324,13 +1318,11 @@
             const curObj = state.players.find(p => parseInt(p.id) === parseInt(state.currentPlayer));
             const curName = curObj ? curObj.name : 'Неизвестно';
             
-            // Обновляем верхнюю панель
             const turnEl = document.querySelector('.info-bar .turn');
             const scoreEl = document.querySelector('.info-bar .score');
             if (turnEl) turnEl.textContent = isMyTurn ? '🎯 Ваш ход' : '⏳ Ход: '+curName;
             if (scoreEl) scoreEl.textContent = `🏆 ${me.quartets.length} | Запас: ${state.bankCount}`;
             
-            // Обновляем список игроков
             const playerCards = document.querySelectorAll('.player-card');
             let idx = 0;
             for(const p of state.players){
@@ -1348,7 +1340,6 @@
             renderHistory(state.history);
             renderActions();
             
-            // Обновляем кнопки выхода
             const isOwner = parseInt(state.ownerId) === parseInt(playerId);
             const bottom = document.getElementById('bottom-panel');
             const oldExit = document.getElementById('exit-buttons');
@@ -1712,11 +1703,9 @@
                     turnWarning = false;
                 }
                 
-                // Ждём обновления состояния
                 await new Promise(resolve => setTimeout(resolve, 500));
                 await fetchState();
                 
-                // Принудительно обновляем отображение текущего игрока
                 const newCurrentPlayer = state?.currentPlayer;
                 const newCurrentName = state?.players.find(p => p.id === newCurrentPlayer)?.name || 'Неизвестно';
                 const turnEl = document.querySelector('.info-bar .turn');
