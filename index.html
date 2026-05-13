@@ -1026,7 +1026,6 @@
             });
         }
         
-        // ===== ИСПРАВЛЕНИЕ: async перед функцией =====
         async function joinGame() {
             const code = document.getElementById('join-code').value.trim().toUpperCase();
             if (!code) { toast('Введите код', 'error'); return; }
@@ -1075,6 +1074,33 @@
                 }
             }
         }
+        
+        // ===== ДОБАВЛЕНА ФУНКЦИЯ createGame =====
+        async function createGame(n) {
+            try {
+                const r = await fetch(API+'/create', {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({
+                        name: playerName,
+                        cards: n,
+                        playerId: parseInt(playerId)
+                    })
+                });
+                const d = await r.json();
+                if (d.ok) {
+                    roomCode = d.code;
+                    playerId = parseInt(d.playerId);
+                    ownerId = parseInt(d.playerId);
+                    showLobby();
+                } else {
+                    toast(d.error, 'error');
+                }
+            } catch(e){
+                toast('Ошибка соединения', 'error');
+            }
+        }
+        
         async function startGame() {
             try {
                 const r=await fetch(API+'/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:roomCode,playerId})});
