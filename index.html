@@ -798,12 +798,10 @@
             socket.on('game_started', (data) => {
                 if (data.code === roomCode) {
                     console.log('📡 Получено game_started');
-                    console.log('🔄 Принудительно вызываем renderGame()');
-                    setTimeout(() => {
-                        structureCreated = false;
-                        renderGame();
-                        console.log('✅ renderGame() вызван');
-                    }, 500);
+                    // 👇 ПРИНУДИТЕЛЬНО СБРАСЫВАЕМ СТРУКТУРУ
+                    structureCreated = false;
+                    // 👇 ВЫЗЫВАЕМ RENDER
+                    renderGame();
                 }
             });
             
@@ -1217,8 +1215,6 @@
                     const d = await r.json();
                     if (d.ok) {
                         ownerId = parseInt(d.ownerId);
-                        console.log('🔄 pollTimer: статус игры:', d.status);
-                        console.log('🃏 Мои карты:', d.players.find(p => p.id === playerId)?.hand);
                         
                         const otherPlayersContainer = document.getElementById('other-players');
                         if (otherPlayersContainer) {
@@ -1263,13 +1259,19 @@
                         // 👇 ИСПРАВЛЕНИЕ: принудительный переход в игру для второго игрока
                         if (d.status === 'playing') {
                             console.log('🎮 Статус игры: playing — вызываем renderGame()');
+                            // 👇 ПРИНУДИТЕЛЬНО СБРАСЫВАЕМ СТРУКТУРУ
                             structureCreated = false;
+                            // 👇 ВЫЗЫВАЕМ RENDER
                             renderGame();
+                            // 👇 ЕСЛИ НЕ ПОМОГЛО — ПОВТОРЯЕМ ЧЕРЕЗ СЕКУНДУ
+                            setTimeout(() => {
+                                if (document.querySelector('.info-bar') === null) {
+                                    renderGame();
+                                }
+                            }, 1000);
                         }
                     }
-                } catch (e) {
-                    console.error('Ошибка в pollTimer:', e);
-                }
+                } catch (e) {}
             }, 1000);
         }
         function startPolling() {
@@ -1286,12 +1288,10 @@
         }
         async function fetchState() {
             if(!roomCode||playerId===null)return;
-            console.log('🔄 fetchState() вызван');
             try {
                 const r=await fetch(`${API}/state/${roomCode}/${playerId}`);
                 const d=await r.json();
                 if(d.ok){
-                    console.log('✅ fetchState() успешно');
                     const prevState = state;
                     const prevCurrentPlayer = prevState ? prevState.currentPlayer : null;
                     const prevPlayersCount = prevState ? prevState.players.length : 0;
@@ -1312,9 +1312,7 @@
                         updateGameData();
                     }
                 }
-            } catch(e){
-                console.error('Ошибка в fetchState():', e);
-            }
+            } catch(e){}
         }
         function updateGameData() {
             if(!state||state.status==='lobby'){showLobby();return;}
@@ -1373,11 +1371,7 @@
             checkWin();
         }
         function renderGame() {
-            console.log('🎨 Вызван renderGame()');
-            if(!state||state.status==='lobby'){
-                console.log('⏪ Возврат в лобби');
-                showLobby();return;
-            }
+            if(!state||state.status==='lobby'){showLobby();return;}
             document.getElementById('bottom-panel').classList.remove('hidden');
             const me=state.players.find(p=>parseInt(p.id)===parseInt(playerId));
             if(!me)return;
